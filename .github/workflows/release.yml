@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types:
+      - completed
+    branches:
+      - main
+
+env:
+  FRONTEND_DIR: frontend
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    name: Create a new release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: ${{ matrix.node-version }}
+          working-directory: ${{ env.FRONTEND_DIR }}
+
+      - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm audit signatures
+
+      - name: Release
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
