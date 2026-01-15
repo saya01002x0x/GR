@@ -46,7 +46,7 @@ npx nest g [schematic] [name] [path]
 
 ---
 
-## 📁 Project Structure
+## 📁 Project Structure (✨ Updated 2026-01-15)
 
 ```
 backend/
@@ -54,40 +54,50 @@ backend/
 │   ├── app.module.ts           # Root module
 │   ├── main.ts                 # Entry point
 │   │
-│   ├── auth/                   # Feature module
-│   │   ├── auth.module.ts
-│   │   ├── auth.service.ts
-│   │   ├── auth.service.spec.ts
-│   │   ├── strategies/         # Passport strategies
-│   │   │   └── clerk.strategy.ts
-│   │   ├── guards/             # Auth guards
-│   │   │   └── clerk.guard.ts
-│   │   └── providers/          # Custom providers
-│   │       └── clerk-client.provider.ts
+│   ├── common/                 # 🔧 Shared utilities (cross-cutting)
+│   │   ├── decorators/         # @CurrentUser, @Roles, @Public
+│   │   ├── filters/            # Exception filters
+│   │   ├── guards/             # RolesGuard, ThrottleGuard
+│   │   ├── interceptors/       # Logging, Transform
+│   │   └── utils/              # Helper functions
 │   │
-│   ├── users/                  # Feature module
-│   │   ├── users.module.ts
-│   │   ├── users.controller.ts
-│   │   ├── users.service.ts
-│   │   └── dto/                # Data Transfer Objects
-│   │       ├── create-user.dto.ts
-│   │       └── update-user.dto.ts
+│   ├── config/                 # ⚙️ Configuration layer
+│   │   ├── configuration.ts    # Type-safe config
+│   │   └── env.validation.ts   # Joi validation
 │   │
-│   ├── decorators/             # Global decorators
-│   │   ├── current-user.decorator.ts
-│   │   └── roles.decorator.ts
+│   ├── database/               # 🗄️ Database layer (Prisma)
+│   │   ├── prisma.module.ts    # @Global() module
+│   │   └── prisma.service.ts   # DB connection
 │   │
-│   ├── guards/                 # Global guards
-│   │   └── roles.guard.ts
-│   │
-│   └── common/                 # Shared utilities
-│       ├── filters/
-│       ├── interceptors/
-│       └── pipes/
+│   └── modules/                # 🎨 Feature modules (business logic)
+│       ├── auth/               # Authentication
+│       │   ├── auth.module.ts
+│       │   ├── auth.service.ts
+│       │   ├── strategies/
+│       │   ├── guards/
+│       │   └── providers/
+│       │
+│       ├── users/              # User management
+│       │   ├── dto/
+│       │   ├── users.controller.ts
+│       │   └── users.service.ts
+│       │
+│       ├── artworks/           # Artwork management
+│       │   ├── dto/
+│       │   ├── artworks.controller.ts
+│       │   └── artworks.service.ts
+│       │
+│       ├── storage/            # File upload (MinIO/S3)
+│       │   └── storage.service.ts
+│       │
+│       └── search/             # Meilisearch integration
+│           └── search.service.ts
 │
 ├── scripts/                    # Utility scripts
 └── test/                       # E2E tests
 ```
+
+**📖 Read:** `backend/src/README.md` for detailed explanation!
 
 ---
 

@@ -6,8 +6,8 @@
 
 import { Controller, Get, Post, UseGuards, Body } from '@nestjs/common';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
-import { CurrentUser } from '../decorators/current-user.decorator';
-import type { UserPayload } from '../decorators/current-user.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { UserPayload } from '../../common/decorators/current-user.decorator';
 
 @Controller('artworks')
 export class ArtworksController {
