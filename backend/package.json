@@ -22,11 +22,13 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.957.0",
     "@aws-sdk/s3-request-presigner": "^3.957.0",
-    "@clerk/express": "^1.7.60",
+    "@clerk/backend": "^2.29.2",
+    "@clerk/express": "^1.7.62",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/swagger": "^11.2.3",
     "@nestjs/throttler": "^6.5.0",
@@ -36,6 +38,8 @@
     "class-validator": "^0.14.3",
     "dayjs": "^1.11.19",
     "meilisearch": "^0.54.0",
+    "passport": "^0.7.0",
+    "passport-custom": "^1.1.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

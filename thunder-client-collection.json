@@ -1,0 +1,239 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "GR Project API",
+  "collectionId": "gr-api-collection",
+  "dateExported": "2026-01-15",
+  "version": "1.0",
+  "folders": [
+    {
+      "id": "auth-folder",
+      "name": "Authentication",
+      "containerId": "",
+      "created": "2026-01-15",
+      "sortNum": 10000
+    },
+    {
+      "id": "artworks-folder",
+      "name": "Artworks",
+      "containerId": "",
+      "created": "2026-01-15",
+      "sortNum": 20000
+    },
+    {
+      "id": "admin-folder",
+      "name": "Admin",
+      "containerId": "",
+      "created": "2026-01-15",
+      "sortNum": 30000
+    }
+  ],
+  "requests": [
+    {
+      "id": "health-check",
+      "name": "Health Check",
+      "url": "{{baseUrl}}/",
+      "method": "GET",
+      "sortNum": 1000,
+      "created": "2026-01-15",
+      "modified": "2026-01-15",
+      "headers": [],
+      "params": [],
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "get-artworks-public",
+      "name": "Get Artworks (Public)",
+      "url": "{{baseUrl}}/api/artworks",
+      "method": "GET",
+      "sortNum": 2000,
+      "created": "2026-01-15",
+      "modified": "2026-01-15",
+      "headers": [],
+      "containerId": "artworks-folder",
+      "params": [],
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "get-artworks-auth",
+      "name": "Get Artworks (Authenticated)",
+      "url": "{{baseUrl}}/api/artworks",
+      "method": "GET",
+      "sortNum": 2100,
+      "created": "2026-01-15",
+      "modified": "2026-01-15",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{memberToken}}"
+        }
+      ],
+      "containerId": "artworks-folder",
+      "params": [],
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "create-artwork",
+      "name": "Create Artwork (Member)",
+      "url": "{{baseUrl}}/api/artworks",
+      "method": "POST",
+      "sortNum": 2200,
+      "created": "2026-01-15",
+      "modified": "2026-01-15",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{memberToken}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "containerId": "artworks-folder",
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"title\": \"Test Artwork\",\n  \"description\": \"This is a test artwork\",\n  \"tags\": [\"test\", \"example\"]\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "201"
+        }
+      ]
+    },
+    {
+      "id": "feature-artwork",
+      "name": "Feature Artwork (Moderator)",
+      "url": "{{baseUrl}}/api/artworks/1/feature",
+      "method": "POST",
+      "sortNum": 2300,
+      "created": "2026-01-15",
+      "modified": "2026-01-15",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{moderatorToken}}"
+        }
+      ],
+      "containerId": "artworks-folder",
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "delete-artwork-member",
+      "name": "Delete Artwork (Member - Should Fail)",
+      "url": "{{baseUrl}}/api/artworks/1",
+      "method": "DELETE",
+      "sortNum": 2400,
+      "created": "2026-01-15",
+      "modified": "2026-01-15",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{memberToken}}"
+        }
+      ],
+      "containerId": "artworks-folder",
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "403"
+        }
+      ]
+    },
+    {
+      "id": "delete-artwork-admin",
+      "name": "Delete Artwork (Admin - Should Success)",
+      "url": "{{baseUrl}}/api/artworks/1",
+      "method": "DELETE",
+      "sortNum": 2500,
+      "created": "2026-01-15",
+      "modified": "2026-01-15",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "containerId": "artworks-folder",
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "get-all-users",
+      "name": "Get All Users (Admin Only)",
+      "url": "{{baseUrl}}/api/admin/users",
+      "method": "GET",
+      "sortNum": 3000,
+      "created": "2026-01-15",
+      "modified": "2026-01-15",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{adminToken}}"
+        }
+      ],
+      "containerId": "admin-folder",
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "options": {
+      "baseUrl": "http://localhost:3001"
+    }
+  },
+  "environments": [
+    {
+      "name": "Local Development",
+      "default": true,
+      "data": [
+        {
+          "name": "baseUrl",
+          "value": "http://localhost:3001"
+        },
+        {
+          "name": "memberToken",
+          "value": "paste_member_token_here"
+        },
+        {
+          "name": "moderatorToken",
+          "value": "paste_moderator_token_here"
+        },
+        {
+          "name": "adminToken",
+          "value": "paste_admin_token_here"
+        }
+      ]
+    }
+  ]
+}
+
