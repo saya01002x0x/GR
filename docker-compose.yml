@@ -4,73 +4,31 @@
 
 services:
   # ============================================
-  # Backend - NestJS API
+  # Backend & Frontend - CHẠY LOCAL (Hybrid Mode)
   # ============================================
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: dev
-    container_name: gr-backend
-    restart: unless-stopped
-    ports:
-      - "3001:3001"
-    environment:
-      NODE_ENV: development
-      PORT: 3001
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gr_development
-      REDIS_URL: redis://redis:6379
-      MEILISEARCH_HOST: http://meilisearch:7700
-      MEILISEARCH_API_KEY: masterKey_change_in_production
-      AWS_ENDPOINT: http://minio:9000
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin123
-      AWS_REGION: us-east-1
-      AWS_BUCKET_NAME: gr-uploads
-      AWS_FORCE_PATH_STYLE: "true"
-      SMTP_HOST: mailpit
-      SMTP_PORT: 1025
-      SMTP_FROM: noreply@gr-project.com
-      CORS_ORIGIN: http://localhost:3000
-    env_file:
-      - ./backend/.env
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - gr-network
-
-  # ============================================
-  # Frontend - Next.js App
-  # ============================================
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: dev
-    container_name: gr-frontend
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      NODE_ENV: development
-      NEXT_PUBLIC_APP_URL: http://localhost:3000
-      NEXT_PUBLIC_API_URL: http://localhost:3001
-    env_file:
-      - ./frontend/.env
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    depends_on:
-      - backend
-    networks:
-      - gr-network
+  # ❌ KHÔNG chạy Backend/Frontend trong Docker khi Dev
+  # ✅ Chỉ chạy Infrastructure services bên dưới
+  # 
+  # Lý do:
+  # - Hot reload cực nhanh (0.1s thay vì 3-5s)
+  # - Debug dễ dàng với VS Code
+  # - Tận dụng tối đa RAM/CPU máy
+  # - Không lo lỗi symlink của pnpm workspace
+  #
+  # Hướng dẫn chạy Local:
+  # 1. docker-compose up -d          (Chạy infrastructure)
+  # 2. cd backend && pnpm dev        (Terminal 1 - Backend)
+  # 3. cd frontend && pnpm dev       (Terminal 2 - Frontend)
+  #
+  # 📝 Note: Dockerfile vẫn giữ nguyên cho Production deployment!
+  
+  # backend:
+  #   # Service này để dành cho Production
+  #   # Uncomment khi cần test Docker build
+  
+  # frontend:
+  #   # Service này để dành cho Production
+  #   # Uncomment khi cần test Docker build
   # ============================================
   # PostgreSQL - Database chính
   # ============================================

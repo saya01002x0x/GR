@@ -26,6 +26,7 @@
   "dependencies": {
     "@clerk/localizations": "^3.29.0",
     "@clerk/nextjs": "^6.35.6",
+    "@gr/shared": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@logtape/logtape": "^1.2.2",
     "@mantine/core": "^8.1.1",

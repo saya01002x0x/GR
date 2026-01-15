@@ -8,6 +8,7 @@ import { Controller, Get, Post, UseGuards, Body } from '@nestjs/common';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { UserPayload } from '../../common/decorators/current-user.decorator';
+import { CreateArtworkDto, UpdateArtworkDto } from '@gr/shared';
 
 @Controller('artworks')
 export class ArtworksController {
@@ -46,10 +47,11 @@ export class ArtworksController {
    * Protected endpoint - Create artwork
    * POST /artworks
    * Requires: Valid Clerk JWT token
+   * Body validation via @gr/shared CreateArtworkDto
    */
   @Post()
   @UseGuards(ClerkGuard)
-  create(@CurrentUser() user: UserPayload, @Body() createDto: any) {
+  create(@CurrentUser() user: UserPayload, @Body() createDto: CreateArtworkDto) {
     return {
       message: 'Artwork created',
       artwork: {

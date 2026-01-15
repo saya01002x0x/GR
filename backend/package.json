@@ -24,6 +24,7 @@
     "@aws-sdk/s3-request-presigner": "^3.957.0",
     "@clerk/backend": "^2.29.2",
     "@clerk/express": "^1.7.62",
+    "@gr/shared": "workspace:*",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
