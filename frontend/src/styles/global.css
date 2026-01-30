@@ -39,3 +39,20 @@
   break-inside: avoid;
   margin-bottom: 1rem;
 }
+
+/* 404 page pulse animation */
+@keyframes pulse-bg {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+}
+
+.pulse-animation {
+  animation: pulse-bg 2s ease-in-out infinite;
+}
