@@ -7,7 +7,6 @@ import {
   Group,
   Image,
   Text,
-  Title,
 } from '@mantine/core';
 import { useHover } from '@mantine/hooks';
 import { IconHeart } from '@tabler/icons-react';
@@ -26,7 +25,7 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
       className="masonry-item"
       pos="relative"
       style={{
-        borderRadius: 'var(--mantine-radius-lg)',
+        borderRadius: 'var(--mantine-radius-md)',
         overflow: 'hidden',
         cursor: 'pointer',
       }}
@@ -35,15 +34,15 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
       <Image
         src={artwork.image}
         alt={artwork.title}
-        radius="lg"
+        radius="md"
       />
 
       {/* WIP Badge */}
       {artwork.isWip && (
         <Badge
           pos="absolute"
-          top={8}
-          right={8}
+          top={4}
+          right={4}
           variant="filled"
           color="dark"
           size="xs"
@@ -72,18 +71,18 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
-          padding: 'var(--mantine-spacing-md)',
+          padding: 'var(--mantine-spacing-sm)',
         }}
       >
-        <Title order={4} c="white" fw={700} lineClamp={1}>
+        <Text fw={600} fz="xs" c="white" lineClamp={1}>
           {artwork.title}
-        </Title>
-        <Group gap="xs" mt="xs">
+        </Text>
+        <Group gap={4} mt={4}>
           <Text size="xs" c="gray.4">
             {artwork.timeAgo}
           </Text>
           <Box flex={1} />
-          <IconHeart size={16} color="white" />
+          <IconHeart size={12} color="white" />
           <Text size="xs" c="white" fw={700}>
             {formatNumber(artwork.likes)}
           </Text>

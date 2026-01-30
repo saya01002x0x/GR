@@ -4,15 +4,15 @@ import { Box, Stack } from '@mantine/core';
 import { AppFooter } from './AppFooter';
 import { AppHeader } from './AppHeader';
 
-type ArtistsLayoutShellProps = {
+type AppLayoutShellProps = {
   children: React.ReactNode;
 };
 
-export function ArtistsLayoutShell({ children }: ArtistsLayoutShellProps) {
+export function AppLayoutShell({ children }: AppLayoutShellProps) {
   return (
     <Stack gap={0} mih="100vh">
       <AppHeader />
-      <Box component="main" flex={1} maw={1440} mx="auto" w="100%" pb="xl">
+      <Box component="main" flex={1}>
         {children}
       </Box>
       <AppFooter />

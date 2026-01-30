@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { hasLocale, NextIntlClientProvider } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { DemoBadge } from '@/components/DemoBadge';
+import { AppLayoutShell } from '@/components/layout';
 import { routing } from '@/libs/I18nRouting';
 import { MantineColorSchemeScript, MantineProvider } from '@/libs/MantineProvider';
 import { QueryProvider } from '@/libs/QueryProvider';
@@ -58,9 +58,9 @@ export default async function RootLayout(props: {
         <MantineProvider>
           <QueryProvider>
             <NextIntlClientProvider>
-              {props.children}
-
-              <DemoBadge />
+              <AppLayoutShell>
+                {props.children}
+              </AppLayoutShell>
             </NextIntlClientProvider>
           </QueryProvider>
         </MantineProvider>

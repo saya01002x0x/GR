@@ -1,3 +1,3 @@
 export { AppFooter } from './AppFooter';
 export { AppHeader } from './AppHeader';
-export { ArtistsLayoutShell } from './ArtistsLayoutShell';
+export { AppLayoutShell } from './AppLayoutShell';
