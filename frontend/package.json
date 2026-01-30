@@ -33,6 +33,7 @@
     "@mantine/hooks": "^8.1.1",
     "@sentry/nextjs": "^10.28.0",
     "@t3-oss/env-nextjs": "^0.13.8",
+    "@tabler/icons-react": "^3.36.1",
     "@tanstack/react-query": "^5.80.6",
     "next": "^16.0.10",
     "next-intl": "^4.5.8",

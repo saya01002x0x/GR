@@ -6,19 +6,21 @@ import { MantineProvider as BaseMantineProvider, ColorSchemeScript, createTheme 
 // Import Mantine core styles
 import '@mantine/core/styles.css';
 
-// Custom theme configuration
+// Custom theme configuration for ArtSpace
 // See: https://mantine.dev/theming/theme-object/
+
+// Primary color: #e52e5c (Rose/Pink from ArtSpace design)
 const primaryColor: MantineColorsTuple = [
-  '#e5f4ff',
-  '#cde2ff',
-  '#9bc2ff',
-  '#64a0ff',
-  '#3984fe',
-  '#1d72fe',
-  '#0969ff',
-  '#0058e4',
-  '#004ecc',
-  '#0043b5',
+  '#fff0f3', // 0 - lightest
+  '#ffe0e6', // 1
+  '#ffc0cc', // 2
+  '#ff9aad', // 3
+  '#f46d88', // 4
+  '#e94d6d', // 5
+  '#e52e5c', // 6 - main color
+  '#d01a4a', // 7
+  '#b0153f', // 8
+  '#8f1235', // 9 - darkest
 ];
 
 const theme = createTheme({
@@ -28,17 +30,17 @@ const theme = createTheme({
     primary: primaryColor,
   },
 
-  // Font configuration
-  fontFamily: 'var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif)',
+  // Font configuration - Plus Jakarta Sans
+  fontFamily: '"Plus Jakarta Sans", var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif)',
   fontFamilyMonospace: 'var(--font-mono, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace)',
 
   // Heading configuration
   headings: {
-    fontFamily: 'var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif)',
-    fontWeight: '600',
+    fontFamily: '"Plus Jakarta Sans", var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif)',
+    fontWeight: '700',
   },
 
-  // Border radius
+  // Border radius (matching ArtSpace design)
   radius: {
     xs: '0.25rem',
     sm: '0.375rem',
