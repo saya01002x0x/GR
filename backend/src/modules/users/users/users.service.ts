@@ -63,4 +63,15 @@ export class UsersService {
             where: { clerkId },
         });
     }
+
+    /**
+     * Become an Artist
+     * Update isArtist flag to true
+     */
+    async becomeArtist(userId: string): Promise<User> {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { isArtist: true },
+        });
+    }
 }

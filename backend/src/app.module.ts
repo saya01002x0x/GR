@@ -9,11 +9,12 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
-import { ArtworksController } from './modules/artworks/artworks.controller';
 import { PrismaModule } from './database';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { UsersModule } from './modules/users/users/users.module';
+import { StorageModule } from './modules/storage/storage/storage.module';
+import { ArtworksModule } from './modules/artworks/artworks/artworks.module';
 
 @Module({
   imports: [
@@ -26,16 +27,17 @@ import { UsersModule } from './modules/users/users/users.module';
         abortEarly: false, // Show all validation errors
       },
     }),
-    
+
     // Database
     PrismaModule,
-    
+
     // Feature Modules
     AuthModule,
-    
     UsersModule,
+    StorageModule,
+    ArtworksModule,
   ],
-  controllers: [AppController, ArtworksController],
+  controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

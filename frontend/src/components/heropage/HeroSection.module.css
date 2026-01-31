@@ -1,0 +1,141 @@
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: 750px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #211115;
+}
+
+.backgroundWrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.parallaxBg {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.1);
+  animation: subtle-drift 20s ease-in-out infinite;
+}
+
+@keyframes subtle-drift {
+  0% {
+    transform: scale(1.05) translate(0, 0);
+  }
+
+  50% {
+    transform: scale(1.1) translate(-1%, -1%);
+  }
+
+  100% {
+    transform: scale(1.05) translate(0, 0);
+  }
+}
+
+.videoOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(33, 17, 21, 0.7) 0%,
+    rgba(33, 17, 21, 0.4) 50%,
+    rgba(33, 17, 21, 0.9) 100%
+  );
+  z-index: 1;
+}
+
+.motionToggle {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  z-index: 3;
+}
+
+.title {
+  color: white;
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 3rem;
+  }
+}
+
+.italic {
+  color: var(--mantine-color-primary-6);
+  font-style: italic;
+}
+
+.description {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.25rem;
+  font-weight: 500;
+  max-width: 600px;
+  line-height: 1.6;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ctaPrimary {
+  background-color: var(--mantine-color-primary-6);
+  box-shadow: 0 8px 24px rgba(229, 46, 92, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.ctaPrimary:hover {
+  transform: scale(1.05);
+}
+
+.ctaSecondary {
+  transition: all 0.2s ease;
+}
+
+.ctaSecondary:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.searchContainer {
+  width: 100%;
+  max-width: 768px;
+  margin-top: 30px;
+  /* margin-bottom: -120px; */
+  position: relative;
+  z-index: 10;
+}
+
+.searchBar {
+  background-color: white;
+  border-radius: var(--mantine-radius-xl);
+  height: 80px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 2;
+}
+
+:global(.dark) .searchBar {
+  background-color: var(--mantine-color-dark-8);
+}
+
+.searchGlow {
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(to right, rgba(229, 46, 92, 0.5), rgba(128, 0, 128, 0.5));
+  border-radius: var(--mantine-radius-xl);
+  filter: blur(8px);
+  opacity: 0.25;
+  transition: opacity 0.5s ease;
+}
+
+.searchContainer:hover .searchGlow {
+  opacity: 0.5;
+}

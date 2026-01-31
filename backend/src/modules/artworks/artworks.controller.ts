@@ -1,70 +1,135 @@
 /**
  * Artworks Controller
- * Example controller demonstrating Clerk authentication with Lazy Sync
+ * Handle artwork endpoints with authentication
  * Reference: https://docs.nestjs.com/controllers
  */
 
-import { Controller, Get, Post, UseGuards, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  UseGuards,
+  UseInterceptors,
+  UploadedFiles,
+  Body,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import type { User } from '@prisma/client';
-import { CreateArtworkDto } from '@gr/shared';
+import { ArtworksService, CreateArtworkDto } from './artworks.service';
+import type { User, ContentRating } from '@prisma/client';
 
 @Controller('artworks')
 export class ArtworksController {
+  constructor(private readonly artworksService: ArtworksService) { }
+
   /**
-   * Public endpoint - No authentication required
+   * Get all published artworks
    * GET /artworks
    */
   @Get()
-  findAll() {
+  async findAll(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const artworks = await this.artworksService.findAll({
+      limit: limit ? parseInt(limit, 10) : 20,
+      offset: offset ? parseInt(offset, 10) : 0,
+    });
+
     return {
-      message: 'List all artworks (public)',
-      data: [],
+      message: 'Artworks retrieved successfully',
+      data: artworks,
     };
   }
 
   /**
-   * Protected endpoint - Authentication required
-   * GET /artworks/me
-   * Requires: Valid Clerk JWT token
-   * Returns: DB User (đã được Lazy Sync)
+   * Get artwork by ID
+   * GET /artworks/:id
    */
-  @Get('me')
-  @UseGuards(ClerkGuard)
-  findMyArtworks(@CurrentUser() user: User) {
+  @Get(':id')
+  async findById(@Param('id') id: string) {
+    const artwork = await this.artworksService.findById(id);
+
+    if (!artwork) {
+      return {
+        message: 'Artwork not found',
+        data: null,
+      };
+    }
+
     return {
-      message: 'My artworks (authenticated)',
-      user: {
-        id: user.id, // UUID từ Database
-        clerkId: user.clerkId,
-        email: user.email,
-        username: user.username,
-        displayName: user.displayName,
-        avatar: user.avatar,
-        isArtist: user.isArtist,
-        createdAt: user.createdAt,
-      },
-      data: [],
+      message: 'Artwork retrieved successfully',
+      data: artwork,
     };
   }
 
   /**
-   * Protected endpoint - Create artwork
+   * Create artwork with image upload
    * POST /artworks
-   * Requires: Valid Clerk JWT token
-   * Body validation via @gr/shared CreateArtworkDto
+   * Requires: Artist role + Valid Clerk JWT
    */
   @Post()
   @UseGuards(ClerkGuard)
-  create(@CurrentUser() user: User, @Body() createDto: CreateArtworkDto) {
-    return {
-      message: 'Artwork created',
-      artwork: {
-        ...createDto,
-        authorId: user.id, // UUID từ Database để liên kết với Artwork
-        createdBy: user.displayName || user.username,
+  @UseInterceptors(
+    FilesInterceptor('images', 10, {
+      limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+      fileFilter: (req, file, cb) => {
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (allowedMimes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type. Only JPG, PNG, GIF allowed.'), false);
+        }
       },
+    }),
+  )
+  async create(
+    @CurrentUser() user: User,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() body: { title: string; description?: string; tags: string; rating: ContentRating; isAI: string },
+  ) {
+    // Parse tags from JSON string or comma-separated
+    let tags: string[];
+    try {
+      tags = JSON.parse(body.tags);
+    } catch {
+      tags = body.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    }
+
+    const dto: CreateArtworkDto = {
+      title: body.title,
+      description: body.description,
+      tags,
+      rating: body.rating || 'SAFE',
+      isAI: body.isAI === 'true',
+    };
+
+    const result = await this.artworksService.create(dto, files, user.id, user.isArtist);
+
+    return {
+      message: 'Artwork created successfully',
+      data: result,
+    };
+  }
+
+  /**
+   * Get current user's artworks
+   * GET /artworks/me (legacy endpoint)
+   */
+  @Get('user/me')
+  @UseGuards(ClerkGuard)
+  async getMyArtworks(@CurrentUser() user: User) {
+    return {
+      message: 'My artworks',
+      user: {
+        id: user.id,
+        username: user.username,
+        isArtist: user.isArtist,
+      },
+      data: [],
     };
   }
 }

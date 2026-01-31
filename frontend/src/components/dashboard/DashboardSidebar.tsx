@@ -2,12 +2,16 @@
 
 import {
   Box,
+  Button,
+  Card,
   Collapse,
+  Loader,
   NavLink,
   Stack,
   Text,
   UnstyledButton,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import {
   IconBell,
   IconBrush,
@@ -25,7 +29,13 @@ import {
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { BecomeArtistModal } from './BecomeArtistModal';
+
+type UserInfo = {
+  id: string;
+  isArtist: boolean;
+};
 
 const iconMap: Record<string, React.ElementType> = {
   'general': IconSettings,
@@ -59,93 +69,162 @@ const creatorMenuItems = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUserInfo = useCallback(async () => {
+    try {
+      const token = await window.Clerk?.session?.getToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserInfo(data);
+      }
+    } catch {
+      // Ignore error
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, [fetchUserInfo]);
 
   const isActive = (href: string) => {
-    // Remove locale prefix for comparison
     const cleanPath = pathname.replace(/^\/[a-z]{2}/, '');
     return cleanPath === href || cleanPath.startsWith(`${href}/`);
   };
 
+  const handleBecomeArtistSuccess = () => {
+    setUserInfo(prev => (prev ? { ...prev, isArtist: true } : prev));
+  };
+
   return (
-    <Box
-      w={280}
-      style={{
-        position: 'sticky',
-        top: 88, // 64px header + 24px padding
-        alignSelf: 'flex-start',
-      }}
-      visibleFrom="lg"
-    >
-      <Stack gap={4}>
-        {/* Settings Menu */}
-        {settingsMenuItems.map((item) => {
-          const Icon = iconMap[item.id] ?? IconSettings;
-          const active = isActive(item.href);
+    <>
+      <Box
+        w={280}
+        style={{
+          position: 'sticky',
+          top: 88,
+          alignSelf: 'flex-start',
+        }}
+        visibleFrom="lg"
+      >
+        <Stack gap={4}>
+          {/* Settings Menu */}
+          {settingsMenuItems.map((item) => {
+            const Icon = iconMap[item.id] ?? IconSettings;
+            const active = isActive(item.href);
 
-          return (
-            <NavLink
-              key={item.id}
-              component={Link}
-              href={item.href}
-              label={item.label}
-              leftSection={<Icon size={20} />}
-              active={active}
-              variant="light"
-              color="primary"
-              style={{
-                borderRadius: 'var(--mantine-radius-md)',
-              }}
-            />
-          );
-        })}
+            return (
+              <NavLink
+                key={item.id}
+                component={Link}
+                href={item.href}
+                label={item.label}
+                leftSection={<Icon size={20} />}
+                active={active}
+                variant="light"
+                color="primary"
+                style={{ borderRadius: 'var(--mantine-radius-md)' }}
+              />
+            );
+          })}
 
-        {/* Divider */}
-        <Box my="sm" h={1} bg="gray.2" />
+          {/* Divider */}
+          <Box my="sm" h={1} bg="gray.2" />
 
-        {/* Content Creator Section */}
-        <UnstyledButton
-          onClick={() => setCreatorOpen(o => !o)}
-          py="xs"
-          px="sm"
-          style={{
-            borderRadius: 'var(--mantine-radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--mantine-spacing-sm)',
-          }}
-        >
-          <IconBrush size={20} color="var(--mantine-color-primary-6)" />
-          <Text size="sm" fw={600} flex={1}>
-            Content Creator
-          </Text>
-          {creatorOpen ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
-        </UnstyledButton>
+          {/* Content Creator Section */}
+          {loading
+            ? (
+                <Box py="md" ta="center">
+                  <Loader size="sm" />
+                </Box>
+              )
+            : userInfo?.isArtist
+              ? (
+                  <>
+                    <UnstyledButton
+                      onClick={() => setCreatorOpen(o => !o)}
+                      py="xs"
+                      px="sm"
+                      style={{
+                        borderRadius: 'var(--mantine-radius-md)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--mantine-spacing-sm)',
+                      }}
+                    >
+                      <IconBrush size={20} color="var(--mantine-color-primary-6)" />
+                      <Text size="sm" fw={600} flex={1}>
+                        Content Creator
+                      </Text>
+                      {creatorOpen ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
+                    </UnstyledButton>
 
-        <Collapse in={creatorOpen}>
-          <Stack gap={4} pl="md">
-            {creatorMenuItems.map((item) => {
-              const Icon = iconMap[item.id] ?? IconSettings;
-              const active = isActive(item.href);
+                    <Collapse in={creatorOpen}>
+                      <Stack gap={4} pl="md">
+                        {creatorMenuItems.map((item) => {
+                          const Icon = iconMap[item.id] ?? IconSettings;
+                          const active = isActive(item.href);
 
-              return (
-                <NavLink
-                  key={item.id}
-                  component={Link}
-                  href={item.href}
-                  label={item.label}
-                  leftSection={<Icon size={18} />}
-                  active={active}
-                  variant="light"
-                  color="primary"
-                  style={{
-                    borderRadius: 'var(--mantine-radius-md)',
-                  }}
-                />
-              );
-            })}
-          </Stack>
-        </Collapse>
-      </Stack>
-    </Box>
+                          return (
+                            <NavLink
+                              key={item.id}
+                              component={Link}
+                              href={item.href}
+                              label={item.label}
+                              leftSection={<Icon size={18} />}
+                              active={active}
+                              variant="light"
+                              color="primary"
+                              style={{ borderRadius: 'var(--mantine-radius-md)' }}
+                            />
+                          );
+                        })}
+                      </Stack>
+                    </Collapse>
+                  </>
+                )
+              : (
+                  <Card withBorder p="md" radius="md">
+                    <Stack gap="sm" align="center" ta="center">
+                      <IconBrush size={32} color="var(--mantine-color-primary-6)" />
+                      <Text size="sm" fw={600}>
+                        Trở thành Artist
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Bắt đầu chia sẻ artwork của bạn với cộng đồng
+                      </Text>
+                      <Button
+                        size="xs"
+                        fullWidth
+                        onClick={openModal}
+                        leftSection={<IconBrush size={14} />}
+                      >
+                        Đăng ký ngay
+                      </Button>
+                    </Stack>
+                  </Card>
+                )}
+        </Stack>
+      </Box>
+
+      <BecomeArtistModal
+        opened={modalOpened}
+        onClose={closeModal}
+        onSuccess={handleBecomeArtistSuccess}
+      />
+    </>
   );
 }

@@ -116,11 +116,13 @@ model Artwork {
 // ============================================
 
 model ArtworkImage {
-  id        String   @id @default(uuid())
-  url       String   // MinIO URL
-  order     Int      @default(0)
-  width     Int?
-  height    Int?
+  id           String   @id @default(uuid())
+  url          String   // MinIO URL (preview size)
+  thumbnailUrl String?  @map("thumbnail_url") // Thumbnail URL
+  order        Int      @default(0)
+  width        Int?
+  height       Int?
+  aspectRatio  Float?   @map("aspect_ratio")
   
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -153,6 +155,7 @@ model Tag {
 model ArtworkTag {
   artworkId String   @map("artwork_id")
   tagId     String   @map("tag_id")
+  order     Int      @default(0)
   
   artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
   tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
