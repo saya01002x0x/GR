@@ -28,3 +28,17 @@ Ghi chú các quyết định thiết kế và logic của dự án.
 - **Decision:** Thay đổi `signInFallbackRedirectUrl` từ `/dashboard` sang `/discover` trong ClerkProvider
 - **Files:**
   - `frontend/src/app/[locale]/(auth)/layout.tsx` - Auth layout với ClerkProvider config
+
+### [31/01] - Database Schema (Prisma + PostgreSQL)
+
+- **Logic:** Thiết kế database cho ArtSpace - Pixiv-style artwork platform
+- **Decision:**
+  - **User sync với Clerk:** Dùng Clerk Webhook để tự động tạo User trong DB khi đăng ký
+  - **Artwork images:** Tách riêng `ArtworkImage` để hỗ trợ nhiều ảnh/page per artwork (Manga style)
+  - **Content Rating:** Dùng enum `SAFE/R18/R18G` thay vì visibility
+  - **Bookmark + Collection:** Cho phép 1 artwork nằm trong nhiều collections của cùng user
+  - **Follow:** Self-referencing many-to-many qua bảng `Follow`
+- **Files:**
+  - `backend/prisma/schema.prisma` - Database schema
+  - `backend/src/database/prisma.service.ts` - Prisma Service
+  - `backend/src/database/prisma.module.ts` - Global Prisma Module

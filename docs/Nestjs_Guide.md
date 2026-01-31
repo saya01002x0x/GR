@@ -130,3 +130,65 @@ Các concept và patterns được sử dụng trong dự án NestJS.
   export class AuthModule {}
   ```
 - **Ứng dụng:** `AuthModule` chứa tất cả authentication-related code
+
+---
+
+## Database (Prisma)
+
+#### PrismaService
+
+- **Là gì:** Service extends `PrismaClient` để quản lý database connection lifecycle
+- **Cách dùng:**
+  ```typescript
+  import { PrismaClient } from '@prisma/client';
+  
+  @Injectable()
+  export class PrismaService extends PrismaClient 
+    implements OnModuleInit, OnModuleDestroy {
+    
+    async onModuleInit() {
+      await this.$connect();
+    }
+    
+    async onModuleDestroy() {
+      await this.$disconnect();
+    }
+  }
+  ```
+- **Ứng dụng:** Inject vào services để query database
+
+#### @Global() Decorator
+
+- **Là gì:** Đánh dấu module là global, tự động available ở mọi nơi mà không cần import
+- **Cách dùng:**
+  ```typescript
+  @Global()
+  @Module({
+    providers: [PrismaService],
+    exports: [PrismaService],
+  })
+  export class PrismaModule {}
+  ```
+- **Ứng dụng:** `PrismaModule` là global, các module khác không cần import mà vẫn dùng được `PrismaService`
+
+#### Prisma CLI Commands
+
+- **Là gì:** Các lệnh CLI để quản lý database schema và migrations
+- **Cách dùng:**
+  ```bash
+  # Push schema to database (development)
+  prisma db push
+  
+  # Generate Prisma Client
+  prisma generate
+  
+  # Open Prisma Studio (Database GUI)
+  prisma studio
+  
+  # Create migration (production)
+  prisma migrate dev --name init
+  
+  # Reset database
+  prisma migrate reset
+  ```
+- **Ứng dụng:** Dùng `db push` trong development, `migrate` cho production

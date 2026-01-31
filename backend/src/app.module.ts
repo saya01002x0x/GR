@@ -10,6 +10,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { ArtworksController } from './modules/artworks/artworks.controller';
+import { PrismaModule } from './database';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 
@@ -24,6 +25,9 @@ import { envValidationSchema } from './config/env.validation';
         abortEarly: false, // Show all validation errors
       },
     }),
+    
+    // Database
+    PrismaModule,
     
     // Feature Modules
     AuthModule,

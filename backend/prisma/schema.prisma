@@ -1,0 +1,269 @@
+// Prisma Schema for ArtSpace
+// PostgreSQL + Prisma ORM
+// Reference: docs/DATABASE.md
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ArtworkType {
+  ILLUSTRATION
+  MANGA
+}
+
+enum ArtworkStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ContentRating {
+  SAFE      // General audience
+  R18       // Adult content
+  R18G      // Grotesque content
+}
+
+// ============================================
+// USER (Synced with Clerk via Webhook)
+// ============================================
+
+model User {
+  id          String    @id @default(uuid())
+  clerkId     String    @unique @map("clerk_id")
+  email       String    @unique
+  username    String    @unique
+  displayName String?   @map("display_name")
+  avatar      String?   // MinIO URL
+  banner      String?   // MinIO URL for profile banner
+  bio         String?
+  role        UserRole  @default(USER)
+  isArtist    Boolean   @default(false) @map("is_artist")
+  preferences Json?     // { r18: boolean, r18g: boolean, theme: string }
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relationships
+  artworks    Artwork[]
+  comments    Comment[]
+  likes       Like[]
+  bookmarks   Bookmark[]
+  collections Collection[]
+  
+  // Follow relationships (self-referencing)
+  followers   Follow[]  @relation("followers")  // Users following this user
+  following   Follow[]  @relation("following")  // Users this user follows
+
+  @@map("users")
+}
+
+// ============================================
+// ARTWORK (Main content entity)
+// ============================================
+
+model Artwork {
+  id           String         @id @default(uuid())
+  title        String
+  description  String?        @db.Text
+  type         ArtworkType    @default(ILLUSTRATION)
+  status       ArtworkStatus  @default(PUBLISHED)
+  rating       ContentRating  @default(SAFE)
+  isAI         Boolean        @default(false) @map("is_ai")
+  
+  // Counters (denormalized for performance)
+  viewCount    Int            @default(0) @map("view_count")
+  likeCount    Int            @default(0) @map("like_count")
+  commentCount Int            @default(0) @map("comment_count")
+  
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  // Author relationship
+  authorId     String         @map("author_id")
+  author       User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Relationships
+  images       ArtworkImage[]
+  tags         ArtworkTag[]
+  comments     Comment[]
+  likes        Like[]
+  bookmarks    Bookmark[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("artworks")
+}
+
+// ============================================
+// ARTWORK IMAGE (Multiple images per artwork)
+// ============================================
+
+model ArtworkImage {
+  id        String   @id @default(uuid())
+  url       String   // MinIO URL
+  order     Int      @default(0)
+  width     Int?
+  height    Int?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relationship
+  artworkId String   @map("artwork_id")
+  artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+
+  @@index([artworkId])
+  @@map("artwork_images")
+}
+
+// ============================================
+// TAG (Categorization)
+// ============================================
+
+model Tag {
+  id       String       @id @default(uuid())
+  name     String       @unique
+  count    Int          @default(0) // Usage count
+  
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  // Relationships
+  artworks ArtworkTag[]
+
+  @@map("tags")
+}
+
+// Explicit many-to-many for Artwork <-> Tag
+model ArtworkTag {
+  artworkId String   @map("artwork_id")
+  tagId     String   @map("tag_id")
+  
+  artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([artworkId, tagId])
+  @@map("artwork_tags")
+}
+
+// ============================================
+// SOCIAL INTERACTIONS
+// ============================================
+
+// Comment
+model Comment {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  artworkId String   @map("artwork_id")
+  artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+
+  // Reply support (optional)
+  parentId  String?  @map("parent_id")
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([artworkId])
+  @@index([userId])
+  @@map("comments")
+}
+
+// Like (User likes Artwork)
+model Like {
+  userId    String   @map("user_id")
+  artworkId String   @map("artwork_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+
+  @@id([userId, artworkId])
+  @@map("likes")
+}
+
+// Follow (User follows User)
+model Follow {
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower    User     @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}
+
+// ============================================
+// BOOKMARK & COLLECTION
+// ============================================
+
+// Collection (User can have multiple collections)
+model Collection {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  isPrivate   Boolean    @default(true) @map("is_private")
+  
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  // Owner
+  userId      String     @map("user_id")
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Bookmarks in this collection
+  bookmarks   Bookmark[]
+
+  @@index([userId])
+  @@map("collections")
+}
+
+// Bookmark (Artwork saved to a Collection)
+// Note: Same artwork can be in multiple collections for the same user
+model Bookmark {
+  id           String     @id @default(uuid())
+  
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  // Relationships
+  userId       String     @map("user_id")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  artworkId    String     @map("artwork_id")
+  artwork      Artwork    @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  
+  collectionId String     @map("collection_id")
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  // Same artwork can be in multiple collections, but not duplicate in same collection
+  @@unique([userId, artworkId, collectionId])
+  @@index([userId])
+  @@index([artworkId])
+  @@index([collectionId])
+  @@map("bookmarks")
+}
