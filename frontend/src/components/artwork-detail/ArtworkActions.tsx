@@ -7,91 +7,110 @@ import {
 } from '@mantine/core';
 import {
   IconBookmark,
+  IconBookmarkFilled,
   IconDots,
   IconHeart,
   IconHeartFilled,
   IconShare,
 } from '@tabler/icons-react';
 import { useState } from 'react';
-import { formatNumber } from '@/mocks/artworkDetailData';
+import { useLike } from '@/hooks';
+import { SaveToCollectionModal } from './SaveToCollectionModal';
 
 type ArtworkActionsProps = {
-  likes: number;
-  initialLiked?: boolean;
-  initialSaved?: boolean;
+  artworkId: string;
+  initialLikeCount?: number;
 };
 
+function formatNumber(num: number): string {
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}k`;
+  }
+  return num.toString();
+}
+
 export function ArtworkActions({
-  likes,
-  initialLiked = false,
-  initialSaved = false,
+  artworkId,
+  initialLikeCount = 0,
 }: ArtworkActionsProps) {
-  const [liked, setLiked] = useState(initialLiked);
-  const [saved, setSaved] = useState(initialSaved);
-  const [likeCount, setLikeCount] = useState(likes);
-
-  const handleLike = () => {
-    setLiked(!liked);
-    setLikeCount(prev => (liked ? prev - 1 : prev + 1));
-  };
-
-  const handleSave = () => {
-    setSaved(!saved);
-  };
+  const { liked, likeCount, toggleLike } = useLike(artworkId);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   const handleShare = () => {
-    // TODO: Implement share functionality
     if (navigator.share) {
       navigator.share({
         title: document.title,
         url: window.location.href,
       });
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
     }
   };
 
   return (
-    <Group gap="sm" mb="xl">
-      {/* Like Button with Count */}
-      <Button
-        variant={liked ? 'filled' : 'default'}
-        color={liked ? 'red' : 'gray'}
-        size="md"
-        radius="md"
-        leftSection={liked ? <IconHeartFilled size={18} /> : <IconHeart size={18} />}
-        onClick={handleLike}
-      >
-        {formatNumber(likeCount)}
-      </Button>
+    <>
+      <Group gap="sm" mb="xl">
+        {/* Like Button with Count */}
+        <Button
+          variant={liked ? 'filled' : 'default'}
+          color={liked ? 'red' : 'gray'}
+          size="md"
+          radius="md"
+          leftSection={liked ? <IconHeartFilled size={18} /> : <IconHeart size={18} />}
+          onClick={toggleLike}
+          styles={{
+            root: {
+              transition: 'all 0.2s ease',
+              transform: liked ? 'scale(1.05)' : 'scale(1)',
+            },
+          }}
+        >
+          {formatNumber(likeCount || initialLikeCount)}
+        </Button>
 
-      {/* Save Button */}
-      <ActionIcon
-        variant={saved ? 'filled' : 'default'}
-        color={saved ? 'primary' : 'gray'}
-        size="lg"
-        radius="md"
-        onClick={handleSave}
-      >
-        <IconBookmark size={20} />
-      </ActionIcon>
+        {/* Save Button */}
+        <ActionIcon
+          variant={isSaved ? 'filled' : 'default'}
+          color={isSaved ? 'primary' : 'gray'}
+          size="lg"
+          radius="md"
+          onClick={() => setSaveModalOpen(true)}
+        >
+          {isSaved ? <IconBookmarkFilled size={20} /> : <IconBookmark size={20} />}
+        </ActionIcon>
 
-      {/* Share Button */}
-      <ActionIcon
-        variant="default"
-        size="lg"
-        radius="md"
-        onClick={handleShare}
-      >
-        <IconShare size={20} />
-      </ActionIcon>
+        {/* Share Button */}
+        <ActionIcon
+          variant="default"
+          size="lg"
+          radius="md"
+          onClick={handleShare}
+        >
+          <IconShare size={20} />
+        </ActionIcon>
 
-      {/* More Options */}
-      <ActionIcon
-        variant="default"
-        size="lg"
-        radius="md"
-      >
-        <IconDots size={20} />
-      </ActionIcon>
-    </Group>
+        {/* More Options */}
+        <ActionIcon
+          variant="default"
+          size="lg"
+          radius="md"
+        >
+          <IconDots size={20} />
+        </ActionIcon>
+      </Group>
+
+      {/* Save to Collection Modal */}
+      <SaveToCollectionModal
+        artworkId={artworkId}
+        opened={saveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        onSaved={() => setIsSaved(true)}
+      />
+    </>
   );
 }

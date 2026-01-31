@@ -231,6 +231,7 @@ model Collection {
   name        String
   description String?
   isPrivate   Boolean    @default(true) @map("is_private")
+  isDefault   Boolean    @default(false) @map("is_default") // For "Favorites" folder
   
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")

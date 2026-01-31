@@ -13,7 +13,6 @@ import {
   CommentsSection,
   RelatedArtworks,
 } from '@/components/artwork-detail';
-import { mockComments } from '@/mocks/artworkDetailData';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -165,13 +164,13 @@ export default function ArtworkDetailPage() {
           />
 
           {/* Action Bar */}
-          <ArtworkActions likes={artwork.likeCount || 0} />
-
-          {/* Comments Section - using mock for now */}
-          <CommentsSection
-            comments={mockComments}
-            totalCount={mockComments.length}
+          <ArtworkActions
+            artworkId={artworkId}
+            initialLikeCount={artwork.likeCount || 0}
           />
+
+          {/* Comments Section */}
+          <CommentsSection artworkId={artworkId} />
         </Box>
 
         {/* Right Column - Sidebar */}

@@ -15,6 +15,9 @@ import { envValidationSchema } from './config/env.validation';
 import { UsersModule } from './modules/users/users/users.module';
 import { StorageModule } from './modules/storage/storage/storage.module';
 import { ArtworksModule } from './modules/artworks/artworks/artworks.module';
+import { LikesModule } from './modules/likes/likes.module';
+import { CommentsModule } from './modules/comments/comments.module';
+import { CollectionsModule } from './modules/collections/collections.module';
 
 @Module({
   imports: [
@@ -36,8 +39,12 @@ import { ArtworksModule } from './modules/artworks/artworks/artworks.module';
     UsersModule,
     StorageModule,
     ArtworksModule,
+    LikesModule,
+    CommentsModule,
+    CollectionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule { }
+
