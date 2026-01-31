@@ -10,16 +10,21 @@ import {
   Menu,
   Text,
   TextInput,
+  useComputedColorScheme,
+  useMantineColorScheme,
 } from '@mantine/core';
 import {
   IconBell,
   IconLogout,
   IconMail,
+  IconMoon,
   IconSearch,
   IconSettings,
+  IconSun,
   IconUser,
 } from '@tabler/icons-react';
 import Link from 'next/link';
+import { useSyncExternalStore } from 'react';
 
 // Logo SVG component
 function LogoIcon({ size = 32 }: { size?: number }) {
@@ -50,6 +55,15 @@ function LogoIcon({ size = 32 }: { size?: number }) {
 export function AppHeader() {
   const { isSignedIn, user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const { toggleColorScheme } = useMantineColorScheme();
+  const computedColorScheme = useComputedColorScheme('light');
+
+  // Handle SSR hydration - detect if we are on client side efficiently
+  const mounted = useSyncExternalStore(
+    () => () => { },
+    () => true,
+    () => false,
+  );
 
   return (
     <Box
@@ -104,11 +118,26 @@ export function AppHeader() {
                   Upload Work
                 </Button>
 
-                <ActionIcon variant="subtle" size="lg" radius="md" c="dark">
+                {/* Theme Toggle */}
+                <ActionIcon
+                  variant="subtle"
+                  size="lg"
+                  radius="md"
+                  onClick={() => toggleColorScheme()}
+                  aria-label="Toggle color scheme"
+                >
+                  {mounted
+                    ? (computedColorScheme === 'dark'
+                        ? <IconSun size={22} />
+                        : <IconMoon size={22} />)
+                    : <IconSun size={22} />}
+                </ActionIcon>
+
+                <ActionIcon variant="subtle" size="lg" radius="md">
                   <IconBell size={22} />
                 </ActionIcon>
 
-                <ActionIcon variant="subtle" size="lg" radius="md" c="dark">
+                <ActionIcon variant="subtle" size="lg" radius="md">
                   <IconMail size={22} />
                 </ActionIcon>
 
@@ -164,6 +193,21 @@ export function AppHeader() {
           : (
             // ========== LOGGED OUT STATE ==========
               <Group gap="sm">
+                {/* Theme Toggle for logged out users too */}
+                <ActionIcon
+                  variant="subtle"
+                  size="lg"
+                  radius="md"
+                  onClick={() => toggleColorScheme()}
+                  aria-label="Toggle color scheme"
+                >
+                  {mounted
+                    ? (computedColorScheme === 'dark'
+                        ? <IconSun size={22} />
+                        : <IconMoon size={22} />)
+                    : <IconSun size={22} />}
+                </ActionIcon>
+
                 <SignInButton mode="modal">
                   <Button variant="subtle" radius="md">
                     Sign In

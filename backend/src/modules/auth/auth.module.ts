@@ -11,10 +11,11 @@ import { AuthService } from './auth.service';
 import { ClerkClientProvider } from './providers/clerk-client.provider';
 import { ClerkStrategy } from './strategies/clerk.strategy';
 import { ClerkGuard } from './clerk/clerk.guard';
+import { UsersModule } from '../users/users/users.module';
 
 @Module({
-  imports: [PassportModule, ConfigModule],
+  imports: [PassportModule, ConfigModule, UsersModule],
   providers: [AuthService, ClerkClientProvider, ClerkStrategy, ClerkGuard],
   exports: [AuthService, ClerkGuard],
 })
-export class AuthModule {}
+export class AuthModule { }

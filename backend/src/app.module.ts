@@ -13,6 +13,7 @@ import { ArtworksController } from './modules/artworks/artworks.controller';
 import { PrismaModule } from './database';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
+import { UsersModule } from './modules/users/users/users.module';
 
 @Module({
   imports: [
@@ -31,6 +32,8 @@ import { envValidationSchema } from './config/env.validation';
     
     // Feature Modules
     AuthModule,
+    
+    UsersModule,
   ],
   controllers: [AppController, ArtworksController],
   providers: [AppService],

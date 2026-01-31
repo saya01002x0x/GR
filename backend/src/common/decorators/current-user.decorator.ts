@@ -1,12 +1,17 @@
 /**
  * Current User Decorator
- * Lấy user hiện tại từ request (populated by ClerkStrategy)
- * Usage: @CurrentUser() user: UserPayload
+ * Lấy user hiện tại từ request (populated by ClerkStrategy -> DB User)
+ * Usage: @CurrentUser() user: User
  * Reference: https://docs.nestjs.com/custom-decorators
  */
 
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { User } from '@prisma/client';
 
+/**
+ * @deprecated Use User from @prisma/client instead
+ * Giữ lại cho backward compatibility
+ */
 export interface UserPayload {
   userId: string;
   email: string | null;
@@ -17,8 +22,12 @@ export interface UserPayload {
   metadata: Record<string, unknown>;
 }
 
+/**
+ * CurrentUser Decorator
+ * Trả về DB User (Prisma User) thay vì Clerk payload
+ */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): UserPayload => {
+  (data: unknown, ctx: ExecutionContext): User => {
     const request = ctx.switchToHttp().getRequest();
     return request.user;
   },

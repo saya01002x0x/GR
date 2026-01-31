@@ -1,14 +1,14 @@
 /**
  * Artworks Controller
- * Example controller demonstrating Clerk authentication
+ * Example controller demonstrating Clerk authentication with Lazy Sync
  * Reference: https://docs.nestjs.com/controllers
  */
 
 import { Controller, Get, Post, UseGuards, Body } from '@nestjs/common';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import type { UserPayload } from '../../common/decorators/current-user.decorator';
-import { CreateArtworkDto, UpdateArtworkDto } from '@gr/shared';
+import type { User } from '@prisma/client';
+import { CreateArtworkDto } from '@gr/shared';
 
 @Controller('artworks')
 export class ArtworksController {
@@ -28,17 +28,22 @@ export class ArtworksController {
    * Protected endpoint - Authentication required
    * GET /artworks/me
    * Requires: Valid Clerk JWT token
+   * Returns: DB User (đã được Lazy Sync)
    */
   @Get('me')
   @UseGuards(ClerkGuard)
-  findMyArtworks(@CurrentUser() user: UserPayload) {
+  findMyArtworks(@CurrentUser() user: User) {
     return {
       message: 'My artworks (authenticated)',
       user: {
-        id: user.userId,
+        id: user.id, // UUID từ Database
+        clerkId: user.clerkId,
         email: user.email,
-        name: user.fullName,
-        imageUrl: user.imageUrl,
+        username: user.username,
+        displayName: user.displayName,
+        avatar: user.avatar,
+        isArtist: user.isArtist,
+        createdAt: user.createdAt,
       },
       data: [],
     };
@@ -52,13 +57,13 @@ export class ArtworksController {
    */
   @Post()
   @UseGuards(ClerkGuard)
-  create(@CurrentUser() user: UserPayload, @Body() createDto: CreateArtworkDto) {
+  create(@CurrentUser() user: User, @Body() createDto: CreateArtworkDto) {
     return {
       message: 'Artwork created',
       artwork: {
         ...createDto,
-        userId: user.userId,
-        createdBy: user.fullName,
+        authorId: user.id, // UUID từ Database để liên kết với Artwork
+        createdBy: user.displayName || user.username,
       },
     };
   }
