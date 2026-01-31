@@ -168,13 +168,13 @@ export default function UploadPage() {
         <Paper p="xl" radius="lg" withBorder ta="center">
           <IconShieldCheck size={48} color="var(--mantine-color-primary-6)" />
           <Title order={2} mt="md">
-            Chỉ Artist mới có thể Upload
+            Only Artist can upload artwork
           </Title>
           <Text c="dimmed" mt="sm">
-            Vui lòng đăng ký trở thành Artist trong trang Dashboard để bắt đầu chia sẻ artwork.
+            Please become an Artist to upload artwork.
           </Text>
           <Button mt="lg" onClick={() => router.push('/dashboard/general')}>
-            Đến Dashboard
+            To Dashboard
           </Button>
         </Paper>
       </Container>

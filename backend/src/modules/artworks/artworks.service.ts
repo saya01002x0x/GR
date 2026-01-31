@@ -210,4 +210,20 @@ export class ArtworksService {
             skip: offset,
         });
     }
+
+    /**
+     * Get artworks by user ID
+     */
+    async findByUserId(userId: string) {
+        return this.prisma.artwork.findMany({
+            where: { authorId: userId },
+            include: {
+                images: {
+                    take: 1,
+                    orderBy: { order: 'asc' },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
 }

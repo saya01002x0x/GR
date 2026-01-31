@@ -56,7 +56,7 @@ export default async function RootLayout(props: {
         <head>
           <MantineColorSchemeScript />
         </head>
-        <body>
+        <body suppressHydrationWarning>
           <MantineProvider>
             <QueryProvider>
               <NextIntlClientProvider>

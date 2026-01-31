@@ -201,10 +201,10 @@ export function DashboardSidebar() {
                     <Stack gap="sm" align="center" ta="center">
                       <IconBrush size={32} color="var(--mantine-color-primary-6)" />
                       <Text size="sm" fw={600}>
-                        Trở thành Artist
+                        Become an Artist
                       </Text>
                       <Text size="xs" c="dimmed">
-                        Bắt đầu chia sẻ artwork của bạn với cộng đồng
+                        Start sharing your artwork with the community
                       </Text>
                       <Button
                         size="xs"
@@ -212,7 +212,7 @@ export function DashboardSidebar() {
                         onClick={openModal}
                         leftSection={<IconBrush size={14} />}
                       >
-                        Đăng ký ngay
+                        Sign up now
                       </Button>
                     </Stack>
                   </Card>

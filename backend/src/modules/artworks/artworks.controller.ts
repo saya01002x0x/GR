@@ -117,19 +117,25 @@ export class ArtworksController {
 
   /**
    * Get current user's artworks
-   * GET /artworks/me (legacy endpoint)
+   * GET /artworks/user/me
    */
   @Get('user/me')
   @UseGuards(ClerkGuard)
   async getMyArtworks(@CurrentUser() user: User) {
+    const artworks = await this.artworksService.findByUserId(user.id);
+
+    // Transform artworks to include thumbnailUrl for frontend
+    const transformedArtworks = artworks.map(artwork => ({
+      id: artwork.id,
+      title: artwork.title,
+      status: artwork.status,
+      createdAt: artwork.createdAt,
+      thumbnailUrl: artwork.images[0]?.thumbnailUrl || null,
+    }));
+
     return {
       message: 'My artworks',
-      user: {
-        id: user.id,
-        username: user.username,
-        isArtist: user.isArtist,
-      },
-      data: [],
+      data: transformedArtworks,
     };
   }
 }

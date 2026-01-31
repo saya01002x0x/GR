@@ -82,9 +82,9 @@ export function BecomeArtistModal({
       opened={opened}
       onClose={onClose}
       title={(
-        <Title order={3} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Title order={3} component="div" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <IconBrush size={24} color="var(--mantine-color-primary-6)" />
-          Trở thành Artist
+          Become an Artist
         </Title>
       )}
       size="md"
@@ -110,7 +110,7 @@ export function BecomeArtistModal({
         <Checkbox
           checked={agreed}
           onChange={e => setAgreed(e.currentTarget.checked)}
-          label="Tôi đã đọc và đồng ý với điều khoản trên"
+          label="I have read and agree to the terms above"
           mt="md"
         />
 
