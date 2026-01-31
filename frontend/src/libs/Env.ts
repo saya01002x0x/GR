@@ -1,13 +1,16 @@
 import { createEnv } from '@t3-oss/env-nextjs';
 import * as z from 'zod';
 
+// Set to true to bypass Clerk auth validation in development
+const BYPASS_AUTH = process.env.NODE_ENV === 'development';
+
 export const Env = createEnv({
   server: {
-    CLERK_SECRET_KEY: z.string().min(1),
+    CLERK_SECRET_KEY: BYPASS_AUTH ? z.string().optional() : z.string().min(1),
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().optional(),
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: BYPASS_AUTH ? z.string().optional() : z.string().min(1),
     NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN: z.string().optional(),
     NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST: z.string().optional(),
     NEXT_PUBLIC_API_URL: z.string().optional(),

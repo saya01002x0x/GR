@@ -13,7 +13,7 @@ export const envValidationSchema = Joi.object({
     .default('development'),
 
   // Server
-  PORT: Joi.number().default(3001),
+  PORT: Joi.number().default(3847),
 
   // Clerk Authentication (REQUIRED)
   CLERK_SECRET_KEY: Joi.string().required(),

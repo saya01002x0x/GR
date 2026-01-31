@@ -322,7 +322,7 @@ getProfile(@CurrentUser() user: UserPayload) {
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing (Trong dự án hiện tại, tạm thời bỏ qua phần testing)
 
 ### Generate Test Files
 

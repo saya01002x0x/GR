@@ -38,6 +38,7 @@ export class ArtworksController {
         id: user.userId,
         email: user.email,
         name: user.fullName,
+        imageUrl: user.imageUrl,
       },
       data: [],
     };

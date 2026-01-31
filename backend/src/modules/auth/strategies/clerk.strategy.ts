@@ -1,22 +1,40 @@
 /**
  * Clerk Passport Strategy
  * Verify JWT token từ Clerk
- * 
- * TODO: Implement proper JWT verification
  * Reference: https://clerk.com/docs/backend-requests/handling/nodejs
- * 
- * NOTE: This is a basic implementation for development.
- * For production, implement proper JWT verification using @clerk/backend
  */
 
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-custom';
 import { Request } from 'express';
+import { verifyToken, type ClerkClient } from '@clerk/backend';
+import { CLERK_CLIENT } from '../providers/clerk-client.provider';
+
+export interface ClerkUserPayload {
+  userId: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  fullName: string | null;
+  imageUrl: string | null;
+  metadata: Record<string, unknown>;
+}
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
-  async validate(req: Request): Promise<any> {
+  private readonly secretKey: string;
+
+  constructor(
+    @Inject(CLERK_CLIENT) private readonly clerkClient: ClerkClient,
+    private readonly configService: ConfigService,
+  ) {
+    super();
+    this.secretKey = this.configService.get<string>('CLERK_SECRET_KEY') || '';
+  }
+
+  async validate(req: Request): Promise<ClerkUserPayload> {
     try {
       // Lấy token từ Authorization header
       const token = this.extractTokenFromHeader(req);
@@ -25,21 +43,40 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         throw new UnauthorizedException('No authentication token provided');
       }
 
-      // TODO: Implement JWT verification với Clerk
-      // For now, return mock user for development
-      console.log('[ClerkStrategy] Token received (mock auth for dev)');
+      // Verify JWT token với Clerk (standalone function)
+      const payload = await verifyToken(token, {
+        secretKey: this.secretKey,
+      });
 
-      // Return mock user object để attach vào request
+      const userId = payload.sub;
+
+      if (!userId) {
+        throw new UnauthorizedException('Invalid token: no user ID');
+      }
+
+      // Lấy user info từ Clerk
+      const user = await this.clerkClient.users.getUser(userId);
+
+      // Return user payload để attach vào request
       return {
-        userId: 'dev_user_123',
-        email: 'dev@example.com',
-        firstName: 'Dev',
-        lastName: 'User',
-        fullName: 'Dev User',
-        metadata: { role: 'member' },
+        userId: user.id,
+        email: user.emailAddresses[0]?.emailAddress || null,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: [user.firstName, user.lastName].filter(Boolean).join(' ') || null,
+        imageUrl: user.imageUrl,
+        metadata: {
+          role: (user.publicMetadata?.role as string) || 'member',
+          ...user.publicMetadata,
+        },
       };
     } catch (error) {
       console.error('[ClerkStrategy] Authentication error:', error);
+      
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
       throw new UnauthorizedException(
         'Authentication failed: ' + (error?.message || 'Unknown error'),
       );
