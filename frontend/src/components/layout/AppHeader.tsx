@@ -1,19 +1,25 @@
 'use client';
 
+import { SignInButton, useClerk, useUser } from '@clerk/nextjs';
 import {
   ActionIcon,
   Avatar,
   Box,
   Button,
   Group,
+  Menu,
   Text,
   TextInput,
 } from '@mantine/core';
 import {
   IconBell,
+  IconLogout,
   IconMail,
   IconSearch,
+  IconSettings,
+  IconUser,
 } from '@tabler/icons-react';
+import Link from 'next/link';
 
 // Logo SVG component
 function LogoIcon({ size = 32 }: { size?: number }) {
@@ -42,6 +48,9 @@ function LogoIcon({ size = 32 }: { size?: number }) {
 }
 
 export function AppHeader() {
+  const { isSignedIn, user, isLoaded } = useUser();
+  const { signOut } = useClerk();
+
   return (
     <Box
       component="header"
@@ -59,7 +68,7 @@ export function AppHeader() {
         {/* Logo & Search */}
         <Group gap="xl" flex={1}>
           <Box
-            component="a"
+            component={Link}
             href="/"
             style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}
           >
@@ -81,30 +90,92 @@ export function AppHeader() {
           />
         </Group>
 
-        {/* Right Actions */}
-        <Group gap="sm">
-          <Button
-            radius="md"
-            visibleFrom="md"
-          >
-            Upload Work
-          </Button>
+        {/* Right Actions - Varies by auth state */}
+        {isLoaded && isSignedIn
+          ? (
+            // ========== LOGGED IN STATE ==========
+              <Group gap="sm">
+                <Button
+                  component={Link}
+                  href="/upload"
+                  radius="md"
+                  visibleFrom="md"
+                >
+                  Upload Work
+                </Button>
 
-          <ActionIcon variant="subtle" size="lg" radius="md" c="dark">
-            <IconBell size={22} />
-          </ActionIcon>
+                <ActionIcon variant="subtle" size="lg" radius="md" c="dark">
+                  <IconBell size={22} />
+                </ActionIcon>
 
-          <ActionIcon variant="subtle" size="lg" radius="md" c="dark">
-            <IconMail size={22} />
-          </ActionIcon>
+                <ActionIcon variant="subtle" size="lg" radius="md" c="dark">
+                  <IconMail size={22} />
+                </ActionIcon>
 
-          <Avatar
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsKj89BM4hKMS4ZC6el3-BZY9nRoL2TVZT8kr5PFwPnrAj4o-QZM7jzegFoQt1oTZ59Z6VNJ_eySgBQl0ShCEx2TmNmd0KkXDxVIsz1cQcvk9l6O_Wr0FEW4ZriQ1xglPH6fto49ANwCFH0yCxYfET__7fWHCzUFQfYoRoIXevU3m0SLzZMoRcgT15_dAo7agHl44r1VWGB_QE_fMVpy--R_onaFOLYBlbLT8Lg7IqNvIeb_z106u5Y6-SJPd5u6lJFT7V-nt4ZUE"
-            size={36}
-            radius="xl"
-            style={{ cursor: 'pointer' }}
-          />
-        </Group>
+                {/* User Avatar Menu */}
+                <Menu shadow="md" width={200} position="bottom-end">
+                  <Menu.Target>
+                    <Avatar
+                      src={user?.imageUrl}
+                      size={36}
+                      radius="xl"
+                      style={{ cursor: 'pointer' }}
+                      alt={user?.fullName || 'User avatar'}
+                    />
+                  </Menu.Target>
+
+                  <Menu.Dropdown>
+                    <Menu.Label>
+                      <Text size="sm" fw={500} lineClamp={1}>
+                        {user?.fullName || user?.primaryEmailAddress?.emailAddress}
+                      </Text>
+                      <Text size="xs" c="dimmed" lineClamp={1}>
+                        @
+                        {user?.username || 'user'}
+                      </Text>
+                    </Menu.Label>
+                    <Menu.Divider />
+                    <Menu.Item
+                      component={Link}
+                      href="/dashboard/profile"
+                      leftSection={<IconUser size={16} />}
+                    >
+                      My Profile
+                    </Menu.Item>
+                    <Menu.Item
+                      component={Link}
+                      href="/dashboard/general"
+                      leftSection={<IconSettings size={16} />}
+                    >
+                      Settings
+                    </Menu.Item>
+                    <Menu.Divider />
+                    <Menu.Item
+                      color="red"
+                      leftSection={<IconLogout size={16} />}
+                      onClick={() => signOut()}
+                    >
+                      Sign Out
+                    </Menu.Item>
+                  </Menu.Dropdown>
+                </Menu>
+              </Group>
+            )
+          : (
+            // ========== LOGGED OUT STATE ==========
+              <Group gap="sm">
+                <SignInButton mode="modal">
+                  <Button variant="subtle" radius="md">
+                    Sign In
+                  </Button>
+                </SignInButton>
+                <SignInButton mode="modal">
+                  <Button radius="md">
+                    Get Started
+                  </Button>
+                </SignInButton>
+              </Group>
+            )}
       </Group>
     </Box>
   );
