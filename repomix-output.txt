@@ -1,0 +1,225 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+================================================================
+File Summary
+================================================================
+
+Purpose:
+--------
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+
+File Format:
+------------
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Multiple file entries, each consisting of:
+  a. A separator line (================)
+  b. The file path (File: path/to/file)
+  c. Another separator line
+  d. The full contents of the file
+  e. A blank line
+
+Usage Guidelines:
+-----------------
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+
+Notes:
+------
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+
+Additional Info:
+----------------
+
+================================================================
+Directory Structure
+================================================================
+.eslintignore
+.github/actions/setup-project/action.yml
+.github/dependabot.yml
+.github/FUNDING.yml
+.github/workflows/CI.yml
+.github/workflows/crowdin.yml
+.github/workflows/release.yml
+.gitignore
+backend/.dockerignore
+backend/.prettierrc
+backend/Dockerfile
+backend/env.template
+backend/eslint.config.mjs
+backend/nest-cli.json
+backend/package.json
+backend/prisma/schema.prisma
+backend/README.md
+backend/scripts/create-test-users.ts
+backend/scripts/get-test-token.ts
+backend/scripts/README.md
+backend/src/app.controller.spec.ts
+backend/src/app.controller.ts
+backend/src/app.module.ts
+backend/src/app.service.ts
+backend/src/common/decorators/current-user.decorator.ts
+backend/src/common/decorators/roles.decorator.ts
+backend/src/config/configuration.ts
+backend/src/config/env.validation.ts
+backend/src/database/index.ts
+backend/src/database/prisma.module.ts
+backend/src/database/prisma.service.ts
+backend/src/main.ts
+backend/src/modules/artworks/artworks.controller.spec.ts
+backend/src/modules/artworks/artworks.controller.ts
+backend/src/modules/auth/auth.module.ts
+backend/src/modules/auth/auth.service.spec.ts
+backend/src/modules/auth/auth.service.ts
+backend/src/modules/auth/clerk/clerk.guard.spec.ts
+backend/src/modules/auth/clerk/clerk.guard.ts
+backend/src/modules/auth/providers/clerk-client.provider.ts
+backend/src/modules/auth/strategies/clerk.strategy.ts
+backend/src/README.md
+backend/test/app.e2e-spec.ts
+backend/test/jest-e2e.json
+backend/tsconfig.build.json
+backend/tsconfig.json
+commitlint.config.ts
+docker-compose.yml
+frontend/.coderabbit.yaml
+frontend/.dockerignore
+frontend/.storybook/main.ts
+frontend/.storybook/preview.ts
+frontend/.storybook/vitest.config.mts
+frontend/.storybook/vitest.setup.ts
+frontend/.vscode/extensions.json
+frontend/.vscode/launch.json
+frontend/.vscode/settings.json
+frontend/.vscode/tasks.json
+frontend/codecov.yml
+frontend/crowdin.yml
+frontend/Dockerfile
+frontend/env.template
+frontend/eslint.config.mjs
+frontend/knip.config.ts
+frontend/LICENSE
+frontend/next.config.ts
+frontend/package.json
+frontend/postcss.config.mjs
+frontend/public/assets/images/arcjet-dark.svg
+frontend/public/assets/images/arcjet-light.svg
+frontend/public/assets/images/codecov-dark.svg
+frontend/public/assets/images/codecov-white.svg
+frontend/public/assets/images/coderabbit-logo-dark.svg
+frontend/public/assets/images/coderabbit-logo-light.svg
+frontend/README.md
+frontend/src/app/[locale]/(auth)/(center)/layout.tsx
+frontend/src/app/[locale]/(auth)/(center)/sign-in/[[...sign-in]]/page.tsx
+frontend/src/app/[locale]/(auth)/(center)/sign-up/[[...sign-up]]/page.tsx
+frontend/src/app/[locale]/(auth)/layout.tsx
+frontend/src/app/[locale]/(marketing)/about/page.tsx
+frontend/src/app/[locale]/(marketing)/layout.tsx
+frontend/src/app/[locale]/(marketing)/page.tsx
+frontend/src/app/[locale]/(marketing)/portfolio/[slug]/page.tsx
+frontend/src/app/[locale]/(marketing)/portfolio/page.tsx
+frontend/src/app/[locale]/artists/[username]/page.tsx
+frontend/src/app/[locale]/artworks/[id]/page.tsx
+frontend/src/app/[locale]/dashboard/page.tsx
+frontend/src/app/[locale]/dashboard/profile/page.tsx
+frontend/src/app/[locale]/discover/page.tsx
+frontend/src/app/[locale]/layout.tsx
+frontend/src/app/[locale]/not-found.tsx
+frontend/src/app/global-error.tsx
+frontend/src/app/not-found.tsx
+frontend/src/app/robots.ts
+frontend/src/app/sitemap.ts
+frontend/src/components/artist/ArtworkCard.tsx
+frontend/src/components/artist/ArtworkGallery.tsx
+frontend/src/components/artist/index.ts
+frontend/src/components/artist/ProfileSidebar.tsx
+frontend/src/components/artwork-detail/ArtworkActions.tsx
+frontend/src/components/artwork-detail/ArtworkImage.tsx
+frontend/src/components/artwork-detail/ArtworkSidebar.tsx
+frontend/src/components/artwork-detail/CommentsSection.tsx
+frontend/src/components/artwork-detail/index.ts
+frontend/src/components/artwork-detail/RelatedArtworks.tsx
+frontend/src/components/artwork/ArtworkCard.tsx
+frontend/src/components/artwork/index.ts
+frontend/src/components/auth/AuthPageLayout.tsx
+frontend/src/components/auth/index.ts
+frontend/src/components/dashboard/DashboardSidebar.tsx
+frontend/src/components/dashboard/index.ts
+frontend/src/components/dashboard/ProfileForm.tsx
+frontend/src/components/dashboard/ProfileVisibility.tsx
+frontend/src/components/dashboard/SensitiveContent.tsx
+frontend/src/components/DemoBadge.tsx
+frontend/src/components/DemoBanner.tsx
+frontend/src/components/discover/CategoryPills.tsx
+frontend/src/components/discover/DiscoverGrid.tsx
+frontend/src/components/discover/FeaturedArtwork.tsx
+frontend/src/components/discover/HeroSection.tsx
+frontend/src/components/discover/index.ts
+frontend/src/components/discover/RankingSection.tsx
+frontend/src/components/discover/SidebarContent.tsx
+frontend/src/components/Hello.tsx
+frontend/src/components/layout/AppFooter.tsx
+frontend/src/components/layout/AppHeader.tsx
+frontend/src/components/layout/AppLayoutShell.tsx
+frontend/src/components/layout/index.ts
+frontend/src/components/LocaleSwitcher.tsx
+frontend/src/components/Sponsors.tsx
+frontend/src/examples/shared-package-usage.tsx
+frontend/src/instrumentation-client.ts
+frontend/src/instrumentation.ts
+frontend/src/libs/api.ts
+frontend/src/libs/Env.ts
+frontend/src/libs/I18n.ts
+frontend/src/libs/I18nNavigation.ts
+frontend/src/libs/I18nRouting.ts
+frontend/src/libs/Logger.ts
+frontend/src/libs/MantineProvider.tsx
+frontend/src/libs/QueryProvider.tsx
+frontend/src/locales/en.json
+frontend/src/locales/fr.json
+frontend/src/mocks/artistData.ts
+frontend/src/mocks/artworkDetailData.ts
+frontend/src/mocks/dashboardData.ts
+frontend/src/mocks/discoverData.ts
+frontend/src/proxy.ts
+frontend/src/stores/useUIStore.ts
+frontend/src/styles/global.css
+frontend/src/templates/BaseTemplate.stories.tsx
+frontend/src/templates/BaseTemplate.test.tsx
+frontend/src/templates/BaseTemplate.tsx
+frontend/src/templates/README.md
+frontend/src/types/I18n.ts
+frontend/src/utils/AppConfig.ts
+frontend/src/utils/Helpers.test.ts
+frontend/src/utils/Helpers.ts
+frontend/tsconfig.json
+frontend/vitest.config.mts
+HYBRID_MODE_SETUP.md
+lefthook.yml
+LICENSE
+package.json
+packages/shared/.gitignore
+packages/shared/package.json
+packages/shared/README.md
+packages/shared/src/constants/index.ts
+packages/shared/src/dtos/artwork.dto.ts
+packages/shared/src/index.ts
+packages/shared/src/types/index.ts
+packages/shared/tsconfig.json
+pnpm-workspace.yaml
+README.md
+SETUP_COMPLETE.md
+setup-env.ps1
+setup-env.sh
+thunder-client-collection.json

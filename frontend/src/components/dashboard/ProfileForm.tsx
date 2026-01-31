@@ -1,6 +1,7 @@
 'use client';
 
 import type { UserProfile } from '@/mocks/dashboardData';
+import { useUser } from '@clerk/nextjs';
 import {
   ActionIcon,
   Avatar,
@@ -9,6 +10,7 @@ import {
   Card,
   FileButton,
   Group,
+  Loader,
   Stack,
   Text,
   Textarea,
@@ -22,6 +24,7 @@ import {
   IconLink,
   IconUpload,
 } from '@tabler/icons-react';
+import { useState } from 'react';
 
 type ProfileFormProps = {
   profile: UserProfile;
@@ -29,6 +32,9 @@ type ProfileFormProps = {
 };
 
 export function ProfileForm({ profile, onChange }: ProfileFormProps) {
+  const { user, isLoaded } = useUser();
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
   const handleChange = <K extends keyof UserProfile>(key: K, value: UserProfile[K]) => {
     onChange({ ...profile, [key]: value });
   };
@@ -39,6 +45,44 @@ export function ProfileForm({ profile, onChange }: ProfileFormProps) {
       social: { ...profile.social, [key]: value },
     });
   };
+
+  // Handle avatar upload via Clerk
+  const handleAvatarUpload = async (file: File | null) => {
+    if (!file || !user) {
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      await user.setProfileImage({ file });
+      // Update local state with new image URL
+      handleChange('avatar', user.imageUrl);
+    } catch (error) {
+      console.error('Failed to upload avatar:', error);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Remove avatar (set to default)
+  const handleRemoveAvatar = async () => {
+    if (!user) {
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      await user.setProfileImage({ file: null });
+      handleChange('avatar', '');
+    } catch (error) {
+      console.error('Failed to remove avatar:', error);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Get avatar URL - prefer Clerk's user.imageUrl, fallback to profile.avatar
+  const avatarUrl = isLoaded && user?.imageUrl ? user.imageUrl : profile.avatar;
 
   return (
     <Stack gap="xl">
@@ -63,15 +107,16 @@ export function ProfileForm({ profile, onChange }: ProfileFormProps) {
           <Stack align="center" gap="sm">
             <Box pos="relative">
               <Avatar
-                src={profile.avatar}
+                src={avatarUrl}
                 size={96}
                 radius="xl"
-              />
+              >
+                {isUploadingAvatar && <Loader size="sm" />}
+              </Avatar>
               <FileButton
                 accept="image/png,image/jpeg,image/gif"
-                onChange={() => {
-                  // TODO: Handle avatar upload
-                }}
+                onChange={handleAvatarUpload}
+                disabled={isUploadingAvatar}
               >
                 {props => (
                   <ActionIcon
@@ -82,6 +127,7 @@ export function ProfileForm({ profile, onChange }: ProfileFormProps) {
                     size="sm"
                     radius="xl"
                     variant="filled"
+                    loading={isUploadingAvatar}
                   >
                     <IconCamera size={14} />
                   </ActionIcon>
@@ -93,25 +139,25 @@ export function ProfileForm({ profile, onChange }: ProfileFormProps) {
                 size="xs"
                 variant="subtle"
                 color="gray"
-                onClick={() => handleChange('avatar', '')}
+                onClick={handleRemoveAvatar}
+                disabled={isUploadingAvatar || !avatarUrl}
               >
                 Remove
               </Button>
               <FileButton
                 accept="image/png,image/jpeg,image/gif"
-                onChange={() => {
-                  // TODO: Handle avatar upload
-                }}
+                onChange={handleAvatarUpload}
+                disabled={isUploadingAvatar}
               >
                 {props => (
-                  <Button {...props} size="xs" variant="light">
+                  <Button {...props} size="xs" variant="light" loading={isUploadingAvatar}>
                     Upload New
                   </Button>
                 )}
               </FileButton>
             </Group>
             <Text size="xs" c="dimmed">
-              PNG, JPG, GIF. Max 5MB
+              PNG, JPG, GIF. Clerk handles resizing.
             </Text>
           </Stack>
 
@@ -147,7 +193,7 @@ export function ProfileForm({ profile, onChange }: ProfileFormProps) {
                 <FileButton
                   accept="image/png,image/jpeg"
                   onChange={() => {
-                    // TODO: Handle banner upload
+                    // TODO: Handle banner upload (requires separate storage)
                   }}
                 >
                   {props => (
