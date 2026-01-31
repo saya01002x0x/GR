@@ -184,13 +184,77 @@ export class ArtworksService {
     }
 
     /**
-     * Get all published artworks
+     * Get all published artworks with pagination
+     * Default: 25 items per page
      */
     async findAll(options: { limit?: number; offset?: number } = {}) {
-        const { limit = 20, offset = 0 } = options;
+        const { limit = 25, offset = 0 } = options;
 
-        return this.prisma.artwork.findMany({
-            where: { status: 'PUBLISHED' },
+        const [artworks, total] = await Promise.all([
+            this.prisma.artwork.findMany({
+                where: { status: 'PUBLISHED' },
+                include: {
+                    author: {
+                        select: {
+                            id: true,
+                            username: true,
+                            displayName: true,
+                            avatar: true,
+                        },
+                    },
+                    images: {
+                        take: 1,
+                        orderBy: { order: 'asc' },
+                    },
+                },
+                orderBy: { createdAt: 'desc' },
+                take: limit,
+                skip: offset,
+            }),
+            this.prisma.artwork.count({
+                where: { status: 'PUBLISHED' },
+            }),
+        ]);
+
+        return {
+            artworks,
+            total,
+            hasMore: offset + artworks.length < total,
+        };
+    }
+
+    /**
+     * Get related artworks by tags (OR logic)
+     * Fallback: same author or latest artworks
+     */
+    async findRelated(artworkId: string, limit = 10) {
+        // Get current artwork with tags
+        const artwork = await this.prisma.artwork.findUnique({
+            where: { id: artworkId },
+            include: {
+                tags: { include: { tag: true } },
+            },
+        });
+
+        if (!artwork) {
+            return [];
+        }
+
+        const tagNames = artwork.tags.map(t => t.tag.name);
+
+        // Try to find by matching tags (OR logic)
+        let relatedArtworks = await this.prisma.artwork.findMany({
+            where: {
+                id: { not: artworkId },
+                status: 'PUBLISHED',
+                tags: {
+                    some: {
+                        tag: {
+                            name: { in: tagNames },
+                        },
+                    },
+                },
+            },
             include: {
                 author: {
                     select: {
@@ -207,8 +271,44 @@ export class ArtworksService {
             },
             orderBy: { createdAt: 'desc' },
             take: limit,
-            skip: offset,
         });
+
+        // Fallback: same author or latest
+        if (relatedArtworks.length < limit) {
+            const remaining = limit - relatedArtworks.length;
+            const existingIds = [artworkId, ...relatedArtworks.map(a => a.id)];
+
+            const fallbackArtworks = await this.prisma.artwork.findMany({
+                where: {
+                    id: { notIn: existingIds },
+                    status: 'PUBLISHED',
+                    OR: [
+                        { authorId: artwork.authorId },
+                        {}, // Any artwork as last resort
+                    ],
+                },
+                include: {
+                    author: {
+                        select: {
+                            id: true,
+                            username: true,
+                            displayName: true,
+                            avatar: true,
+                        },
+                    },
+                    images: {
+                        take: 1,
+                        orderBy: { order: 'asc' },
+                    },
+                },
+                orderBy: { createdAt: 'desc' },
+                take: remaining,
+            });
+
+            relatedArtworks = [...relatedArtworks, ...fallbackArtworks];
+        }
+
+        return relatedArtworks;
     }
 
     /**

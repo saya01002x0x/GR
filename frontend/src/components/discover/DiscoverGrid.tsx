@@ -6,14 +6,16 @@ import {
   Button,
   Title,
 } from '@mantine/core';
+import Link from 'next/link';
 import { ArtworkCard } from '@/components/artwork';
 
 type DiscoverGridProps = {
   artworks: DiscoverArtwork[];
   onLoadMore?: () => void;
+  loading?: boolean;
 };
 
-export function DiscoverGrid({ artworks, onLoadMore }: DiscoverGridProps) {
+export function DiscoverGrid({ artworks, onLoadMore, loading }: DiscoverGridProps) {
   return (
     <Box>
       <Title order={3} mb="lg">
@@ -24,17 +26,19 @@ export function DiscoverGrid({ artworks, onLoadMore }: DiscoverGridProps) {
       <Box className="masonry-grid">
         {artworks.map(artwork => (
           <Box key={artwork.id} className="masonry-item">
-            <ArtworkCard
-              title={artwork.title}
-              image={artwork.image}
-              artist={artwork.artist.name}
-              artistAvatar={artwork.artist.avatar}
-              liked={artwork.liked}
-              size="sm"
-              onLikeToggle={() => {
-                // TODO: Implement like toggle
-              }}
-            />
+            <Link href={`/artworks/${artwork.id}`} style={{ textDecoration: 'none' }}>
+              <ArtworkCard
+                title={artwork.title}
+                image={artwork.image}
+                artist={artwork.artist.name}
+                artistAvatar={artwork.artist.avatar}
+                liked={artwork.liked}
+                size="sm"
+                onLikeToggle={() => {
+                  // TODO: Implement like toggle
+                }}
+              />
+            </Link>
           </Box>
         ))}
       </Box>
@@ -47,8 +51,10 @@ export function DiscoverGrid({ artworks, onLoadMore }: DiscoverGridProps) {
             radius="xl"
             size="md"
             onClick={onLoadMore}
+            loading={loading}
+            leftSection={loading ? undefined : undefined}
           >
-            Load More
+            {loading ? 'Loading...' : 'Load More'}
           </Button>
         </Box>
       )}

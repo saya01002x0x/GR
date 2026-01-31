@@ -27,21 +27,45 @@ export class ArtworksController {
 
   /**
    * Get all published artworks
-   * GET /artworks
+   * GET /artworks?limit=25&offset=0
    */
   @Get()
   async findAll(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    const artworks = await this.artworksService.findAll({
-      limit: limit ? parseInt(limit, 10) : 20,
+    const result = await this.artworksService.findAll({
+      limit: limit ? parseInt(limit, 10) : 25,
       offset: offset ? parseInt(offset, 10) : 0,
     });
 
     return {
       message: 'Artworks retrieved successfully',
-      data: artworks,
+      data: result.artworks,
+      pagination: {
+        total: result.total,
+        hasMore: result.hasMore,
+      },
+    };
+  }
+
+  /**
+   * Get related artworks by ID
+   * GET /artworks/:id/related
+   */
+  @Get(':id/related')
+  async findRelated(
+    @Param('id') id: string,
+    @Query('limit') limit?: string,
+  ) {
+    const relatedArtworks = await this.artworksService.findRelated(
+      id,
+      limit ? parseInt(limit, 10) : 10,
+    );
+
+    return {
+      message: 'Related artworks retrieved successfully',
+      data: relatedArtworks,
     };
   }
 
