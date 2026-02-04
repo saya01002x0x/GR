@@ -18,6 +18,7 @@ import { ArtworksModule } from './modules/artworks/artworks/artworks.module';
 import { LikesModule } from './modules/likes/likes.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { CollectionsModule } from './modules/collections/collections.module';
+import { QueueModule } from './modules/queue/queue.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { CollectionsModule } from './modules/collections/collections.module';
     LikesModule,
     CommentsModule,
     CollectionsModule,
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [AppService],

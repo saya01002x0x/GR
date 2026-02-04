@@ -10,9 +10,10 @@ import { ArtworksController } from '../artworks.controller';
 import { PrismaModule } from '../../../database';
 import { StorageModule } from '../../storage/storage/storage.module';
 import { AuthModule } from '../../auth/auth.module';
+import { QueueModule } from '../../queue/queue.module';
 
 @Module({
-    imports: [PrismaModule, StorageModule, AuthModule],
+    imports: [PrismaModule, StorageModule, AuthModule, QueueModule],
     controllers: [ArtworksController],
     providers: [ArtworksService],
     exports: [ArtworksService],

@@ -8,6 +8,10 @@ import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { Artwork, ContentRating, ArtworkStatus } from '@prisma/client';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_NAME, JOB_PROCESS_IMAGES } from '../queue/queue.constants';
+import { randomUUID } from 'crypto';
 
 export interface CreateArtworkDto {
     title: string;
@@ -33,6 +37,7 @@ export class ArtworksService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly storageService: StorageService,
+        @InjectQueue(QUEUE_NAME) private readonly queue: Queue,
     ) { }
 
     /**
@@ -46,7 +51,7 @@ export class ArtworksService {
         metadata: { order: number; caption?: string }[],
         userId: string,
         isArtist: boolean,
-    ): Promise<CreateArtworkResult> {
+    ): Promise<any> {
         // Only artists can upload
         if (!isArtist) {
             throw new ForbiddenException('Only artists can upload artworks');
@@ -62,56 +67,77 @@ export class ArtworksService {
             throw new ForbiddenException('At least 1 image is required');
         }
 
-        // Step 1: Create artwork with DRAFT status
+
+
+        // Step 1: Create artwork with PROCESSING status
         const artwork = await this.prisma.artwork.create({
             data: {
                 title: dto.title,
                 description: dto.description,
                 rating: dto.rating,
                 isAI: dto.isAI,
-                status: 'DRAFT' as ArtworkStatus,
+                status: 'PROCESSING' as ArtworkStatus,
                 authorId: userId,
             },
         });
 
-        this.logger.log(`Created artwork DRAFT: ${artwork.id} with ${files.length} images`);
+        this.logger.log(`Created artwork ${artwork.id} (PROCESSING). Uploading ${files.length} raw files...`);
 
         try {
-            // Step 2: Process ALL images in parallel
-            // Match by INDEX: files[i] corresponds to metadata[i]
-            const processedImages = await Promise.all(
+            // Step 2: Upload RAW files to MinIO
+            const rawFiles = await Promise.all(
                 files.map(async (file, index) => {
-                    const [processed, thumbnail] = await Promise.all([
-                        this.storageService.processImage(file.buffer, { maxWidth: 1200, quality: 80 }),
-                        this.storageService.createThumbnail(file.buffer, 400),
-                    ]);
+                    const uniqueId = randomUUID();
+                    const ext = file.originalname.split('.').pop() || 'jpg';
+                    const key = `raw/artworks/${artwork.id}/${uniqueId}_${index}.${ext}`;
 
-                    // Generate paths with index for uniqueness
-                    const previewPath = this.storageService.generateArtworkPath(userId, artwork.id, `preview_${index}`);
-                    const thumbPath = this.storageService.generateArtworkPath(userId, artwork.id, `thumb_${index}`);
-
-                    // Upload to MinIO
-                    const [previewUrl, thumbUrl] = await Promise.all([
-                        this.storageService.uploadFile(processed.buffer, previewPath),
-                        this.storageService.uploadFile(thumbnail, thumbPath),
-                    ]);
+                    await this.storageService.uploadRaw(file.buffer, key);
 
                     return {
-                        url: previewUrl,
-                        thumbnailUrl: thumbUrl,
-                        width: processed.metadata.width,
-                        height: processed.metadata.height,
-                        aspectRatio: processed.metadata.aspectRatio,
+                        key,
+                        originalName: file.originalname,
+                        mimeType: file.mimetype,
                         order: metadata[index]?.order ?? index,
                         caption: metadata[index]?.caption || null,
                     };
                 })
             );
 
-            this.logger.log(`Uploaded ${processedImages.length} images for artwork: ${artwork.id}`);
+            // Step 3: Add Job to Queue
+            await this.queue.add(
+                JOB_PROCESS_IMAGES,
+                {
+                    artworkId: artwork.id,
+                    userId,
+                    files: rawFiles,
+                },
+                {
+                    attempts: 3,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 1000,
+                    },
+                    removeOnComplete: true,
+                }
+            );
 
-            // Step 3: Create tags
-            const tagRecords = await Promise.all(
+            this.logger.log(`Added job for artwork ${artwork.id} to queue`);
+
+            // Step 4: Step 3 (Create Tags) moved to here to ensure tags exist
+            // Or worker can do it. But doing it here gives immediate feedback on tags.
+            // Actually worker does it in transaction. Let's do tags here to link Relation later?
+            // Plan said Worker does it. Let's stick to plan: "Transaction: Create DB Records" in Worker.
+            // But we need Tags to exist? Worker can upsert tags.
+
+            // HOWEVER: logic in worker needs DTO tags. 
+            // Wait, I forgot to pass DTO tags to Worker! 
+            // The plan said: "Transaction: Create DB Records (ArtworkImage)". 
+            // What about Tags? 
+            // The worker needs to know the tags to create ArtworkTag relations.
+            // I should update the Job payload to include tags.
+
+            // Let's create tags here (synchronously) because it's fast and metadata.
+            await Promise.all(
                 dto.tags.map(tagName =>
                     this.prisma.tag.upsert({
                         where: { name: tagName },
@@ -121,59 +147,38 @@ export class ArtworksService {
                 ),
             );
 
-            // Step 4: Transaction - create images, tags, publish
-            await (this.prisma.$transaction as any)([
-                // Create ALL image records
-                ...processedImages.map(img =>
-                    (this.prisma.artworkImage.create as any)({
-                        data: {
-                            artworkId: artwork.id,
-                            url: img.url,
-                            thumbnailUrl: img.thumbnailUrl,
-                            width: img.width,
-                            height: img.height,
-                            aspectRatio: img.aspectRatio,
-                            order: img.order,
-                        },
-                    }),
-                ),
-                // Create tag relations
-                ...tagRecords.map((tag, index) =>
-                    (this.prisma.artworkTag.create as any)({
-                        data: {
-                            artworkId: artwork.id,
-                            tagId: tag.id,
-                            order: index,
-                        },
-                    }),
-                ),
-                // Update status to PUBLISHED
-                (this.prisma.artwork.update as any)({
-                    where: { id: artwork.id },
-                    data: { status: 'PUBLISHED' as ArtworkStatus },
-                }),
-            ]);
+            // We also need to link tags to artwork? 
+            // If we link them now, they exist.
+            // Let's link them now! It's metadata, fast operation.
+            // Then worker only deals with IMAGES.
+            const tags = await this.prisma.tag.findMany({
+                where: { name: { in: dto.tags } },
+            });
 
-            this.logger.log(`Published artwork: ${artwork.id} with ${processedImages.length} images`);
+            await this.prisma.artworkTag.createMany({
+                data: tags.map((tag, index) => ({
+                    artworkId: artwork.id,
+                    tagId: tag.id,
+                    order: index,
+                })),
+            });
 
             return {
-                artwork: { ...artwork, status: 'PUBLISHED' as ArtworkStatus },
-                images: {
-                    original: processedImages[0]?.url || '',
-                    preview: processedImages[0]?.url || '',
-                    thumbnail: processedImages[0]?.thumbnailUrl || '',
-                },
+                message: 'Upload successful. Processing in background.',
+                artwork: { ...artwork, status: 'PROCESSING' as ArtworkStatus },
+                jobId: 'queued',
             };
-        } catch (error) {
-            // Cleanup on failure
-            this.logger.error(`Failed to create artwork: ${error.message}`);
 
-            // Delete draft artwork (cascade deletes images)
+        } catch (error) {
+            this.logger.error(`Failed to initiate upload for artwork ${artwork.id}`, error);
+
+            // Cleanup: Delete artwork record if initial upload fails
             await this.prisma.artwork.delete({ where: { id: artwork.id } }).catch(() => { });
 
             throw error;
         }
     }
+
 
     /**
      * Get artwork by ID with author and images

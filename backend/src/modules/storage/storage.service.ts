@@ -149,6 +149,45 @@ export class StorageService implements OnModuleInit {
     }
 
     /**
+     * Upload RAW file (for background processing)
+     */
+    async uploadRaw(buffer: Buffer, key: string): Promise<void> {
+        await this.s3Client.send(
+            new PutObjectCommand({
+                Bucket: this.bucket,
+                Key: key,
+                Body: buffer,
+                // Binary stream
+                ContentType: 'application/octet-stream',
+            }),
+        );
+    }
+
+    /**
+     * Download file as Buffer
+     */
+    async download(key: string): Promise<Buffer> {
+        // Implement download logic here using GetObjectCommand
+        // For simplicity, we can fetch from public URL if it's public
+        // But for RAW files, we should use S3 SDK
+        const { GetObjectCommand } = await import('@aws-sdk/client-s3');
+
+        const response = await this.s3Client.send(
+            new GetObjectCommand({
+                Bucket: this.bucket,
+                Key: key,
+            }),
+        );
+
+        // Convert stream to buffer
+        const byteArray = await response.Body?.transformToByteArray();
+        if (!byteArray) {
+            throw new Error(`Failed to download file: ${key}`);
+        }
+        return Buffer.from(byteArray);
+    }
+
+    /**
      * Delete file from MinIO
      */
     async deleteFile(key: string): Promise<void> {
