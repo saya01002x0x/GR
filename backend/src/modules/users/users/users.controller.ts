@@ -5,11 +5,13 @@
  */
 
 import { Controller, Get, Patch, UseGuards, Body } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { ClerkGuard } from '../../auth/clerk/clerk.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 
+@ApiTags('users')
 @Controller('users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) { }
@@ -20,6 +22,10 @@ export class UsersController {
      */
     @Get('me')
     @UseGuards(ClerkGuard)
+    @ApiBearerAuth('clerk-auth')
+    @ApiOperation({ summary: 'Get current user profile' })
+    @ApiResponse({ status: 200, description: 'User profile retrieved' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
     async getMe(@CurrentUser() user: User) {
         return {
             id: user.id,
@@ -42,6 +48,10 @@ export class UsersController {
      */
     @Patch('become-artist')
     @UseGuards(ClerkGuard)
+    @ApiBearerAuth('clerk-auth')
+    @ApiOperation({ summary: 'Upgrade to Artist account' })
+    @ApiResponse({ status: 200, description: 'Successfully became an artist' })
+    @ApiResponse({ status: 401, description: 'Unauthorized' })
     async becomeArtist(
         @CurrentUser() user: User,
         @Body() body: { agreedToTerms: boolean },

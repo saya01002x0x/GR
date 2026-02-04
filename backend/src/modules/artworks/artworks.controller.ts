@@ -16,11 +16,13 @@ import {
   Body,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ArtworksService, CreateArtworkDto } from './artworks.service';
 import type { User, ContentRating } from '@prisma/client';
 
+@ApiTags('artworks')
 @Controller('artworks')
 export class ArtworksController {
   constructor(private readonly artworksService: ArtworksService) { }
@@ -30,6 +32,10 @@ export class ArtworksController {
    * GET /artworks?limit=25&offset=0
    */
   @Get()
+  @ApiOperation({ summary: 'Get all published artworks' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Number of artworks (default: 25)' })
+  @ApiQuery({ name: 'offset', required: false, description: 'Offset for pagination' })
+  @ApiResponse({ status: 200, description: 'Artworks retrieved successfully' })
   async findAll(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
@@ -54,6 +60,10 @@ export class ArtworksController {
    * GET /artworks/:id/related
    */
   @Get(':id/related')
+  @ApiOperation({ summary: 'Get related artworks' })
+  @ApiParam({ name: 'id', description: 'Artwork ID' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Number of related artworks' })
+  @ApiResponse({ status: 200, description: 'Related artworks retrieved' })
   async findRelated(
     @Param('id') id: string,
     @Query('limit') limit?: string,
@@ -74,6 +84,10 @@ export class ArtworksController {
    * GET /artworks/:id
    */
   @Get(':id')
+  @ApiOperation({ summary: 'Get artwork by ID' })
+  @ApiParam({ name: 'id', description: 'Artwork ID' })
+  @ApiResponse({ status: 200, description: 'Artwork retrieved' })
+  @ApiResponse({ status: 404, description: 'Artwork not found' })
   async findById(@Param('id') id: string) {
     const artwork = await this.artworksService.findById(id);
 
@@ -92,6 +106,12 @@ export class ArtworksController {
 
   @Post()
   @UseGuards(ClerkGuard)
+  @ApiBearerAuth('clerk-auth')
+  @ApiOperation({ summary: 'Create new artwork with images' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'Artwork created' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Not an artist' })
   @UseInterceptors(
     FilesInterceptor('images', 20, {  // Increased to 20 for manga
       limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
@@ -108,11 +128,11 @@ export class ArtworksController {
   async create(
     @CurrentUser() user: User,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { 
-      title: string; 
-      description?: string; 
-      tags: string; 
-      rating: ContentRating; 
+    @Body() body: {
+      title: string;
+      description?: string;
+      tags: string;
+      rating: ContentRating;
       isAI: string;
       metadata?: string;  // JSON string: [{ order: 0, caption: '' }, ...]
     },
@@ -161,6 +181,10 @@ export class ArtworksController {
    */
   @Get('user/me')
   @UseGuards(ClerkGuard)
+  @ApiBearerAuth('clerk-auth')
+  @ApiOperation({ summary: 'Get my artworks' })
+  @ApiResponse({ status: 200, description: 'My artworks retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyArtworks(@CurrentUser() user: User) {
     const artworks = await this.artworksService.findByUserId(user.id);
 

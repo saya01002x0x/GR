@@ -13,12 +13,15 @@ import {
     Body,
     UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { CollectionsService } from './collections.service';
 import type { CreateCollectionDto, UpdateCollectionDto } from './collections.service';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 
+@ApiTags('collections')
+@ApiBearerAuth('clerk-auth')
 @Controller('collections')
 @UseGuards(ClerkGuard)
 export class CollectionsController {
@@ -29,6 +32,8 @@ export class CollectionsController {
      * GET /collections
      */
     @Get()
+    @ApiOperation({ summary: 'Get my collections' })
+    @ApiResponse({ status: 200, description: 'Collections retrieved' })
     async getUserCollections(@CurrentUser() user: User) {
         const collections = await this.collectionsService.getUserCollections(user.id);
         return {
@@ -42,6 +47,8 @@ export class CollectionsController {
      * POST /collections
      */
     @Post()
+    @ApiOperation({ summary: 'Create a new collection' })
+    @ApiResponse({ status: 201, description: 'Collection created' })
     async createCollection(
         @Body() dto: CreateCollectionDto,
         @CurrentUser() user: User,
@@ -58,6 +65,9 @@ export class CollectionsController {
      * PATCH /collections/:id
      */
     @Patch(':id')
+    @ApiOperation({ summary: 'Update a collection' })
+    @ApiParam({ name: 'id', description: 'Collection ID' })
+    @ApiResponse({ status: 200, description: 'Collection updated' })
     async updateCollection(
         @Param('id') collectionId: string,
         @Body() dto: UpdateCollectionDto,
@@ -79,6 +89,9 @@ export class CollectionsController {
      * DELETE /collections/:id
      */
     @Delete(':id')
+    @ApiOperation({ summary: 'Delete a collection' })
+    @ApiParam({ name: 'id', description: 'Collection ID' })
+    @ApiResponse({ status: 200, description: 'Collection deleted' })
     async deleteCollection(
         @Param('id') collectionId: string,
         @CurrentUser() user: User,
@@ -94,6 +107,9 @@ export class CollectionsController {
      * POST /collections/:id/artworks
      */
     @Post(':id/artworks')
+    @ApiOperation({ summary: 'Add artwork to collection' })
+    @ApiParam({ name: 'id', description: 'Collection ID' })
+    @ApiResponse({ status: 200, description: 'Artwork added' })
     async addArtwork(
         @Param('id') collectionId: string,
         @Body('artworkId') artworkId: string,
@@ -115,6 +131,10 @@ export class CollectionsController {
      * DELETE /collections/:id/artworks/:artworkId
      */
     @Delete(':id/artworks/:artworkId')
+    @ApiOperation({ summary: 'Remove artwork from collection' })
+    @ApiParam({ name: 'id', description: 'Collection ID' })
+    @ApiParam({ name: 'artworkId', description: 'Artwork ID' })
+    @ApiResponse({ status: 200, description: 'Artwork removed' })
     async removeArtwork(
         @Param('id') collectionId: string,
         @Param('artworkId') artworkId: string,

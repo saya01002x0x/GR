@@ -10,7 +10,7 @@ importers:
     devDependencies:
       '@commitlint/cli':
         specifier: ^20.2.0
-        version: 20.2.0(@types/node@24.10.4)(typescript@5.9.3)
+        version: 20.2.0(@types/node@25.0.8)(typescript@5.9.3)
       '@commitlint/config-conventional':
         specifier: ^20.2.0
         version: 20.2.0
@@ -95,6 +95,9 @@ importers:
       sharp:
         specifier: ^0.34.5
         version: 0.34.5
+      swagger-ui-express:
+        specifier: ^5.0.1
+        version: 5.0.1(express@5.2.1)
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.2.0
@@ -8969,6 +8972,12 @@ packages:
   swagger-ui-dist@5.30.2:
     resolution: {integrity: sha512-HWCg1DTNE/Nmapt+0m2EPXFwNKNeKK4PwMjkwveN/zn1cV2Kxi9SURd+m0SpdcSgWEK/O64sf8bzXdtUhigtHA==}
 
+  swagger-ui-express@5.0.1:
+    resolution: {integrity: sha512-SrNU3RiBGTLLmFU8GIJdOdanJTl4TOmT27tt3bWWHppqYmAZ6IDuEuBvMU6nZq0zLEe6b/1rACXCgLZqO6ZfrA==}
+    engines: {node: '>= v0.10.32'}
+    peerDependencies:
+      express: '>=4.0.0 || >=5.0.0-beta'
+
   swr@2.3.4:
     resolution: {integrity: sha512-bYd2lrhc+VarcpkgWclcUi92wYCpOgMws9Sd1hG1ntAu0NEy+14CbotuFjshBU2kt9rYj9TSmDcybpxpeTU1fg==}
     peerDependencies:
@@ -10868,6 +10877,19 @@ snapshots:
       - '@types/node'
       - typescript
 
+  '@commitlint/cli@20.2.0(@types/node@25.0.8)(typescript@5.9.3)':
+    dependencies:
+      '@commitlint/format': 20.2.0
+      '@commitlint/lint': 20.2.0
+      '@commitlint/load': 20.2.0(@types/node@25.0.8)(typescript@5.9.3)
+      '@commitlint/read': 20.2.0
+      '@commitlint/types': 20.2.0
+      tinyexec: 1.0.2
+      yargs: 17.7.2
+    transitivePeerDependencies:
+      - '@types/node'
+      - typescript
+
   '@commitlint/config-conventional@20.2.0':
     dependencies:
       '@commitlint/types': 20.2.0
@@ -10915,6 +10937,22 @@ snapshots:
       chalk: 5.6.2
       cosmiconfig: 9.0.0(typescript@5.9.3)
       cosmiconfig-typescript-loader: 6.2.0(@types/node@24.10.4)(cosmiconfig@9.0.0(typescript@5.9.3))(typescript@5.9.3)
+      lodash.isplainobject: 4.0.6
+      lodash.merge: 4.6.2
+      lodash.uniq: 4.5.0
+    transitivePeerDependencies:
+      - '@types/node'
+      - typescript
+
+  '@commitlint/load@20.2.0(@types/node@25.0.8)(typescript@5.9.3)':
+    dependencies:
+      '@commitlint/config-validator': 20.2.0
+      '@commitlint/execute-rule': 20.0.0
+      '@commitlint/resolve-extends': 20.2.0
+      '@commitlint/types': 20.2.0
+      chalk: 5.6.2
+      cosmiconfig: 9.0.0(typescript@5.9.3)
+      cosmiconfig-typescript-loader: 6.2.0(@types/node@25.0.8)(cosmiconfig@9.0.0(typescript@5.9.3))(typescript@5.9.3)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -11470,7 +11508,7 @@ snapshots:
     dependencies:
       '@hapi/hoek': 11.0.7
 
-  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.2.1))(hono@4.11.1)':
+  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)':
     dependencies:
       '@modelcontextprotocol/sdk': 1.25.1(hono@4.11.1)(zod@3.25.76)
       hono: 4.11.1
@@ -11773,6 +11811,43 @@ snapshots:
       jest-message-util: 30.2.0
       jest-util: 30.2.0
       slash: 3.0.0
+
+  '@jest/core@30.2.0':
+    dependencies:
+      '@jest/console': 30.2.0
+      '@jest/pattern': 30.0.1
+      '@jest/reporters': 30.2.0
+      '@jest/test-result': 30.2.0
+      '@jest/transform': 30.2.0
+      '@jest/types': 30.2.0
+      '@types/node': 24.10.4
+      ansi-escapes: 4.3.2
+      chalk: 4.1.2
+      ci-info: 4.3.1
+      exit-x: 0.2.2
+      graceful-fs: 4.2.11
+      jest-changed-files: 30.2.0
+      jest-config: 30.2.0(@types/node@24.10.4)
+      jest-haste-map: 30.2.0
+      jest-message-util: 30.2.0
+      jest-regex-util: 30.0.1
+      jest-resolve: 30.2.0
+      jest-resolve-dependencies: 30.2.0
+      jest-runner: 30.2.0
+      jest-runtime: 30.2.0
+      jest-snapshot: 30.2.0
+      jest-util: 30.2.0
+      jest-validate: 30.2.0
+      jest-watcher: 30.2.0
+      micromatch: 4.0.8
+      pretty-format: 30.2.0
+      slash: 3.0.0
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - esbuild-register
+      - supports-color
+      - ts-node
+    optional: true
 
   '@jest/core@30.2.0(ts-node@10.9.2(@swc/core@1.15.7)(@types/node@22.19.3)(typescript@5.9.3))':
     dependencies:
@@ -13522,7 +13597,7 @@ snapshots:
 
   '@spotlightjs/sidecar@2.5.0':
     dependencies:
-      '@hono/mcp': 0.1.5(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@4.2.1))(hono@4.11.1)
+      '@hono/mcp': 0.1.5(@modelcontextprotocol/sdk@1.25.1(hono@4.11.1)(zod@3.25.76))(hono@4.11.1)
       '@hono/node-server': 1.19.7(hono@4.11.1)
       '@jridgewell/trace-mapping': 0.3.31
       '@modelcontextprotocol/sdk': 1.25.1(hono@4.11.1)(zod@3.25.76)
@@ -15237,6 +15312,13 @@ snapshots:
   cosmiconfig-typescript-loader@6.2.0(@types/node@24.10.4)(cosmiconfig@9.0.0(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
       '@types/node': 24.10.4
+      cosmiconfig: 9.0.0(typescript@5.9.3)
+      jiti: 2.6.1
+      typescript: 5.9.3
+
+  cosmiconfig-typescript-loader@6.2.0(@types/node@25.0.8)(cosmiconfig@9.0.0(typescript@5.9.3))(typescript@5.9.3):
+    dependencies:
+      '@types/node': 25.0.8
       cosmiconfig: 9.0.0(typescript@5.9.3)
       jiti: 2.6.1
       typescript: 5.9.3
@@ -17263,13 +17345,13 @@ snapshots:
 
   jest-cli@30.2.0(@types/node@24.10.4):
     dependencies:
-      '@jest/core': 30.2.0(ts-node@10.9.2(@swc/core@1.15.7)(@types/node@22.19.3)(typescript@5.9.3))
+      '@jest/core': 30.2.0
       '@jest/test-result': 30.2.0
       '@jest/types': 30.2.0
       chalk: 4.1.2
       exit-x: 0.2.2
       import-local: 3.2.0
-      jest-config: 30.2.0(@types/node@24.10.4)(ts-node@10.9.2(@swc/core@1.15.7)(@types/node@22.19.3)(typescript@5.9.3))
+      jest-config: 30.2.0(@types/node@24.10.4)
       jest-util: 30.2.0
       jest-validate: 30.2.0
       yargs: 17.7.2
@@ -17313,6 +17395,39 @@ snapshots:
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
+
+  jest-config@30.2.0(@types/node@24.10.4):
+    dependencies:
+      '@babel/core': 7.28.5
+      '@jest/get-type': 30.1.0
+      '@jest/pattern': 30.0.1
+      '@jest/test-sequencer': 30.2.0
+      '@jest/types': 30.2.0
+      babel-jest: 30.2.0(@babel/core@7.28.5)
+      chalk: 4.1.2
+      ci-info: 4.3.1
+      deepmerge: 4.3.1
+      glob: 10.5.0
+      graceful-fs: 4.2.11
+      jest-circus: 30.2.0
+      jest-docblock: 30.2.0
+      jest-environment-node: 30.2.0
+      jest-regex-util: 30.0.1
+      jest-resolve: 30.2.0
+      jest-runner: 30.2.0
+      jest-util: 30.2.0
+      jest-validate: 30.2.0
+      micromatch: 4.0.8
+      parse-json: 5.2.0
+      pretty-format: 30.2.0
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 24.10.4
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+    optional: true
 
   jest-config@30.2.0(@types/node@24.10.4)(ts-node@10.9.2(@swc/core@1.15.7)(@types/node@22.19.3)(typescript@5.9.3)):
     dependencies:
@@ -17583,7 +17698,7 @@ snapshots:
 
   jest@30.2.0(@types/node@24.10.4):
     dependencies:
-      '@jest/core': 30.2.0(ts-node@10.9.2(@swc/core@1.15.7)(@types/node@22.19.3)(typescript@5.9.3))
+      '@jest/core': 30.2.0
       '@jest/types': 30.2.0
       import-local: 3.2.0
       jest-cli: 30.2.0(@types/node@24.10.4)
@@ -19982,6 +20097,11 @@ snapshots:
   swagger-ui-dist@5.30.2:
     dependencies:
       '@scarf/scarf': 1.4.0
+
+  swagger-ui-express@5.0.1(express@5.2.1):
+    dependencies:
+      express: 5.2.1
+      swagger-ui-dist: 5.30.2
 
   swr@2.3.4(react@19.2.3):
     dependencies:
