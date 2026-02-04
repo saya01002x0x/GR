@@ -36,12 +36,14 @@ export class ArtworksService {
     ) { }
 
     /**
-     * Create artwork with images
+     * Create artwork with multiple images
+     * Images are matched with metadata by INDEX (not originalName)
      * Transaction-safe: DRAFT -> Upload -> PUBLISHED
      */
     async create(
         dto: CreateArtworkDto,
         files: Express.Multer.File[],
+        metadata: { order: number; caption?: string }[],
         userId: string,
         isArtist: boolean,
     ): Promise<CreateArtworkResult> {
@@ -60,8 +62,6 @@ export class ArtworksService {
             throw new ForbiddenException('At least 1 image is required');
         }
 
-        const file = files[0]; // For MVP, handle single file first
-
         // Step 1: Create artwork with DRAFT status
         const artwork = await this.prisma.artwork.create({
             data: {
@@ -74,31 +74,43 @@ export class ArtworksService {
             },
         });
 
-        this.logger.log(`Created artwork DRAFT: ${artwork.id}`);
+        this.logger.log(`Created artwork DRAFT: ${artwork.id} with ${files.length} images`);
 
         try {
-            // Step 2: Process and upload images
-            const [processed, thumbnail] = await Promise.all([
-                this.storageService.processImage(file.buffer, { maxWidth: 1200, quality: 80 }),
-                this.storageService.createThumbnail(file.buffer, 400),
-            ]);
+            // Step 2: Process ALL images in parallel
+            // Match by INDEX: files[i] corresponds to metadata[i]
+            const processedImages = await Promise.all(
+                files.map(async (file, index) => {
+                    const [processed, thumbnail] = await Promise.all([
+                        this.storageService.processImage(file.buffer, { maxWidth: 1200, quality: 80 }),
+                        this.storageService.createThumbnail(file.buffer, 400),
+                    ]);
 
-            // Generate paths
-            const originalPath = this.storageService.generateArtworkPath(userId, artwork.id, 'original');
-            const previewPath = this.storageService.generateArtworkPath(userId, artwork.id, 'preview');
-            const thumbPath = this.storageService.generateArtworkPath(userId, artwork.id, 'thumb');
+                    // Generate paths with index for uniqueness
+                    const previewPath = this.storageService.generateArtworkPath(userId, artwork.id, `preview_${index}`);
+                    const thumbPath = this.storageService.generateArtworkPath(userId, artwork.id, `thumb_${index}`);
 
-            // Upload to MinIO
-            const [originalUrl, previewUrl, thumbUrl] = await Promise.all([
-                this.storageService.uploadFile(file.buffer, originalPath),
-                this.storageService.uploadFile(processed.buffer, previewPath),
-                this.storageService.uploadFile(thumbnail, thumbPath),
-            ]);
+                    // Upload to MinIO
+                    const [previewUrl, thumbUrl] = await Promise.all([
+                        this.storageService.uploadFile(processed.buffer, previewPath),
+                        this.storageService.uploadFile(thumbnail, thumbPath),
+                    ]);
 
-            this.logger.log(`Uploaded images for artwork: ${artwork.id}`);
+                    return {
+                        url: previewUrl,
+                        thumbnailUrl: thumbUrl,
+                        width: processed.metadata.width,
+                        height: processed.metadata.height,
+                        aspectRatio: processed.metadata.aspectRatio,
+                        order: metadata[index]?.order ?? index,
+                        caption: metadata[index]?.caption || null,
+                    };
+                })
+            );
 
-            // Step 3: Create tags and ArtworkImage, then update status
-            // First, create/find all tags
+            this.logger.log(`Uploaded ${processedImages.length} images for artwork: ${artwork.id}`);
+
+            // Step 3: Create tags
             const tagRecords = await Promise.all(
                 dto.tags.map(tagName =>
                     this.prisma.tag.upsert({
@@ -109,19 +121,22 @@ export class ArtworksService {
                 ),
             );
 
+            // Step 4: Transaction - create images, tags, publish
             await (this.prisma.$transaction as any)([
-                // Create image record
-                (this.prisma.artworkImage.create as any)({
-                    data: {
-                        artworkId: artwork.id,
-                        url: previewUrl,
-                        thumbnailUrl: thumbUrl,
-                        width: processed.metadata.width,
-                        height: processed.metadata.height,
-                        aspectRatio: processed.metadata.aspectRatio,
-                        order: 0,
-                    },
-                }),
+                // Create ALL image records
+                ...processedImages.map(img =>
+                    (this.prisma.artworkImage.create as any)({
+                        data: {
+                            artworkId: artwork.id,
+                            url: img.url,
+                            thumbnailUrl: img.thumbnailUrl,
+                            width: img.width,
+                            height: img.height,
+                            aspectRatio: img.aspectRatio,
+                            order: img.order,
+                        },
+                    }),
+                ),
                 // Create tag relations
                 ...tagRecords.map((tag, index) =>
                     (this.prisma.artworkTag.create as any)({
@@ -139,21 +154,21 @@ export class ArtworksService {
                 }),
             ]);
 
-            this.logger.log(`Published artwork: ${artwork.id}`);
+            this.logger.log(`Published artwork: ${artwork.id} with ${processedImages.length} images`);
 
             return {
                 artwork: { ...artwork, status: 'PUBLISHED' as ArtworkStatus },
                 images: {
-                    original: originalUrl,
-                    preview: previewUrl,
-                    thumbnail: thumbUrl,
+                    original: processedImages[0]?.url || '',
+                    preview: processedImages[0]?.url || '',
+                    thumbnail: processedImages[0]?.thumbnailUrl || '',
                 },
             };
         } catch (error) {
             // Cleanup on failure
             this.logger.error(`Failed to create artwork: ${error.message}`);
 
-            // Delete draft artwork
+            // Delete draft artwork (cascade deletes images)
             await this.prisma.artwork.delete({ where: { id: artwork.id } }).catch(() => { });
 
             throw error;

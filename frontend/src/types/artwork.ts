@@ -19,6 +19,7 @@ export type ArtworkImage = {
   width: number;
   height: number;
   aspectRatio: number;
+  order: number;
 };
 
 // Tag relation from ArtworkTag model

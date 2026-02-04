@@ -8,7 +8,7 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ArtworkActions,
-  ArtworkImage,
+  ArtworkImageGallery,
   ArtworkSidebar,
   CommentsSection,
   RelatedArtworks,
@@ -157,9 +157,9 @@ export default function ArtworkDetailPage() {
       >
         {/* Left Column - Main Content */}
         <Box flex={1} miw={0}>
-          {/* Artwork Image */}
-          <ArtworkImage
-            src={artwork.images[0]?.url || ''}
+          {/* Artwork Image Gallery */}
+          <ArtworkImageGallery
+            images={artwork.images}
             alt={artwork.title}
           />
 

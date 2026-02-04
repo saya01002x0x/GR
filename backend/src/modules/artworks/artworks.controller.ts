@@ -90,22 +90,17 @@ export class ArtworksController {
     };
   }
 
-  /**
-   * Create artwork with image upload
-   * POST /artworks
-   * Requires: Artist role + Valid Clerk JWT
-   */
   @Post()
   @UseGuards(ClerkGuard)
   @UseInterceptors(
-    FilesInterceptor('images', 10, {
+    FilesInterceptor('images', 20, {  // Increased to 20 for manga
       limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
       fileFilter: (req, file, cb) => {
-        const allowedMimes = ['image/jpeg', 'image/png', 'image/gif'];
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (allowedMimes.includes(file.mimetype)) {
           cb(null, true);
         } else {
-          cb(new Error('Invalid file type. Only JPG, PNG, GIF allowed.'), false);
+          cb(new Error('Invalid file type. Only JPG, PNG, GIF, WebP allowed.'), false);
         }
       },
     }),
@@ -113,7 +108,14 @@ export class ArtworksController {
   async create(
     @CurrentUser() user: User,
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: { title: string; description?: string; tags: string; rating: ContentRating; isAI: string },
+    @Body() body: { 
+      title: string; 
+      description?: string; 
+      tags: string; 
+      rating: ContentRating; 
+      isAI: string;
+      metadata?: string;  // JSON string: [{ order: 0, caption: '' }, ...]
+    },
   ) {
     // Parse tags from JSON string or comma-separated
     let tags: string[];
@@ -121,6 +123,20 @@ export class ArtworksController {
       tags = JSON.parse(body.tags);
     } catch {
       tags = body.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    }
+
+    // Parse metadata for image ordering (optional, defaults to upload order)
+    let metadata: { order: number; caption?: string }[] = [];
+    if (body.metadata) {
+      try {
+        metadata = JSON.parse(body.metadata);
+      } catch {
+        // Invalid metadata, use default order
+        metadata = files.map((_, i) => ({ order: i }));
+      }
+    } else {
+      // No metadata, use upload order
+      metadata = files.map((_, i) => ({ order: i }));
     }
 
     const dto: CreateArtworkDto = {
@@ -131,7 +147,7 @@ export class ArtworksController {
       isAI: body.isAI === 'true',
     };
 
-    const result = await this.artworksService.create(dto, files, user.id, user.isArtist);
+    const result = await this.artworksService.create(dto, files, metadata, user.id, user.isArtist);
 
     return {
       message: 'Artwork created successfully',

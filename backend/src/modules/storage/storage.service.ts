@@ -170,11 +170,12 @@ export class StorageService implements OnModuleInit {
     /**
      * Generate storage path for artwork images
      * Format: artworks/{userId}/{date}/{artworkId}_{variant}.jpg
+     * Variant can be: original, preview, thumb, preview_0, thumb_0, etc.
      */
     generateArtworkPath(
         userId: string,
         artworkId: string,
-        variant: 'original' | 'preview' | 'thumb',
+        variant: string,
     ): string {
         const date = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
         return `artworks/${userId}/${date}/${artworkId}_${variant}.jpg`;

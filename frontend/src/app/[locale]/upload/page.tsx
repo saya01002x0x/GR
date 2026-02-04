@@ -97,7 +97,11 @@ export default function UploadPage() {
   }, [previews]);
 
   const handleDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles(acceptedFiles);
+    // Append new files to existing ones (max 20 images)
+    setFiles((prev) => {
+      const combined = [...prev, ...acceptedFiles];
+      return combined.slice(0, 20); // Limit to 20 images
+    });
   }, []);
 
   const handleRemoveFile = (index: number) => {
@@ -128,7 +132,16 @@ export default function UploadPage() {
       formData.append('tags', JSON.stringify(values.tags.map(t => t.trim().toLowerCase())));
       formData.append('rating', values.rating);
       formData.append('isAI', String(values.isAI));
+
+      // Append images in order
       files.forEach(file => formData.append('images', file));
+
+      // Add metadata with order for each image
+      const metadata = files.map((_, index) => ({
+        order: index,
+        caption: '',
+      }));
+      formData.append('metadata', JSON.stringify(metadata));
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/artworks`, {
         method: 'POST',
@@ -198,64 +211,97 @@ export default function UploadPage() {
         <Stack gap="lg">
           {/* Upload Drop Zone */}
           <Paper p="xl" radius="lg" withBorder>
-            {previews.length > 0
-              ? (
-                  <Stack gap="md">
-                    {previews.map((url, index) => (
-                      <Box key={url} pos="relative">
-                        <Image
-                          src={url}
-                          alt={`Preview ${index + 1}`}
-                          radius="md"
-                          fit="contain"
-                          mah={400}
-                        />
+            <Stack gap="md">
+              {/* Existing image previews */}
+              {previews.length > 0 && (
+                <>
+                  <Group justify="space-between" align="center">
+                    <Text fw={600} size="sm">
+                      {files.length}
+                      {' '}
+                      image
+                      {files.length !== 1 ? 's' : ''}
+                      {' '}
+                      selected
+                      {files.length < 20 && ` (max 20)`}
+                    </Text>
+                    {files.length > 1 && (
+                      <Button variant="subtle" size="xs" color="red" onClick={() => setFiles([])}>
+                        Clear all
+                      </Button>
+                    )}
+                  </Group>
+
+                  {previews.map((url, index) => (
+                    <Box key={url} pos="relative">
+                      <Image
+                        src={url}
+                        alt={`Preview ${index + 1}`}
+                        radius="md"
+                        fit="contain"
+                        mah={300}
+                      />
+                      <Group pos="absolute" top={8} right={8} gap={4}>
+                        <Box
+                          px="xs"
+                          py={2}
+                          style={{
+                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                            borderRadius: 'var(--mantine-radius-sm)',
+                          }}
+                        >
+                          <Text size="xs" c="white" fw={500}>
+                            {index + 1}
+                            {' '}
+                            /
+                            {files.length}
+                          </Text>
+                        </Box>
                         <ActionIcon
-                          pos="absolute"
-                          top={8}
-                          right={8}
                           variant="filled"
                           color="red"
+                          size="sm"
                           onClick={() => handleRemoveFile(index)}
                         >
-                          <IconX size={16} />
+                          <IconX size={14} />
                         </ActionIcon>
-                      </Box>
-                    ))}
-                    <Button variant="light" onClick={() => setFiles([])}>
-                      Chọn ảnh khác
-                    </Button>
-                  </Stack>
-                )
-              : (
-                  <Dropzone
-                    onDrop={handleDrop}
-                    accept={IMAGE_MIME_TYPE}
-                    maxSize={20 * 1024 * 1024}
-                    multiple={false}
-                  >
-                    <Group justify="center" gap="xl" py="xl" style={{ pointerEvents: 'none' }}>
-                      <Dropzone.Accept>
-                        <IconCloudUpload size={52} color="var(--mantine-color-primary-6)" />
-                      </Dropzone.Accept>
-                      <Dropzone.Reject>
-                        <IconX size={52} color="var(--mantine-color-red-6)" />
-                      </Dropzone.Reject>
-                      <Dropzone.Idle>
-                        <IconCloudUpload size={52} color="var(--mantine-color-dimmed)" />
-                      </Dropzone.Idle>
+                      </Group>
+                    </Box>
+                  ))}
+                </>
+              )}
 
-                      <Stack gap={4} align="center">
-                        <Text size="lg" fw={700}>
-                          Drag and drop your art here
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                          Supports JPG, PNG, GIF up to 20MB
-                        </Text>
-                      </Stack>
-                    </Group>
-                  </Dropzone>
-                )}
+              {/* Dropzone for adding more images - always visible if under limit */}
+              {files.length < 20 && (
+                <Dropzone
+                  onDrop={handleDrop}
+                  accept={IMAGE_MIME_TYPE}
+                  maxSize={20 * 1024 * 1024}
+                  multiple
+                >
+                  <Group justify="center" gap="xl" py={previews.length > 0 ? 'sm' : 'xl'} style={{ pointerEvents: 'none' }}>
+                    <Dropzone.Accept>
+                      <IconCloudUpload size={previews.length > 0 ? 32 : 52} color="var(--mantine-color-primary-6)" />
+                    </Dropzone.Accept>
+                    <Dropzone.Reject>
+                      <IconX size={previews.length > 0 ? 32 : 52} color="var(--mantine-color-red-6)" />
+                    </Dropzone.Reject>
+                    <Dropzone.Idle>
+                      <IconCloudUpload size={previews.length > 0 ? 32 : 52} color="var(--mantine-color-dimmed)" />
+                    </Dropzone.Idle>
+
+                    <Stack gap={4} align="center">
+                      <Text size={previews.length > 0 ? 'sm' : 'lg'} fw={700}>
+                        {previews.length > 0 ? 'Add more images' : 'Drag and drop your art here'}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Supports JPG, PNG, GIF, WebP up to 20MB each
+                      </Text>
+                    </Stack>
+                  </Group>
+                </Dropzone>
+              )}
+            </Stack>
 
             <Text size="xs" c="dimmed" mt="md" p="sm" bg="gray.1" style={{ borderRadius: 8 }}>
               ℹ️ Please ensure you own the rights to the artwork you upload. Do not post work created by others without permission. AI-generated content must be labeled.
