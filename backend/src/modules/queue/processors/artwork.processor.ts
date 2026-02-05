@@ -9,6 +9,7 @@ import * as nsfwjs from 'nsfwjs';
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-cpu';
 import { ArtworkStatus } from '@prisma/client';
+import { SearchService, ArtworkDocument } from '../../search/search.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const sharp = require('sharp');
 
@@ -23,6 +24,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         private readonly prisma: PrismaService,
         private readonly storageService: StorageService,
         private readonly configService: ConfigService,
+        private readonly searchService: SearchService,
     ) {
         super();
     }
@@ -141,6 +143,36 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
                     },
                 });
             });
+
+            // Step 3: Index to Meilisearch
+            const artwork = await this.prisma.artwork.findUnique({
+                where: { id: artworkId },
+                include: { author: true, tags: { include: { tag: true } } },
+            });
+
+            if (artwork) {
+                const document: ArtworkDocument = {
+                    id: artwork.id,
+                    title: artwork.title,
+                    description: artwork.description || '',
+                    slug: artwork.id, // Use ID as slug (no slug field in schema)
+                    author: {
+                        id: artwork.author.id,
+                        username: artwork.author.username || '',
+                        displayName: artwork.author.displayName || '',
+                        avatar: artwork.author.avatar || '',
+                    },
+                    thumbnail: processedImages[0]?.thumbnailUrl || '',
+                    tags: artwork.tags.map(at => at.tag.name), // Access through join table
+                    rating: artwork.rating || 'SAFE',
+                    isAI: artwork.isAI || false,
+                    createdAt: Math.floor(artwork.createdAt.getTime() / 1000),
+                    likeCount: artwork.likeCount || 0,
+                    viewCount: artwork.viewCount || 0,
+                };
+                await this.searchService.indexArtwork(document);
+                this.logger.log(`Job ${job.id}: Indexed artwork to Meilisearch`);
+            }
 
             this.logger.log(`Job ${job.id}: Successfully processed artwork ${artworkId}`);
             return { success: true, images: processedImages.length, nsfw: isNSFW };

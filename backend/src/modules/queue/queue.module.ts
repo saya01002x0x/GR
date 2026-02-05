@@ -5,6 +5,7 @@ import { QUEUE_NAME } from './queue.constants';
 import { ArtworkProcessor } from './processors/artwork.processor';
 import { StorageModule } from '../storage/storage/storage.module';
 import { PrismaModule } from '../../database/prisma.module';
+import { SearchModule } from '../search/search.module';
 
 
 @Module({
@@ -25,6 +26,7 @@ import { PrismaModule } from '../../database/prisma.module';
         }),
         StorageModule,
         PrismaModule,
+        SearchModule,
     ],
     providers: [ArtworkProcessor],
     exports: [BullModule],

@@ -19,6 +19,7 @@ import { LikesModule } from './modules/likes/likes.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { CollectionsModule } from './modules/collections/collections.module';
 import { QueueModule } from './modules/queue/queue.module';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { QueueModule } from './modules/queue/queue.module';
     CommentsModule,
     CollectionsModule,
     QueueModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],
