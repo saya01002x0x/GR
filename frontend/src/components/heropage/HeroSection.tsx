@@ -18,6 +18,7 @@ import {
   IconSearch,
   IconSparkles,
 } from '@tabler/icons-react';
+import Link from 'next/link';
 import classes from './HeroSection.module.css';
 
 export function HeroSection() {
@@ -81,7 +82,7 @@ export function HeroSection() {
           </Text>
 
           <Group gap="md">
-            <Button size="xl" radius="md" px={40} className={classes.ctaPrimary}>
+            <Button size="xl" radius="md" px={40} className={classes.ctaPrimary} component={Link} href="/discover">
               Join the Community
             </Button>
             <Button

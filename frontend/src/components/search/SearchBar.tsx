@@ -1,26 +1,36 @@
 'use client';
 
+import type { MantineSize } from '@mantine/core';
 import { ActionIcon, Box, Loader, TextInput } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconSearch, IconX } from '@tabler/icons-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 type SearchBarProps = {
   placeholder?: string;
   onSearch?: (query: string) => void;
+  size?: MantineSize;
+  radius?: MantineSize;
+  leftSectionSize?: number;
 };
 
-export function SearchBar({ placeholder = 'Search artworks...', onSearch }: SearchBarProps) {
+export function SearchBar({ placeholder = 'Search artworks...', onSearch, size = 'lg', radius = 'xl', leftSectionSize = 20 }: SearchBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // Initialize from URL
   const [value, setValue] = useState(searchParams.get('q') || '');
   const [debounced] = useDebouncedValue(value, 300);
 
-  // Sync URL when debounced value changes
+  // Sync URL when debounced value changes - ONLY if we're on /search page
   useEffect(() => {
+    // Only update URL if we're already on the search page
+    if (!pathname?.includes('/search')) {
+      return;
+    }
+
     const params = new URLSearchParams(searchParams.toString());
 
     if (debounced) {
@@ -35,10 +45,27 @@ export function SearchBar({ placeholder = 'Search artworks...', onSearch }: Sear
 
     // Callback
     onSearch?.(debounced);
-  }, [debounced, router, searchParams, onSearch]);
+  }, [debounced, router, pathname, searchParams, onSearch]);
 
   const handleClear = () => {
     setValue('');
+  };
+
+  // Handle Enter key - bypass debounce for instant search
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (value) {
+        params.set('q', value);
+      } else {
+        params.delete('q');
+      }
+
+      router.push(`/search?${params.toString()}`, { scroll: false });
+      onSearch?.(value);
+    }
   };
 
   // Show loader when value differs from debounced (still typing)
@@ -49,17 +76,18 @@ export function SearchBar({ placeholder = 'Search artworks...', onSearch }: Sear
       <TextInput
         value={value}
         onChange={e => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        size="lg"
-        radius="xl"
+        size={size}
+        radius={radius}
         leftSection={
-          isSearching ? <Loader size="sm" /> : <IconSearch size={20} />
+          isSearching ? <Loader size="sm" /> : <IconSearch size={leftSectionSize} />
         }
         rightSection={
           value && (
             <ActionIcon
               variant="subtle"
-              radius="xl"
+              radius={radius}
               onClick={handleClear}
               aria-label="Clear search"
             >
@@ -67,15 +95,6 @@ export function SearchBar({ placeholder = 'Search artworks...', onSearch }: Sear
             </ActionIcon>
           )
         }
-        styles={{
-          input: {
-            'backgroundColor': 'var(--mantine-color-dark-6)',
-            'border': '1px solid var(--mantine-color-dark-4)',
-            '&:focus': {
-              borderColor: 'var(--mantine-color-blue-6)',
-            },
-          },
-        }}
       />
     </Box>
   );

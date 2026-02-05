@@ -9,7 +9,6 @@ import {
   Group,
   Menu,
   Text,
-  TextInput,
   useComputedColorScheme,
   useMantineColorScheme,
 } from '@mantine/core';
@@ -18,13 +17,13 @@ import {
   IconLogout,
   IconMail,
   IconMoon,
-  IconSearch,
   IconSettings,
   IconSun,
   IconUser,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
+import { SearchBar } from '@/components/search';
 
 // Logo SVG component
 function LogoIcon({ size = 32 }: { size?: number }) {
@@ -94,14 +93,14 @@ export function AppHeader() {
             </Text>
           </Box>
 
-          <TextInput
-            placeholder="Search artworks, users..."
-            leftSection={<IconSearch size={18} />}
-            radius="md"
-            flex={1}
-            maw={400}
-            visibleFrom="md"
-          />
+          <Box flex={1} maw={400} visibleFrom="md">
+            <SearchBar
+              placeholder="Search artworks, users..."
+              size="md"
+              radius="md"
+              leftSectionSize={18}
+            />
+          </Box>
         </Group>
 
         {/* Right Actions - Varies by auth state */}
