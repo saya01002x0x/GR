@@ -1,4 +1,5 @@
-@layer theme, base, clerk, components, utilities; /* Ensure Clerk is compatible with Tailwind CSS v4 */
+@layer theme, base, clerk, components, utilities;
+/* Ensure Clerk is compatible with Tailwind CSS v4 */
 
 /* Import Plus Jakarta Sans font for ArtSpace design */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -25,7 +26,7 @@
 
 @media (min-width: 1024px) {
   .masonry-grid {
-    column-count: 5;
+    column-count: 6;
   }
 }
 
@@ -47,6 +48,7 @@
     transform: scale(1);
     opacity: 0.5;
   }
+
   50% {
     transform: scale(1.1);
     opacity: 0.3;

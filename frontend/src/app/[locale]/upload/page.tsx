@@ -226,7 +226,7 @@ export default function UploadPage() {
                       {files.length < 20 && ` (max 20)`}
                     </Text>
                     {files.length > 1 && (
-                      <Button variant="subtle" size="xs" color="red" onClick={() => setFiles([])}>
+                      <Button variant="subtle" size="xs" color="red" onClick={() => setFiles([])} disabled={loading}>
                         Clear all
                       </Button>
                     )}
@@ -262,6 +262,7 @@ export default function UploadPage() {
                           color="red"
                           size="sm"
                           onClick={() => handleRemoveFile(index)}
+                          disabled={loading}
                         >
                           <IconX size={14} />
                         </ActionIcon>
@@ -278,6 +279,7 @@ export default function UploadPage() {
                   accept={IMAGE_MIME_TYPE}
                   maxSize={20 * 1024 * 1024}
                   multiple
+                  disabled={loading}
                 >
                   <Group justify="center" gap="xl" py={previews.length > 0 ? 'sm' : 'xl'} style={{ pointerEvents: 'none' }}>
                     <Dropzone.Accept>
@@ -315,6 +317,7 @@ export default function UploadPage() {
                 label="Title"
                 placeholder="Give your work a name"
                 required
+                disabled={loading}
                 {...form.getInputProps('title')}
               />
 
@@ -322,6 +325,7 @@ export default function UploadPage() {
                 label="Description"
                 placeholder="Tell the story behind your art..."
                 minRows={4}
+                disabled={loading}
                 {...form.getInputProps('description')}
               />
 
@@ -329,6 +333,7 @@ export default function UploadPage() {
                 label="Tags"
                 placeholder="Add tags (press Enter)"
                 description="Minimum 1 tag required. Suggested: #anime, #landscape, #portrait"
+                disabled={loading}
                 {...form.getInputProps('tags')}
               />
             </Stack>
@@ -342,9 +347,9 @@ export default function UploadPage() {
 
             <Radio.Group {...form.getInputProps('rating')}>
               <Stack gap="sm">
-                <Radio value="SAFE" label="Safe - General audience" />
-                <Radio value="R18" label="R-18 / NSFW - Adult content" />
-                <Radio value="R18G" label="R-18G / Gore - Graphic violent content" />
+                <Radio value="SAFE" label="Safe - General audience" disabled={loading} />
+                <Radio value="R18" label="R-18 / NSFW - Adult content" disabled={loading} />
+                <Radio value="R18G" label="R-18G / Gore - Graphic violent content" disabled={loading} />
               </Stack>
             </Radio.Group>
 
@@ -352,6 +357,7 @@ export default function UploadPage() {
               label="AI Generated"
               description="Created with AI tools"
               mt="lg"
+              disabled={loading}
               {...form.getInputProps('isAI', { type: 'checkbox' })}
               thumbIcon={<IconRobot size={12} />}
             />
@@ -359,7 +365,7 @@ export default function UploadPage() {
 
           {/* Action Buttons */}
           <Group justify="flex-end" gap="sm">
-            <Button variant="subtle" onClick={() => router.back()}>
+            <Button variant="subtle" onClick={() => router.back()} disabled={loading}>
               Cancel
             </Button>
             <Button
