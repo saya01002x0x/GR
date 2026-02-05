@@ -103,11 +103,11 @@
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Install @nestjs/swagger | ⏳ | 5 phút |
-| Setup SwaggerModule | ⏳ | 10 phút |
-| Add @ApiProperty to DTOs | ⏳ | 30 phút |
-| Add @ApiOperation to Controllers | ⏳ | 30 phút |
-| Add @ApiTags grouping | ⏳ | 10 phút |
+| Install @nestjs/swagger | ✅ | 5 phút |
+| Setup SwaggerModule | ✅ | 10 phút |
+| Add @ApiProperty to DTOs | ✅ | 30 phút |
+| Add @ApiOperation to Controllers | ✅ | 30 phút |
+| Add @ApiTags grouping | ✅ | 10 phút |
 
 **Giá trị:**
 - ✅ CV: Thể hiện biết làm việc nhóm (viết docs cho FE/Mobile đọc)
@@ -127,19 +127,19 @@ pnpm add @nestjs/swagger swagger-ui-express
 > **Mục tiêu**: Thêm công nghệ "nặng đô" để CV có sức nặng
 > **⚠️ ĐÃ ĐẢO THỨ TỰ: Queue TRƯỚC Search!**
 
-### Sprint 5: Background Jobs (BullMQ + Redis) �
-**Timeline**: Tháng 2, Tuần 1-2
+### Sprint 5: Background Jobs (BullMQ + Redis) ✅
+**Timeline**: Tháng 2, Tuần 1-2 (Đã xong)
 **Priority**: 🔴 CRITICAL - Xương sống hệ thống!
 
 | Task | Status | Notes |
 |------|--------|-------|
-| BullMQ setup (NestJS) | ⏳ | @nestjs/bullmq |
+| BullMQ setup (NestJS) | ✅ | @nestjs/bullmq |
 | Redis connection | ✅ | Đã có trong docker-compose |
-| **Image Processing Queue** | ⏳ | Chuyển resize từ Controller |
-| Thumbnail worker | ⏳ | Async thumbnail generation |
-| Job retry & error handling | ⏳ | Robust processing |
-| Bull Board dashboard | ⏳ | Monitor jobs |
-| **AI Tagging worker** | ⏳ | NSFWJS hoặc DeepDanbooru |
+| **Image Processing Queue** | ✅ | Chuyển resize từ Controller |
+| Thumbnail worker | ✅ | Async thumbnail generation |
+| Job retry & error handling | ✅ | Robust processing |
+| Bull Board dashboard | ✅ | Monitor jobs |
+| **AI Tagging worker** | ✅ | NSFWJS + Sharp pipeline |
 
 **Architecture sau khi có Queue:**
 ```
@@ -269,22 +269,21 @@ Worker picks up job
 | 2026-02-04 | - | 🔄 Reordered sprints: Queue before Search |
 | 2026-02-04 | - | ➕ Added Sprint 4.5: Swagger |
 | 2026-02-04 | - | ➕ Moved AI Tagging to Sprint 5 |
+| 2026-02-04 | Sprint 5 | ✅ BullMQ, Redis, Image Worker, AI Tagging, Hotfixes |
 
 ---
 
 ## 🚀 NEXT ACTION
 
-**Tuần này:**
-1. [ ] **Swagger** (30 phút) - Làm cuối tuần này!
-2. [ ] **BullMQ setup** - Bắt đầu Sprint 5
+**Tuần tiếp theo:**
+1. [ ] **Search Engine** - Bắt đầu Sprint 6
+2. [ ] **Meilisearch Sync** - Worker sync to search
 
 **Command:**
 ```bash
-# Swagger
-cd backend && pnpm add @nestjs/swagger swagger-ui-express
-
-# BullMQ  
-cd backend && pnpm add @nestjs/bullmq bullmq
+# Meilisearch (đã có trong docker-compose)
+# Cần cài client
+cd backend && pnpm add meilisearch @meilisearch/instant-meilisearch
 ```
 
 ---
