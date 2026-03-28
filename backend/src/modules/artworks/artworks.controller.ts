@@ -145,8 +145,11 @@ export class ArtworksController {
       tags = body.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
     }
 
-    // Parse metadata for image ordering (optional, defaults to upload order)
-    let metadata: { order: number; caption?: string }[] = [];
+    let metadata: {
+      order: number;
+      caption?: string;
+      watermark?: { enabled: boolean; position: string; opacity: number; size: number };
+    }[] = [];
     if (body.metadata) {
       try {
         metadata = JSON.parse(body.metadata);

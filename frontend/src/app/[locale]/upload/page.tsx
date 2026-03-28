@@ -1,5 +1,6 @@
 'use client';
 
+import type { WatermarkSettings } from '@/types/watermark';
 import {
   ActionIcon,
   Box,
@@ -26,12 +27,16 @@ import {
   IconArrowRight,
   IconCheck,
   IconCloudUpload,
+  IconDropletFilled,
+  IconDropletOff,
   IconRobot,
   IconShieldCheck,
   IconX,
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { WatermarkOptions } from '@/components/upload/WatermarkOptions';
+import { DEFAULT_WATERMARK_SETTINGS } from '@/types/watermark';
 
 type UploadForm = {
   title: string;
@@ -46,6 +51,8 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [isArtist, setIsArtist] = useState<boolean | null>(null);
+  const [watermarkSettings, setWatermarkSettings] = useState<WatermarkSettings>(DEFAULT_WATERMARK_SETTINGS);
+  const [wmOverrides, setWmOverrides] = useState<Map<number, boolean>>(new Map());
 
   const form = useForm<UploadForm>({
     initialValues: {
@@ -106,6 +113,30 @@ export default function UploadPage() {
 
   const handleRemoveFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
+    setWmOverrides((prev) => {
+      const next = new Map<number, boolean>();
+      prev.forEach((val, key) => {
+        if (key < index) {
+          next.set(key, val);
+        } else if (key > index) {
+          next.set(key - 1, val);
+        }
+      });
+      return next;
+    });
+  };
+
+  const toggleWmOverride = (index: number) => {
+    setWmOverrides((prev) => {
+      const next = new Map(prev);
+      const current = next.get(index);
+      if (current === undefined) {
+        next.set(index, false);
+      } else {
+        next.delete(index);
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (values: UploadForm) => {
@@ -136,10 +167,17 @@ export default function UploadPage() {
       // Append images in order
       files.forEach(file => formData.append('images', file));
 
-      // Add metadata with order for each image
       const metadata = files.map((_, index) => ({
         order: index,
         caption: '',
+        watermark: watermarkSettings.enabled
+          ? {
+              enabled: wmOverrides.get(index) !== false,
+              position: watermarkSettings.position,
+              opacity: watermarkSettings.opacity,
+              size: watermarkSettings.size,
+            }
+          : { enabled: false },
       }));
       formData.append('metadata', JSON.stringify(metadata));
 
@@ -257,6 +295,20 @@ export default function UploadPage() {
                             {files.length}
                           </Text>
                         </Box>
+                        {watermarkSettings.enabled && (
+                          <ActionIcon
+                            variant="filled"
+                            color={wmOverrides.get(index) === false ? 'gray' : 'primary'}
+                            size="sm"
+                            onClick={() => toggleWmOverride(index)}
+                            disabled={loading}
+                            title={wmOverrides.get(index) === false ? 'Watermark off for this image' : 'Watermark on for this image'}
+                          >
+                            {wmOverrides.get(index) === false
+                              ? <IconDropletOff size={14} />
+                              : <IconDropletFilled size={14} />}
+                          </ActionIcon>
+                        )}
                         <ActionIcon
                           variant="filled"
                           color="red"
@@ -337,6 +389,18 @@ export default function UploadPage() {
                 {...form.getInputProps('tags')}
               />
             </Stack>
+          </Paper>
+
+          {/* Watermark Options */}
+          <Paper p="xl" radius="lg" withBorder>
+            <Title order={4} mb="md">
+              Watermark Options
+            </Title>
+            <WatermarkOptions
+              value={watermarkSettings}
+              onChange={setWatermarkSettings}
+              disabled={loading}
+            />
           </Paper>
 
           {/* Content Rating */}

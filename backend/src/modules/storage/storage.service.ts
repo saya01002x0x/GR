@@ -13,6 +13,8 @@ import {
     HeadBucketCommand,
     CreateBucketCommand,
 } from '@aws-sdk/client-s3';
+import * as path from 'path';
+import * as fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const sharp = require('sharp');
 
@@ -32,6 +34,12 @@ export interface UploadResult {
     key: string;
     url: string;
     metadata: ImageMetadata;
+}
+
+export interface WatermarkOptions {
+    position: string;
+    opacity: number;  // 10-100
+    size: number;     // % of image width
 }
 
 @Injectable()
@@ -218,5 +226,107 @@ export class StorageService implements OnModuleInit {
     ): string {
         const date = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
         return `artworks/${userId}/${date}/${artworkId}_${variant}.jpg`;
+    }
+
+    private readonly WATERMARK_PADDING = 20;
+
+    /**
+     * Resolve watermark file path for both dev and production.
+     * Compiled output is at dist/src/modules/storage/ (__dirname),
+     * so assets at dist/assets/ are 3 levels up (../../../assets/).
+     * Falls back to src/ for safety.
+     */
+    private resolveWatermarkPath(filename: string): string {
+        const assetRelPath = path.join('assets', 'watermarks', filename);
+        const candidates = [
+            path.join(__dirname, '..', '..', '..', assetRelPath), // dist/src/modules/storage -> dist/assets/
+            path.join(process.cwd(), 'dist', assetRelPath),       // from backend root
+            path.join(process.cwd(), 'src', assetRelPath),        // dev fallback (src/)
+        ];
+        const found = candidates.find(p => fs.existsSync(p));
+        if (!found) {
+            throw new Error(
+                `Watermark file not found: ${filename}. Tried:\n  ${candidates.join('\n  ')}`,
+            );
+        }
+        this.logger.debug(`Watermark resolved: ${found}`);
+        return found;
+    }
+
+    async applyWatermark(
+        imageBuffer: Buffer,
+        options: WatermarkOptions,
+    ): Promise<Buffer> {
+        const imgMeta = await sharp(imageBuffer).metadata();
+        const imgWidth = imgMeta.width || 1200;
+        const imgHeight = imgMeta.height || 800;
+
+        const watermarkPath = this.resolveWatermarkPath('icon_daonhai_GR.png');
+        const wmTargetWidth = Math.round(imgWidth * (options.size / 100));
+
+        const resizedWm = await sharp(watermarkPath)
+            .resize(wmTargetWidth)
+            .ensureAlpha()
+            .toBuffer();
+
+        const wmMeta = await sharp(resizedWm).metadata();
+        const wmWidth = wmMeta.width!;
+        const wmHeight = wmMeta.height!;
+
+        // Multiply alpha channel by opacity factor for correct transparency
+        const { data, info } = await sharp(resizedWm)
+            .raw()
+            .toBuffer({ resolveWithObject: true });
+
+        const channels = info.channels as number; // 4 (RGBA)
+        const alphaMultiplier = options.opacity / 100;
+        for (let i = 0; i < data.length; i += channels) {
+            data[i + 3] = Math.round(data[i + 3] * alphaMultiplier);
+        }
+
+        const adjustedWm = await sharp(data, {
+            raw: { width: wmWidth, height: wmHeight, channels: 4 },
+        })
+            .png()
+            .toBuffer();
+
+        const { left, top } = this.calculateWatermarkPosition(
+            options.position,
+            imgWidth,
+            imgHeight,
+            wmWidth,
+            wmHeight,
+            this.WATERMARK_PADDING,
+        );
+
+        return sharp(imageBuffer)
+            .composite([{ input: adjustedWm, left, top, blend: 'over' }])
+            .toBuffer();
+    }
+
+    private calculateWatermarkPosition(
+        position: string,
+        imgWidth: number,
+        imgHeight: number,
+        wmWidth: number,
+        wmHeight: number,
+        padding: number,
+    ): { left: number; top: number } {
+        const positions: Record<string, { left: number; top: number }> = {
+            'top-left': { left: padding, top: padding },
+            'top-center': { left: Math.round((imgWidth - wmWidth) / 2), top: padding },
+            'top-right': { left: imgWidth - wmWidth - padding, top: padding },
+            'middle-left': { left: padding, top: Math.round((imgHeight - wmHeight) / 2) },
+            'center': { left: Math.round((imgWidth - wmWidth) / 2), top: Math.round((imgHeight - wmHeight) / 2) },
+            'middle-right': { left: imgWidth - wmWidth - padding, top: Math.round((imgHeight - wmHeight) / 2) },
+            'bottom-left': { left: padding, top: imgHeight - wmHeight - padding },
+            'bottom-center': { left: Math.round((imgWidth - wmWidth) / 2), top: imgHeight - wmHeight - padding },
+            'bottom-right': { left: imgWidth - wmWidth - padding, top: imgHeight - wmHeight - padding },
+        };
+        const pos = positions[position] || positions['bottom-right'];
+        return {
+            left: Math.max(0, pos.left),
+            top: Math.max(0, pos.top),
+        };
     }
 }

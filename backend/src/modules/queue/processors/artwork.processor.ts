@@ -89,10 +89,21 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
                     this.logger.warn(`NSFW detected in image ${i}: ${nsfwScore}`);
                 }
 
+                // Apply watermark before processing if enabled
+                let imageBuffer = rawBuffer;
+                if (fileMeta.watermark?.enabled) {
+                    this.logger.log(`Applying watermark to image ${i} (position: ${fileMeta.watermark.position}, opacity: ${fileMeta.watermark.opacity}%, size: ${fileMeta.watermark.size}%)`);
+                    imageBuffer = await this.storageService.applyWatermark(rawBuffer, {
+                        position: fileMeta.watermark.position,
+                        opacity: fileMeta.watermark.opacity,
+                        size: fileMeta.watermark.size,
+                    });
+                }
+
                 // Sharp Processing
                 const [processed, thumbnail] = await Promise.all([
-                    this.storageService.processImage(rawBuffer, { maxWidth: 1920, quality: 85 }),
-                    this.storageService.createThumbnail(rawBuffer, 400),
+                    this.storageService.processImage(imageBuffer, { maxWidth: 1920, quality: 85 }),
+                    this.storageService.createThumbnail(imageBuffer, 400),
                 ]);
 
                 // Generate paths

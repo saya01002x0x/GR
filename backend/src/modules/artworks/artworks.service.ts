@@ -48,7 +48,11 @@ export class ArtworksService {
     async create(
         dto: CreateArtworkDto,
         files: Express.Multer.File[],
-        metadata: { order: number; caption?: string }[],
+        metadata: {
+            order: number;
+            caption?: string;
+            watermark?: { enabled: boolean; position: string; opacity: number; size: number };
+        }[],
         userId: string,
         isArtist: boolean,
     ): Promise<any> {
@@ -99,6 +103,7 @@ export class ArtworksService {
                         mimeType: file.mimetype,
                         order: metadata[index]?.order ?? index,
                         caption: metadata[index]?.caption || null,
+                        watermark: metadata[index]?.watermark || null,
                     };
                 })
             );

@@ -5,7 +5,7 @@ import { ActionIcon, Box, Loader, TextInput } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconSearch, IconX } from '@tabler/icons-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type SearchBarProps = {
   placeholder?: string;
@@ -24,10 +24,27 @@ export function SearchBar({ placeholder = 'Search artworks...', onSearch, size =
   const [value, setValue] = useState(searchParams.get('q') || '');
   const [debounced] = useDebouncedValue(value, 300);
 
+  // Track if we just navigated to prevent loop
+  const isNavigating = useRef(false);
+
   // Sync URL when debounced value changes - ONLY if we're on /search page
   useEffect(() => {
     // Only update URL if we're already on the search page
     if (!pathname?.includes('/search')) {
+      return;
+    }
+
+    // Prevent loop: if we just navigated, skip this effect
+    if (isNavigating.current) {
+      isNavigating.current = false;
+      return;
+    }
+
+    // Get current query from URL
+    const currentQuery = searchParams.get('q') || '';
+
+    // Only update if debounced value is different from URL
+    if (debounced === currentQuery) {
       return;
     }
 
@@ -40,12 +57,13 @@ export function SearchBar({ placeholder = 'Search artworks...', onSearch, size =
     }
 
     // Update URL without scroll
+    isNavigating.current = true;
     const newUrl = params.toString() ? `/search?${params}` : '/search';
     router.push(newUrl, { scroll: false });
 
     // Callback
     onSearch?.(debounced);
-  }, [debounced, router, pathname, searchParams, onSearch]);
+  }, [debounced, pathname]);
 
   const handleClear = () => {
     setValue('');
@@ -63,6 +81,7 @@ export function SearchBar({ placeholder = 'Search artworks...', onSearch, size =
         params.delete('q');
       }
 
+      isNavigating.current = true;
       router.push(`/search?${params.toString()}`, { scroll: false });
       onSearch?.(value);
     }

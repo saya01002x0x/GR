@@ -13,5 +13,11 @@ export interface ProcessArtworkJob {
         mimeType: string;
         order: number;
         caption?: string;
+        watermark?: {
+            enabled: boolean;
+            position: string;
+            opacity: number;
+            size: number;
+        } | null;
     }[];
 }

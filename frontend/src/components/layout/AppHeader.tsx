@@ -22,7 +22,7 @@ import {
   IconUser,
 } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useSyncExternalStore } from 'react';
+import { Suspense, useSyncExternalStore } from 'react';
 import { SearchBar } from '@/components/search';
 
 // Logo SVG component
@@ -94,12 +94,14 @@ export function AppHeader() {
           </Box>
 
           <Box flex={1} maw={400} visibleFrom="md">
-            <SearchBar
-              placeholder="Search artworks, users..."
-              size="md"
-              radius="md"
-              leftSectionSize={18}
-            />
+            <Suspense fallback={<Box h={36} />}>
+              <SearchBar
+                placeholder="Search artworks, users..."
+                size="md"
+                radius="md"
+                leftSectionSize={18}
+              />
+            </Suspense>
           </Box>
         </Group>
 

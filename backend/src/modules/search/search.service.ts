@@ -143,7 +143,7 @@ export class SearchService implements OnModuleInit {
         // Build filter string
         const filters: string[] = [];
 
-        if (tags && tags.length > 0) {
+        if (Array.isArray(tags) && tags.length > 0) {
             // AND logic: all tags must match
             const tagFilters = tags.map((tag) => `tags = "${tag}"`);
             filters.push(`(${tagFilters.join(' AND ')})`);

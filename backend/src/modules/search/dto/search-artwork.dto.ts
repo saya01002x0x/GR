@@ -5,7 +5,7 @@
  */
 
 import { IsString, IsArray, IsEnum, IsBoolean, IsInt, IsOptional } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum RatingFilter {
@@ -28,6 +28,13 @@ export class SearchArtworkDto {
     @ApiPropertyOptional({ description: 'Filter by tags (AND logic)', example: ['fantasy', 'landscape'] })
     @IsArray()
     @IsOptional()
+    @Transform(({ value }) => {
+        // Handle string or array from query params
+        if (typeof value === 'string') {
+            return value.split(',').map(t => t.trim());
+        }
+        return value;
+    })
     tags?: string[];
 
     @ApiPropertyOptional({ enum: RatingFilter, description: 'Content rating filter' })

@@ -94,8 +94,10 @@ export function HeroSection() {
               c="white"
               style={{ backdropFilter: 'blur(12px)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
               className={classes.ctaSecondary}
+              component={Link}
+              href="/discover"
             >
-              View Trending
+              Discover Artworks
             </Button>
           </Group>
 
