@@ -59,6 +59,9 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
                 caption?: string;
             }[] = [];
             let isNSFW = false;
+            let primaryRatioClass = 'square';
+            let primaryMaxResolution = 0;
+            let primaryIsHighRes = false;
 
             for (let i = 0; i < files.length; i++) {
                 const fileMeta = files[i];
@@ -89,7 +92,20 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
                     this.logger.warn(`NSFW detected in image ${i}: ${nsfwScore}`);
                 }
 
-                // Apply watermark before processing if enabled
+                // Calculate ratio/resolution from the primary (first) image's raw metadata
+                if (i === 0) {
+                    const rawMeta = await sharp(rawBuffer).metadata();
+                    const origW = rawMeta.width || 0;
+                    const origH = rawMeta.height || 0;
+                    primaryMaxResolution = Math.max(origW, origH);
+                    primaryIsHighRes = primaryMaxResolution >= 2560;
+
+                    const ar = origW / (origH || 1);
+                    if (ar < 0.9) primaryRatioClass = 'portrait';
+                    else if (ar > 1.1) primaryRatioClass = 'landscape';
+                    else primaryRatioClass = 'square';
+                }
+
                 let imageBuffer = rawBuffer;
                 if (fileMeta.watermark?.enabled) {
                     this.logger.log(`Applying watermark to image ${i} (position: ${fileMeta.watermark.position}, opacity: ${fileMeta.watermark.opacity}%, size: ${fileMeta.watermark.size}%)`);
@@ -145,44 +161,56 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
                     })),
                 });
 
-                // Update Artwork Status
                 await tx.artwork.update({
                     where: { id: artworkId },
                     data: {
-                        status: 'PUBLISHED' as ArtworkStatus, // Or keep as DRAFT if review needed
-                        rating: isNSFW ? 'R18' : undefined, // Auto-tag R18
+                        status: 'PUBLISHED' as ArtworkStatus,
+                        rating: isNSFW ? 'R18' : undefined,
+                        ratioClass: primaryRatioClass,
+                        maxResolution: primaryMaxResolution,
+                        isHighRes: primaryIsHighRes,
                     },
                 });
             });
 
-            // Step 3: Index to Meilisearch
-            const artwork = await this.prisma.artwork.findUnique({
-                where: { id: artworkId },
-                include: { author: true, tags: { include: { tag: true } } },
-            });
+            // Step 3: Index to Meilisearch (after DB transaction success)
+            try {
+                const artwork = await this.prisma.artwork.findUnique({
+                    where: { id: artworkId },
+                    include: { author: true, tags: { include: { tag: true } } },
+                });
 
-            if (artwork) {
-                const document: ArtworkDocument = {
-                    id: artwork.id,
-                    title: artwork.title,
-                    description: artwork.description || '',
-                    slug: artwork.id, // Use ID as slug (no slug field in schema)
-                    author: {
-                        id: artwork.author.id,
-                        username: artwork.author.username || '',
-                        displayName: artwork.author.displayName || '',
-                        avatar: artwork.author.avatar || '',
-                    },
-                    thumbnail: processedImages[0]?.thumbnailUrl || '',
-                    tags: artwork.tags.map(at => at.tag.name), // Access through join table
-                    rating: artwork.rating || 'SAFE',
-                    isAI: artwork.isAI || false,
-                    createdAt: Math.floor(artwork.createdAt.getTime() / 1000),
-                    likeCount: artwork.likeCount || 0,
-                    viewCount: artwork.viewCount || 0,
-                };
-                await this.searchService.indexArtwork(document);
-                this.logger.log(`Job ${job.id}: Indexed artwork to Meilisearch`);
+                if (artwork) {
+                    const document: ArtworkDocument = {
+                        id: artwork.id,
+                        title: artwork.title,
+                        description: artwork.description || '',
+                        slug: artwork.id,
+                        author: {
+                            id: artwork.author.id,
+                            username: artwork.author.username || '',
+                            displayName: artwork.author.displayName || '',
+                            avatar: artwork.author.avatar || '',
+                        },
+                        thumbnail: processedImages[0]?.thumbnailUrl || '',
+                        tags: artwork.tags.map(at => at.tag.name),
+                        rating: artwork.rating || 'SAFE',
+                        isAI: artwork.isAI || false,
+                        createdAt: Math.floor(artwork.createdAt.getTime() / 1000),
+                        likeCount: artwork.likeCount || 0,
+                        viewCount: artwork.viewCount || 0,
+                        ratioClass: primaryRatioClass,
+                        maxResolution: primaryMaxResolution,
+                        isHighRes: primaryIsHighRes,
+                    };
+                    await this.searchService.indexArtwork(document);
+                    this.logger.log(`Job ${job.id}: Indexed artwork to Meilisearch`);
+                }
+            } catch (meiliError) {
+                this.logger.error(
+                    `Meilisearch index failed for ${artworkId}, DB is updated. Run sync-search to fix.`,
+                    meiliError,
+                );
             }
 
             this.logger.log(`Job ${job.id}: Successfully processed artwork ${artworkId}`);

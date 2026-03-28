@@ -27,6 +27,9 @@ export interface ArtworkDocument {
     createdAt: number; // Unix timestamp
     likeCount: number;
     viewCount: number;
+    ratioClass: string;    // 'portrait' | 'landscape' | 'square'
+    maxResolution: number; // max(width, height) in pixels of original image
+    isHighRes: boolean;    // true if maxResolution >= 2560 (2K+)
 }
 
 export interface SearchResult {
@@ -81,7 +84,7 @@ export class SearchService implements OnModuleInit {
         // Update settings
         await this.index.updateSettings({
             searchableAttributes: ['title', 'tags', 'author.displayName', 'description'],
-            filterableAttributes: ['tags', 'rating', 'isAI', 'author.id'],
+            filterableAttributes: ['tags', 'rating', 'isAI', 'author.id', 'ratioClass', 'maxResolution', 'isHighRes'],
             sortableAttributes: ['createdAt', 'likeCount', 'viewCount'],
             rankingRules: [
                 'words',
@@ -136,9 +139,11 @@ export class SearchService implements OnModuleInit {
             sort?: SortOption;
             page?: number;
             limit?: number;
+            ratio?: string;
+            minRes?: string;
         } = {},
     ): Promise<SearchResult> {
-        const { tags, rating, excludeAI, sort, page = 1, limit = 20 } = options;
+        const { tags, rating, excludeAI, sort, page = 1, limit = 20, ratio, minRes } = options;
 
         // Build filter string
         const filters: string[] = [];
@@ -155,6 +160,18 @@ export class SearchService implements OnModuleInit {
 
         if (excludeAI === true) {
             filters.push('isAI = false');
+        }
+
+        if (ratio) {
+            filters.push(`ratioClass = "${ratio}"`);
+        }
+
+        if (minRes) {
+            const thresholds: Record<string, number> = { hd: 1280, full_hd: 1920, '2k': 2560, '4k': 3840 };
+            const minPixels = thresholds[minRes] || 0;
+            if (minPixels > 0) {
+                filters.push(`maxResolution >= ${minPixels}`);
+            }
         }
 
         // Build sort

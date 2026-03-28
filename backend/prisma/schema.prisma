@@ -43,10 +43,13 @@ model Artwork {
   isAI         Boolean        @default(false) @map("is_ai")
   viewCount    Int            @default(0) @map("view_count")
   likeCount    Int            @default(0) @map("like_count")
-  commentCount Int            @default(0) @map("comment_count")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
-  authorId     String         @map("author_id")
+  commentCount  Int            @default(0) @map("comment_count")
+  ratioClass    String?        @map("ratio_class")
+  maxResolution Int?           @map("max_resolution")
+  isHighRes     Boolean        @default(false) @map("is_high_res")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  authorId      String         @map("author_id")
   images       ArtworkImage[]
   tags         ArtworkTag[]
   author       User           @relation(fields: [authorId], references: [id], onDelete: Cascade)

@@ -25,6 +25,8 @@ export class SearchController {
             sort: dto.sort,
             page: dto.page,
             limit: dto.limit,
+            ratio: dto.ratio,
+            minRes: dto.minRes,
         });
     }
 }

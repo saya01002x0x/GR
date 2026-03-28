@@ -64,4 +64,14 @@ export class SearchArtworkDto {
     @IsInt()
     @IsOptional()
     limit?: number = 20;
+
+    @ApiPropertyOptional({ description: 'Filter by aspect ratio', enum: ['portrait', 'landscape', 'square'] })
+    @IsString()
+    @IsOptional()
+    ratio?: string;
+
+    @ApiPropertyOptional({ description: 'Minimum resolution', enum: ['hd', 'full_hd', '2k', '4k'] })
+    @IsString()
+    @IsOptional()
+    minRes?: string;
 }
