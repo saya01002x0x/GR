@@ -29,7 +29,7 @@ jobs:
           working-directory: ${{ env.FRONTEND_DIR }}
 
       - name: Restore or cache Next.js build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ${{ env.FRONTEND_DIR }}/.next/cache
@@ -43,7 +43,7 @@ jobs:
 
       - if: matrix.node-version == '22.x' && success()
         name: Cache Next.js build output
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             ${{ env.FRONTEND_DIR }}/.next
