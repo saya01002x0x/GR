@@ -1,0 +1,60 @@
+@layer theme, base, clerk, components, utilities;
+/* Ensure Clerk is compatible with Tailwind CSS v4 */
+
+/* Import Plus Jakarta Sans font for ArtSpace design */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@import 'tailwindcss';
+
+/* Masonry grid layout for artwork gallery */
+.masonry-grid {
+  column-count: 2;
+  column-gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .masonry-grid {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 768px) {
+  .masonry-grid {
+    column-count: 4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .masonry-grid {
+    column-count: 6;
+  }
+}
+
+@media (min-width: 1280px) {
+  .masonry-grid {
+    column-count: 6;
+  }
+}
+
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 1rem;
+}
+
+/* 404 page pulse animation */
+@keyframes pulse-bg {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
+}
+
+.pulse-animation {
+  animation: pulse-bg 2s ease-in-out infinite;
+}

@@ -1,0 +1,97 @@
+{
+  "compilerOptions": {
+    "incremental": true, // Enable faster incremental builds
+    // ======================================================================
+    // Language & Environment
+    // Defines JavaScript version and runtime environment
+    // ======================================================================
+    "target": "ES2017",
+    // ======================================================================
+    // Next.js Project Configuration
+    // Controls settings specific to Next.js framework
+    // ======================================================================
+    "jsx": "react-jsx", // Uses the React automatic runtime
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    // ======================================================================
+    // Project Structure
+    // Configure import paths and module resolution
+    // ======================================================================
+    "baseUrl": ".",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/public/*": [
+        "./public/*"
+      ]
+    },
+    "resolveJsonModule": true,
+    "types": [
+      "node",
+      "react"
+    ],
+    // ======================================================================
+    // Interoperability
+    // Settings for working with different file types and modules
+    // ======================================================================
+    "allowJs": true,
+    "checkJs": true,
+    // ======================================================================
+    // Type Safety - Foundation
+    // Core type checking settings for a robust codebase
+    // ======================================================================
+    "strict": true,
+    "strictNullChecks": true,
+    "allowUnreachableCode": false,
+    "alwaysStrict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    // ======================================================================
+    // Type Safety - Advanced
+    // Additional checks for higher code quality
+    // ======================================================================
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+    "noEmit": true, // Skip emitting files (Next.js handles this)
+    "preserveConstEnums": true,
+    "removeComments": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    // ======================================================================
+    // Build & Performance
+    // Settings that affect compilation output and build performance
+    // ======================================================================
+    "skipLibCheck": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ] // Enable Next.js TypeScript plugin
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  // Files to include/exclude from the project
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "**/*.e2e.ts"
+  ]
+}

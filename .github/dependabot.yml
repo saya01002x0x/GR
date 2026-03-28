@@ -1,0 +1,44 @@
+version: 2
+updates:
+  # Enable version updates for npm in frontend
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+      time: '06:00'
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: 'chore(frontend)'
+    groups:
+      npm-deps:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # Enable version updates for npm in backend
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: monthly
+      time: '06:00'
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: 'chore(backend)'
+    groups:
+      npm-deps:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      time: '06:05'
+    open-pull-requests-limit: 1
+    commit-message:
+      prefix: chore
+

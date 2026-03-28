@@ -1,0 +1,199 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String       @id @default(uuid())
+  clerkId     String       @unique @map("clerk_id")
+  email       String       @unique
+  username    String       @unique
+  displayName String?      @map("display_name")
+  avatar      String?
+  banner      String?
+  bio         String?
+  role        UserRole     @default(USER)
+  isArtist    Boolean      @default(false) @map("is_artist")
+  preferences Json?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  artworks    Artwork[]
+  bookmarks   Bookmark[]
+  collections Collection[]
+  comments    Comment[]
+  following   Follow[]     @relation("following")
+  followers   Follow[]     @relation("followers")
+  likes       Like[]
+
+  @@map("users")
+}
+
+model Artwork {
+  id           String         @id @default(uuid())
+  title        String
+  description  String?
+  type         ArtworkType    @default(ILLUSTRATION)
+  status       ArtworkStatus  @default(PUBLISHED)
+  rating       ContentRating  @default(SAFE)
+  isAI         Boolean        @default(false) @map("is_ai")
+  viewCount    Int            @default(0) @map("view_count")
+  likeCount    Int            @default(0) @map("like_count")
+  commentCount  Int            @default(0) @map("comment_count")
+  ratioClass    String?        @map("ratio_class")
+  maxResolution Int?           @map("max_resolution")
+  isHighRes     Boolean        @default(false) @map("is_high_res")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  authorId      String         @map("author_id")
+  images       ArtworkImage[]
+  tags         ArtworkTag[]
+  author       User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  bookmarks    Bookmark[]
+  comments     Comment[]
+  likes        Like[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("artworks")
+}
+
+model ArtworkImage {
+  id           String   @id @default(uuid())
+  url          String
+  order        Int      @default(0)
+  width        Int?
+  height       Int?
+  createdAt    DateTime @default(now()) @map("created_at")
+  artworkId    String   @map("artwork_id")
+  aspectRatio  Float?   @map("aspect_ratio")
+  thumbnailUrl String?  @map("thumbnail_url")
+  artwork      Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+
+  @@index([artworkId])
+  @@map("artwork_images")
+}
+
+model Tag {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  count     Int          @default(0)
+  createdAt DateTime     @default(now()) @map("created_at")
+  artworks  ArtworkTag[]
+
+  @@map("tags")
+}
+
+model ArtworkTag {
+  artworkId String  @map("artwork_id")
+  tagId     String  @map("tag_id")
+  order     Int     @default(0)
+  artwork   Artwork @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([artworkId, tagId])
+  @@map("artwork_tags")
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  content   String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  userId    String    @map("user_id")
+  artworkId String    @map("artwork_id")
+  parentId  String?   @map("parent_id")
+  artwork   Artwork   @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([artworkId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model Like {
+  userId    String   @map("user_id")
+  artworkId String   @map("artwork_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, artworkId])
+  @@map("likes")
+}
+
+model Follow {
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  follower    User     @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}
+
+model Collection {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  isPrivate   Boolean    @default(true) @map("is_private")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  userId      String     @map("user_id")
+  isDefault   Boolean    @default(false) @map("is_default")
+  bookmarks   Bookmark[]
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("collections")
+}
+
+model Bookmark {
+  id           String     @id @default(uuid())
+  createdAt    DateTime   @default(now()) @map("created_at")
+  userId       String     @map("user_id")
+  artworkId    String     @map("artwork_id")
+  collectionId String     @map("collection_id")
+  artwork      Artwork    @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, artworkId, collectionId])
+  @@index([userId])
+  @@index([artworkId])
+  @@index([collectionId])
+  @@map("bookmarks")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ArtworkType {
+  ILLUSTRATION
+  MANGA
+}
+
+enum ArtworkStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  PROCESSING
+  FAILED
+}
+
+enum ContentRating {
+  SAFE
+  R18
+  R18G
+}

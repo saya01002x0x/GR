@@ -1,0 +1,174 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FRONTEND_DIR: frontend
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        node-version: [22.x, 24.x]
+
+    name: Build with ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: ${{ matrix.node-version }}
+          working-directory: ${{ env.FRONTEND_DIR }}
+
+      - name: Restore or cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.FRONTEND_DIR }}/.next/cache
+          key: nextjs-${{ matrix.node-version }}-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**') }}
+
+      - name: Build Next.js
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SENTRY_DISABLED: 'true'
+
+      - if: matrix.node-version == '22.x' && success()
+        name: Cache Next.js build output
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.FRONTEND_DIR }}/.next
+          key: nextjs-build-${{ matrix.node-version }}-${{ github.sha }}
+
+  static:
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    name: Run static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: ${{ matrix.node-version }}
+          working-directory: ${{ env.FRONTEND_DIR }}
+
+      - if: github.event_name == 'pull_request'
+        name: Validate all commits from PR
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+      - name: Linter
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run lint
+
+      - name: Type checking
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run check:types
+
+      - name: Check dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run check:deps
+
+      - name: I18n check
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: npm run check:i18n
+
+  unit:
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: ${{ matrix.node-version }}
+          working-directory: ${{ env.FRONTEND_DIR }}
+
+      - name: Run unit tests
+        uses: docker://mcr.microsoft.com/playwright:v1.57.0
+        with:
+          args: sh -c "cd ${{ env.FRONTEND_DIR }} && npm run test -- --coverage"
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  storybook:
+    strategy:
+      matrix:
+        node-version: [22.x]
+
+    name: Run Storybook
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js environment
+        uses: ./.github/actions/setup-project
+        with:
+          node-version: ${{ matrix.node-version }}
+          working-directory: ${{ env.FRONTEND_DIR }}
+
+      - name: Run storybook tests
+        uses: docker://mcr.microsoft.com/playwright:v1.57.0
+        with:
+          args: sh -c "cd ${{ env.FRONTEND_DIR }} && npm run storybook:test"
+
+  synchronize-with-crowdin:
+    name: GitHub PR synchronize with Crowdin
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    needs: [build, static]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Crowdin action
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: true
+          upload_translations: true
+          download_translations: true
+          create_pull_request: false
+          localization_branch_name: ${{ github.head_ref || github.ref_name }}
+          commit_message: 'chore: new Crowdin translations by GitHub Action'
+          config: ${{ env.FRONTEND_DIR }}/crowdin.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+

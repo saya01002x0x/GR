@@ -1,0 +1,48 @@
+name: Setup Node.js and dependencies
+description: Setup Node.js environment with npm dependencies
+
+inputs:
+  node-version:
+    description: Node.js version
+    required: true
+  restore-nextjs-cache:
+    description: Whether to restore Next.js build cache
+    required: false
+    default: 'false'
+  working-directory:
+    description: Working directory for the project
+    required: false
+    default: 'frontend'
+
+runs:
+  using: composite
+  steps:
+    - name: Use Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+    - name: Restore or cache node_modules
+      id: cache-node-modules
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.working-directory }}/node_modules
+        key: node-modules-${{ inputs.node-version }}-${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory)) }}
+
+    - name: Install dependencies
+      if: steps.cache-node-modules.outputs.cache-hit != 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: npm ci
+
+    - name: Restore Next.js build output
+      if: inputs.restore-nextjs-cache == 'true'
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ${{ inputs.working-directory }}/.next
+        key: nextjs-build-${{ inputs.node-version }}-${{ github.sha }}
+        fail-on-cache-miss: true
+

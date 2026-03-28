@@ -1,0 +1,15 @@
+.artistAvatarWrapper {
+  padding: 2px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.artistAvatarWrapper:hover {
+  border-color: var(--mantine-color-primary-6) !important;
+}
+
+.featured {
+  border-color: var(--mantine-color-primary-6);
+}

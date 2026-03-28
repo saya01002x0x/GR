@@ -1,0 +1,55 @@
+.positionGrid {
+  width: 120px;
+}
+
+.positionCell {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--mantine-radius-sm);
+  border: 1px solid var(--mantine-color-gray-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms ease;
+  cursor: pointer;
+  background: transparent;
+
+  @mixin dark {
+    border-color: var(--mantine-color-dark-4);
+  }
+
+  &:hover {
+    border-color: var(--mantine-color-primary-4);
+    background: var(--mantine-color-primary-0);
+
+    @mixin dark {
+      background: var(--mantine-color-dark-5);
+    }
+  }
+
+  &[data-selected] {
+    border-color: var(--mantine-color-primary-6);
+    background: var(--mantine-color-primary-1);
+
+    @mixin dark {
+      background: var(--mantine-color-primary-9);
+      border-color: var(--mantine-color-primary-5);
+    }
+  }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mantine-color-gray-4);
+  transition: background 150ms ease;
+
+  @mixin dark {
+    background: var(--mantine-color-dark-3);
+  }
+
+  [data-selected] & {
+    background: var(--mantine-color-primary-6);
+  }
+}

@@ -1,0 +1,166 @@
+  # Docker Compose cho GR Project
+# Development: docker-compose up -d
+# Production: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # ============================================
+  # Backend & Frontend - CHẠY LOCAL (Hybrid Mode)
+  # ============================================
+  # ❌ KHÔNG chạy Backend/Frontend trong Docker khi Dev
+  # ✅ Chỉ chạy Infrastructure services bên dưới
+  # 
+  # Lý do:
+  # - Hot reload cực nhanh (0.1s thay vì 3-5s)
+  # - Debug dễ dàng với VS Code
+  # - Tận dụng tối đa RAM/CPU máy
+  # - Không lo lỗi symlink của pnpm workspace
+  #
+  # Hướng dẫn chạy Local:
+  # 1. docker-compose up -d          (Chạy infrastructure)
+  # 2. cd backend && pnpm dev        (Terminal 1 - Backend)
+  # 3. cd frontend && pnpm dev       (Terminal 2 - Frontend)
+  #
+  # 📝 Note: Dockerfile vẫn giữ nguyên cho Production deployment!
+  
+  # backend:
+  #   # Service này để dành cho Production
+  #   # Uncomment khi cần test Docker build
+  
+  # frontend:
+  #   # Service này để dành cho Production
+  #   # Uncomment khi cần test Docker build
+  # ============================================
+  # PostgreSQL - Database chính
+  # ============================================
+  postgres:
+    image: postgres:17-alpine
+    container_name: gr-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"  # Changed: Host port 5433 to avoid conflict
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gr_development
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gr-network
+
+  # ============================================
+  # Redis - Cache & Queue (BullMQ)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: gr-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gr-network
+
+  # ============================================
+  # Meilisearch - Search Engine
+  # ============================================
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: gr-meilisearch
+    restart: unless-stopped
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: "masterKey_change_in_production"
+      MEILI_ENV: development
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gr-network
+
+  # ============================================
+  # MinIO - S3-compatible Object Storage
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: gr-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gr-network
+
+  # ============================================
+  # Mailpit - Email Testing (Development)
+  # ============================================
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: gr-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"   # Web UI
+      - "1025:1025"   # SMTP
+    networks:
+      - gr-network
+
+  # ============================================
+  # pgAdmin - Database Management UI (Optional)
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: gr-pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - gr-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  meilisearch_data:
+  minio_data:
+  pgadmin_data:
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  gr-network:
+    driver: bridge
+
