@@ -112,6 +112,7 @@ export class AdminController {
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'List users (Mod+ for patrol, Admin+ for management)' })
     async getUsers(
+        @CurrentUser() actor: any,
         @Query('page') page?: string,
         @Query('limit') limit?: string,
         @Query('search') search?: string,
@@ -122,6 +123,7 @@ export class AdminController {
             page: page ? parseInt(page, 10) : 1,
             limit: limit ? parseInt(limit, 10) : 20,
             search, role, banned,
+            actorRole: actor.role,
         });
     }
 
@@ -136,7 +138,7 @@ export class AdminController {
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Ban a user (Admin+)' })
     async banUser(@CurrentUser() actor: any, @Param('id') id: string) {
-        const result = await this.adminService.banUser(id, actor.id);
+        const result = await this.adminService.banUser(id, actor.id, actor.role);
         await this.auditLogsService.log(actor.id, 'user.ban', null, { id, type: 'user' });
         return result;
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { SignInButton, useClerk, useUser } from '@clerk/nextjs';
+import { SignInButton, useAuth, useClerk, useUser } from '@clerk/nextjs';
 import {
   ActionIcon,
   Avatar,
@@ -13,6 +13,7 @@ import {
   useMantineColorScheme,
 } from '@mantine/core';
 import {
+  IconGavel,
   IconLogout,
   IconMail,
   IconMoon,
@@ -21,7 +22,7 @@ import {
   IconUser,
 } from '@tabler/icons-react';
 import Link from 'next/link';
-import { Suspense, useSyncExternalStore } from 'react';
+import { Suspense, useEffect, useState, useSyncExternalStore } from 'react';
 import { SearchBar } from '@/components/search';
 import { NotificationBell } from './NotificationBell';
 
@@ -51,13 +52,45 @@ function LogoIcon({ size = 32 }: { size?: number }) {
   );
 }
 
+const STAFF_ROLES = ['MODERATOR', 'ADMIN', 'SUPER_ADMIN'];
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export function AppHeader() {
   const { isSignedIn, user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const { getToken } = useAuth();
   const { toggleColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme('light');
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Handle SSR hydration - detect if we are on client side efficiently
+  useEffect(() => {
+    if (!isSignedIn) {
+      return;
+    }
+    let cancelled = false;
+    async function loadRole() {
+      try {
+        const token = await getToken();
+        if (!token || cancelled) {
+          return;
+        }
+        const res = await fetch(`${API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setUserRole(data.role);
+        }
+      } catch { /* ignore */ }
+    }
+    loadRole();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn, getToken]);
+
+  const isStaff = userRole != null && STAFF_ROLES.includes(userRole);
+
   const mounted = useSyncExternalStore(
     () => () => { },
     () => true,
@@ -170,6 +203,15 @@ export function AppHeader() {
                     >
                       My Profile
                     </Menu.Item>
+                    {isStaff && (
+                      <Menu.Item
+                        component={Link}
+                        href="/admin/"
+                        leftSection={<IconGavel size={16} />}
+                      >
+                        Admin Panel
+                      </Menu.Item>
+                    )}
                     <Menu.Item
                       component={Link}
                       href="/dashboard/general"

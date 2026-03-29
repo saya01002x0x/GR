@@ -22,6 +22,15 @@ import { useCallback, useEffect, useState } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+const ROLE_RANK: Record<string, number> = {
+  USER: 0,
+  MODERATOR: 1,
+  ADMIN: 2,
+  SUPER_ADMIN: 3,
+};
+
+const ALL_ROLES = ['USER', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN'];
+
 type UserItem = {
   id: string;
   username: string;
@@ -42,6 +51,33 @@ export default function UserPatrolPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  const [myRole, setMyRole] = useState<string | null>(null);
+
+  const myRank = ROLE_RANK[myRole ?? ''] ?? 0;
+  const visibleRoleOptions = ALL_ROLES.filter(r => (ROLE_RANK[r] ?? 0) < myRank);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRole() {
+      try {
+        const token = await getToken();
+        if (!token || cancelled) {
+          return;
+        }
+        const res = await fetch(`${API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setMyRole(data.role);
+        }
+      } catch { /* ignore */ }
+    }
+    loadRole();
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken]);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -94,7 +130,7 @@ export default function UserPatrolPage() {
       <Title order={2}>User Patrol</Title>
       <Group>
         <TextInput
-          placeholder="Search users..."
+          placeholder="Tìm kiếm user..."
           leftSection={<IconSearch size={16} />}
           value={search}
           onChange={e => setSearch(e.currentTarget.value)}
@@ -103,8 +139,8 @@ export default function UserPatrolPage() {
         <Select
           value={roleFilter}
           onChange={setRoleFilter}
-          data={['USER', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN']}
-          placeholder="All roles"
+          data={visibleRoleOptions}
+          placeholder="Tất cả role"
           clearable
           w={160}
         />
@@ -115,10 +151,10 @@ export default function UserPatrolPage() {
           <Table.Tr>
             <Table.Th>User</Table.Th>
             <Table.Th>Role</Table.Th>
-            <Table.Th>Status</Table.Th>
+            <Table.Th>Trạng thái</Table.Th>
             <Table.Th>Artworks</Table.Th>
-            <Table.Th>Joined</Table.Th>
-            <Table.Th>Actions</Table.Th>
+            <Table.Th>Tham gia</Table.Th>
+            <Table.Th>Hành động</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -136,11 +172,11 @@ export default function UserPatrolPage() {
               <Table.Td><Badge variant="light">{user.role}</Badge></Table.Td>
               <Table.Td>
                 <Badge color={user.isBanned ? 'red' : 'green'} variant="light">
-                  {user.isBanned ? 'Banned' : 'Active'}
+                  {user.isBanned ? 'Bị khóa' : 'Hoạt động'}
                 </Badge>
               </Table.Td>
               <Table.Td>{user._count.artworks}</Table.Td>
-              <Table.Td><Text size="sm">{new Date(user.createdAt).toLocaleDateString()}</Text></Table.Td>
+              <Table.Td><Text size="sm">{new Date(user.createdAt).toLocaleDateString('vi-VN')}</Text></Table.Td>
               <Table.Td>
                 <Group gap="xs">
                   <Button
@@ -149,20 +185,29 @@ export default function UserPatrolPage() {
                     size="xs"
                     variant="light"
                   >
-                    View
+                    Xem
                   </Button>
-                  <Button
-                    size="xs"
-                    variant="light"
-                    color={user.isBanned ? 'green' : 'red'}
-                    onClick={() => handleBanToggle(user.id, user.isBanned)}
-                  >
-                    {user.isBanned ? 'Unban' : 'Ban'}
-                  </Button>
+                  {myRank >= (ROLE_RANK.ADMIN ?? 0) && (
+                    <Button
+                      size="xs"
+                      variant="light"
+                      color={user.isBanned ? 'green' : 'red'}
+                      onClick={() => handleBanToggle(user.id, user.isBanned)}
+                    >
+                      {user.isBanned ? 'Mở khóa' : 'Khóa'}
+                    </Button>
+                  )}
                 </Group>
               </Table.Td>
             </Table.Tr>
           ))}
+          {users.length === 0 && (
+            <Table.Tr>
+              <Table.Td colSpan={6}>
+                <Text ta="center" c="dimmed" py="md">Không tìm thấy user nào</Text>
+              </Table.Td>
+            </Table.Tr>
+          )}
         </Table.Tbody>
       </Table>
     </Stack>

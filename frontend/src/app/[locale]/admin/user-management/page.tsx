@@ -22,6 +22,15 @@ import { useCallback, useEffect, useState } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+const ROLE_RANK: Record<string, number> = {
+  USER: 0,
+  MODERATOR: 1,
+  ADMIN: 2,
+  SUPER_ADMIN: 3,
+};
+
+const ALL_ROLES = ['USER', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN'];
+
 type UserItem = {
   id: string;
   username: string;
@@ -45,6 +54,33 @@ export default function UserManagementPage() {
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [newRole, setNewRole] = useState<string | null>(null);
   const [roleModalOpened, { open: openRoleModal, close: closeRoleModal }] = useDisclosure(false);
+  const [myRole, setMyRole] = useState<string | null>(null);
+
+  const myRank = ROLE_RANK[myRole ?? ''] ?? 0;
+  const visibleRoleOptions = ALL_ROLES.filter(r => (ROLE_RANK[r] ?? 0) < myRank);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRole() {
+      try {
+        const token = await getToken();
+        if (!token || cancelled) {
+          return;
+        }
+        const res = await fetch(`${API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setMyRole(data.role);
+        }
+      } catch { /* ignore */ }
+    }
+    loadRole();
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken]);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -80,11 +116,11 @@ export default function UserManagementPage() {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
-      notifications.show({ message: `User ${endpoint}ned`, color: 'green' });
+      notifications.show({ message: isBanned ? 'Đã mở khóa user' : 'Đã khóa user', color: 'green' });
       fetchUsers();
     } else {
       const err = await res.json().catch(() => ({}));
-      notifications.show({ message: err.message || 'Action failed', color: 'red' });
+      notifications.show({ message: err.message || 'Thao tác thất bại', color: 'red' });
     }
   };
 
@@ -99,12 +135,12 @@ export default function UserManagementPage() {
       body: JSON.stringify({ role: newRole }),
     });
     if (res.ok) {
-      notifications.show({ message: 'Role updated', color: 'green' });
+      notifications.show({ message: 'Đã cập nhật role', color: 'green' });
       closeRoleModal();
       fetchUsers();
     } else {
       const err = await res.json().catch(() => ({}));
-      notifications.show({ message: err.message || 'Failed', color: 'red' });
+      notifications.show({ message: err.message || 'Thao tác thất bại', color: 'red' });
     }
   };
 
@@ -117,7 +153,7 @@ export default function UserManagementPage() {
       <Title order={2}>User Management</Title>
       <Group>
         <TextInput
-          placeholder="Search users..."
+          placeholder="Tìm kiếm user..."
           leftSection={<IconSearch size={16} />}
           value={search}
           onChange={e => setSearch(e.currentTarget.value)}
@@ -126,8 +162,8 @@ export default function UserManagementPage() {
         <Select
           value={roleFilter}
           onChange={setRoleFilter}
-          data={['USER', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN']}
-          placeholder="All roles"
+          data={visibleRoleOptions}
+          placeholder="Tất cả role"
           clearable
           w={160}
         />
@@ -138,10 +174,10 @@ export default function UserManagementPage() {
           <Table.Tr>
             <Table.Th>User</Table.Th>
             <Table.Th>Role</Table.Th>
-            <Table.Th>Status</Table.Th>
+            <Table.Th>Trạng thái</Table.Th>
             <Table.Th>Artworks</Table.Th>
-            <Table.Th>Joined</Table.Th>
-            <Table.Th>Actions</Table.Th>
+            <Table.Th>Tham gia</Table.Th>
+            <Table.Th>Hành động</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -159,11 +195,11 @@ export default function UserManagementPage() {
               <Table.Td><Badge variant="light">{user.role}</Badge></Table.Td>
               <Table.Td>
                 <Badge color={user.isBanned ? 'red' : 'green'} variant="light">
-                  {user.isBanned ? 'Banned' : 'Active'}
+                  {user.isBanned ? 'Bị khóa' : 'Hoạt động'}
                 </Badge>
               </Table.Td>
               <Table.Td>{user._count.artworks}</Table.Td>
-              <Table.Td><Text size="sm">{new Date(user.createdAt).toLocaleDateString()}</Text></Table.Td>
+              <Table.Td><Text size="sm">{new Date(user.createdAt).toLocaleDateString('vi-VN')}</Text></Table.Td>
               <Table.Td>
                 <Group gap="xs">
                   <Button
@@ -172,7 +208,7 @@ export default function UserManagementPage() {
                     color={user.isBanned ? 'green' : 'red'}
                     onClick={() => handleBanToggle(user.id, user.isBanned)}
                   >
-                    {user.isBanned ? 'Unban' : 'Ban'}
+                    {user.isBanned ? 'Mở khóa' : 'Khóa'}
                   </Button>
                   <Button
                     size="xs"
@@ -183,30 +219,38 @@ export default function UserManagementPage() {
                       openRoleModal();
                     }}
                   >
-                    Role
+                    Đổi role
                   </Button>
                 </Group>
               </Table.Td>
             </Table.Tr>
           ))}
+          {users.length === 0 && (
+            <Table.Tr>
+              <Table.Td colSpan={6}>
+                <Text ta="center" c="dimmed" py="md">Không tìm thấy user nào</Text>
+              </Table.Td>
+            </Table.Tr>
+          )}
         </Table.Tbody>
       </Table>
 
-      <Modal opened={roleModalOpened} onClose={closeRoleModal} title="Change Role" centered>
+      <Modal opened={roleModalOpened} onClose={closeRoleModal} title="Đổi role" centered>
         <Stack gap="md">
           <Text size="sm">
             User:
+            {' '}
             <b>{selectedUser?.displayName || selectedUser?.username}</b>
           </Text>
           <Select
-            label="New Role"
+            label="Role mới"
             value={newRole}
             onChange={setNewRole}
-            data={['USER', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN']}
+            data={visibleRoleOptions}
           />
           <Group justify="flex-end">
-            <Button variant="default" onClick={closeRoleModal}>Cancel</Button>
-            <Button onClick={handleRoleChange}>Save</Button>
+            <Button variant="default" onClick={closeRoleModal}>Hủy</Button>
+            <Button onClick={handleRoleChange}>Lưu</Button>
           </Group>
         </Stack>
       </Modal>

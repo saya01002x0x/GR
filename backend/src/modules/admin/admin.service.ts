@@ -244,10 +244,38 @@ export class AdminService {
 
     // ── User Management ──
 
-    async getUsers(options: { page?: number; limit?: number; search?: string; role?: string; banned?: string }) {
-        const { page = 1, limit = 20, search, role, banned } = options;
+    private static readonly ROLE_RANK: Record<string, number> = {
+        USER: 0, MODERATOR: 1, ADMIN: 2, SUPER_ADMIN: 3,
+    };
+
+    private getRoleRank(role: string): number {
+        return AdminService.ROLE_RANK[role] ?? 0;
+    }
+
+    private getVisibleRoles(actorRole: string): string[] {
+        const actorRank = this.getRoleRank(actorRole);
+        return Object.entries(AdminService.ROLE_RANK)
+            .filter(([, rank]) => rank < actorRank)
+            .map(([role]) => role);
+    }
+
+    async getUsers(options: { page?: number; limit?: number; search?: string; role?: string; banned?: string; actorRole?: string }) {
+        const { page = 1, limit = 20, search, role, banned, actorRole } = options;
 
         const where: any = {};
+
+        if (actorRole) {
+            const visibleRoles = this.getVisibleRoles(actorRole);
+            if (role) {
+                if (!visibleRoles.includes(role)) {
+                    return { users: [], total: 0, page, limit };
+                }
+                where.role = role as UserRole;
+            } else {
+                where.role = { in: visibleRoles };
+            }
+        }
+
         if (search) {
             where.OR = [
                 { username: { contains: search, mode: 'insensitive' } },
@@ -255,7 +283,6 @@ export class AdminService {
                 { displayName: { contains: search, mode: 'insensitive' } },
             ];
         }
-        if (role) where.role = role as UserRole;
         if (banned === 'true') where.isBanned = true;
         if (banned === 'false') where.isBanned = false;
 
@@ -278,11 +305,13 @@ export class AdminService {
         return { users, total, page, limit };
     }
 
-    async banUser(userId: string, bannedById: string) {
+    async banUser(userId: string, bannedById: string, actorRole: string) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user) throw new NotFoundException('User not found');
         if (user.isBanned) throw new BadRequestException('User is already banned');
-        if (user.role === 'SUPER_ADMIN') throw new BadRequestException('Cannot ban a Super Admin');
+        if (this.getRoleRank(user.role) >= this.getRoleRank(actorRole)) {
+            throw new BadRequestException('Cannot ban a user with equal or higher role');
+        }
 
         const result = await this.prisma.user.update({
             where: { id: userId },
