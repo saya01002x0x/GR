@@ -20,23 +20,24 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { CollectionsModule } from './modules/collections/collections.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { SearchModule } from './modules/search/search.module';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { AnnouncementsModule } from './modules/announcements/announcements.module';
 
 @Module({
   imports: [
-    // Global Configuration Module with Validation
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
       validationSchema: envValidationSchema,
       validationOptions: {
-        abortEarly: false, // Show all validation errors
+        abortEarly: false,
       },
     }),
 
-    // Database
     PrismaModule,
 
-    // Feature Modules
     AuthModule,
     UsersModule,
     StorageModule,
@@ -46,6 +47,10 @@ import { SearchModule } from './modules/search/search.module';
     CollectionsModule,
     QueueModule,
     SearchModule,
+    AuditLogsModule,
+    ReportsModule,
+    AdminModule,
+    AnnouncementsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
