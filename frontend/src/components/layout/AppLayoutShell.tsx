@@ -2,6 +2,7 @@
 
 import { Box, Stack } from '@mantine/core';
 import { usePathname } from 'next/navigation';
+import { AnnouncementBanner } from './AnnouncementBanner';
 import { AppFooter } from './AppFooter';
 import { AppHeader } from './AppHeader';
 
@@ -19,6 +20,7 @@ export function AppLayoutShell({ children }: AppLayoutShellProps) {
   return (
     <Stack gap={0} mih="100vh">
       <AppHeader />
+      <AnnouncementBanner />
       <Box component="main" flex={1}>
         {children}
       </Box>
