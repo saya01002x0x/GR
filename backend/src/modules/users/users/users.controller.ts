@@ -37,6 +37,9 @@ export class UsersController {
             bio: user.bio,
             isArtist: user.isArtist,
             role: user.role,
+            warningCount: user.warningCount,
+            isBanned: user.isBanned,
+            bannedUntil: user.bannedUntil,
             createdAt: user.createdAt,
         };
     }

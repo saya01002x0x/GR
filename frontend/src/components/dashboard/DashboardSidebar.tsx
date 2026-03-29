@@ -1,18 +1,24 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import {
+  Badge,
   Box,
   Button,
   Card,
   Collapse,
+  Group,
   Loader,
   NavLink,
+  Progress,
   Stack,
   Text,
+  ThemeIcon,
   UnstyledButton,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconAlertTriangle,
   IconBell,
   IconBrush,
   IconChartBar,
@@ -24,6 +30,7 @@ import {
   IconPhoto,
   IconSettings,
   IconShield,
+  IconShieldOff,
   IconUpload,
   IconUser,
 } from '@tabler/icons-react';
@@ -35,6 +42,9 @@ import { BecomeArtistModal } from './BecomeArtistModal';
 type UserInfo = {
   id: string;
   isArtist: boolean;
+  warningCount?: number;
+  isBanned?: boolean;
+  bannedUntil?: string | null;
 };
 
 const iconMap: Record<string, React.ElementType> = {
@@ -68,6 +78,7 @@ const creatorMenuItems = [
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const { getToken } = useAuth();
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -75,7 +86,7 @@ export function DashboardSidebar() {
 
   const fetchUserInfo = useCallback(async () => {
     try {
-      const token = await window.Clerk?.session?.getToken();
+      const token = await getToken();
       if (!token) {
         setLoading(false);
         return;
@@ -94,7 +105,7 @@ export function DashboardSidebar() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getToken]);
 
   useEffect(() => {
     fetchUserInfo();
@@ -217,6 +228,74 @@ export function DashboardSidebar() {
                     </Stack>
                   </Card>
                 )}
+
+          {/* Warning Status */}
+          {!loading && userInfo && (userInfo.warningCount ?? 0) > 0 && (
+            <>
+              <Box my="sm" h={1} bg="gray.2" />
+              <Card
+                withBorder
+                p="md"
+                radius="md"
+                bg={userInfo.isBanned ? 'red.0' : 'orange.0'}
+              >
+                <Stack gap="xs">
+                  <Group gap="xs">
+                    <ThemeIcon
+                      variant="light"
+                      color={userInfo.isBanned ? 'red' : 'orange'}
+                      size="sm"
+                    >
+                      {userInfo.isBanned
+                        ? <IconShieldOff size={14} />
+                        : <IconAlertTriangle size={14} />}
+                    </ThemeIcon>
+                    <Text size="sm" fw={600} c={userInfo.isBanned ? 'red' : 'orange.8'}>
+                      {userInfo.isBanned ? 'Account banned' : 'Community warning'}
+                    </Text>
+                  </Group>
+
+                  {userInfo.isBanned && userInfo.bannedUntil
+                    ? (
+                        <Text size="xs" c="red.7">
+                          Unban:
+                          {' '}
+                          {new Date(userInfo.bannedUntil).toLocaleDateString('vi-VN')}
+                        </Text>
+                      )
+                    : null}
+
+                  {!userInfo.isBanned && (
+                    <>
+                      <Group justify="space-between">
+                        <Text size="xs" c="dimmed">Warning level</Text>
+                        <Badge
+                          size="sm"
+                          color={(userInfo.warningCount ?? 0) >= 3 ? 'red' : 'orange'}
+                          variant="filled"
+                        >
+                          {userInfo.warningCount}
+                          /3
+                        </Badge>
+                      </Group>
+                      <Progress
+                        value={((userInfo.warningCount ?? 0) / 3) * 100}
+                        color={(userInfo.warningCount ?? 0) >= 2 ? 'red' : 'orange'}
+                        size="sm"
+                        radius="xl"
+                      />
+                      <Text size="xs" c="dimmed">
+                        {3 - (userInfo.warningCount ?? 0)}
+                        {' '}
+                        more warnings will lead to a 7-day temp ban.
+                        Warnings expire after 30 days.
+                      </Text>
+                    </>
+                  )}
+                </Stack>
+              </Card>
+            </>
+          )}
         </Stack>
       </Box>
 

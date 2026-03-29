@@ -3,7 +3,7 @@
  * API endpoints for admin panel operations
  */
 
-import { Controller, Get, Patch, Put, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Delete, Patch, Put, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
@@ -42,21 +42,67 @@ export class AdminController {
         );
     }
 
+    @Get('artworks/:id/reports')
+    @Roles('MODERATOR')
+    @ApiOperation({ summary: 'Get detailed report info for an artwork (Mod+)' })
+    async artworkReportDetails(@Param('id') id: string) {
+        return this.adminService.getArtworkReportDetails(id);
+    }
+
+    @Get('reports/resolved')
+    @Roles('MODERATOR')
+    @ApiOperation({ summary: 'List resolved reports (Mod+)' })
+    async resolvedReports(@Query('page') page?: string, @Query('limit') limit?: string) {
+        return this.adminService.getResolvedReports(
+            page ? parseInt(page, 10) : 1,
+            limit ? parseInt(limit, 10) : 20,
+        );
+    }
+
+    @Get('reports/my-history')
+    @Roles('MODERATOR')
+    @ApiOperation({ summary: 'Get current moderator resolution history (Mod+)' })
+    async myModerationHistory(@CurrentUser() user: any, @Query('page') page?: string, @Query('limit') limit?: string) {
+        return this.adminService.getMyModerationHistory(
+            user.id,
+            page ? parseInt(page, 10) : 1,
+            limit ? parseInt(limit, 10) : 20,
+        );
+    }
+
     @Patch('artworks/:id/approve')
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'Approve a flagged artwork (Mod+)' })
     async approveArtwork(@CurrentUser() user: any, @Param('id') id: string) {
-        const result = await this.adminService.approveArtwork(id);
+        const result = await this.adminService.approveArtwork(id, user.id);
         await this.auditLogsService.log(user.id, 'artwork.approve', null, { id, type: 'artwork' });
         return result;
     }
 
     @Patch('artworks/:id/reject')
     @Roles('MODERATOR')
-    @ApiOperation({ summary: 'Reject a flagged artwork (Mod+)' })
+    @ApiOperation({ summary: 'Reject a flagged artwork and warn the author (Mod+)' })
     async rejectArtwork(@CurrentUser() user: any, @Param('id') id: string) {
-        const result = await this.adminService.rejectArtwork(id);
-        await this.auditLogsService.log(user.id, 'artwork.reject', null, { id, type: 'artwork' });
+        const result = await this.adminService.rejectArtwork(id, user.id);
+        await this.auditLogsService.log(user.id, 'artwork.reject', { tempBanned: result.tempBanned, warningCount: result.warningCount }, { id, type: 'artwork' });
+        return result;
+    }
+
+    // ── Warning Management ──
+
+    @Get('users/:id/warnings')
+    @Roles('MODERATOR')
+    @ApiOperation({ summary: 'Get user warnings (Mod+)' })
+    async getUserWarnings(@Param('id') id: string) {
+        return this.adminService.getUserWarnings(id);
+    }
+
+    @Delete('warnings/:id')
+    @Roles('ADMIN')
+    @ApiOperation({ summary: 'Remove a warning (Admin+)' })
+    async removeWarning(@CurrentUser() actor: any, @Param('id') id: string) {
+        const result = await this.adminService.removeWarning(id);
+        await this.auditLogsService.log(actor.id, 'warning.remove', null, { id, type: 'warning' });
         return result;
     }
 

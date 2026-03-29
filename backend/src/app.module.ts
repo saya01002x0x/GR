@@ -24,6 +24,7 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { AnnouncementsModule } from './modules/announcements/announcements.modul
     ReportsModule,
     AdminModule,
     AnnouncementsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

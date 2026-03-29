@@ -9,34 +9,38 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(uuid())
-  clerkId     String       @unique @map("clerk_id")
-  email       String       @unique
-  username    String       @unique
-  displayName String?      @map("display_name")
-  avatar      String?
-  banner      String?
-  bio         String?
-  role        UserRole     @default(USER)
-  isArtist    Boolean      @default(false) @map("is_artist")
-  isBanned    Boolean      @default(false) @map("is_banned")
-  bannedAt    DateTime?    @map("banned_at")
-  bannedById  String?      @map("banned_by_id")
-  preferences Json?
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  artworks    Artwork[]
-  bookmarks   Bookmark[]
-  collections Collection[]
-  comments    Comment[]
-  following   Follow[]     @relation("following")
-  followers   Follow[]     @relation("followers")
-  likes       Like[]
+  id           String       @id @default(uuid())
+  clerkId      String       @unique @map("clerk_id")
+  email        String       @unique
+  username     String       @unique
+  displayName  String?      @map("display_name")
+  avatar       String?
+  banner       String?
+  bio          String?
+  role         UserRole     @default(USER)
+  isArtist     Boolean      @default(false) @map("is_artist")
+  isBanned     Boolean      @default(false) @map("is_banned")
+  bannedAt     DateTime?    @map("banned_at")
+  bannedUntil  DateTime?    @map("banned_until")
+  bannedById   String?      @map("banned_by_id")
+  warningCount Int          @default(0) @map("warning_count")
+  preferences  Json?
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  artworks     Artwork[]
+  bookmarks    Bookmark[]
+  collections  Collection[]
+  comments     Comment[]
+  following    Follow[]     @relation("following")
+  followers    Follow[]     @relation("followers")
+  likes        Like[]
 
   reportsFiled    Report[]       @relation("reports_filed")
   reportsResolved Report[]       @relation("reports_resolved")
   announcements   Announcement[]
   auditLogs       AuditLog[]
+  warnings        UserWarning[]
+  notifications   Notification[]
 
   @@map("users")
 }
@@ -65,6 +69,7 @@ model Artwork {
   comments     Comment[]
   likes        Like[]
   reports      Report[]
+  warnings     UserWarning[]
 
   @@index([authorId])
   @@index([status])
@@ -288,4 +293,46 @@ model SystemSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
+}
+
+model UserWarning {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  artworkId String?  @map("artwork_id")
+  reason    String
+  note      String?
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artwork   Artwork? @relation(fields: [artworkId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_warnings")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false) @map("is_read")
+  data      Json?
+  createdAt DateTime         @default(now()) @map("created_at")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  WARNING
+  TEMP_BAN
+  UNBAN
+  SYSTEM
+  LIKE
+  COMMENT
+  FOLLOW
 }

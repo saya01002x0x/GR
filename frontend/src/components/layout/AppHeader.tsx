@@ -13,7 +13,6 @@ import {
   useMantineColorScheme,
 } from '@mantine/core';
 import {
-  IconBell,
   IconLogout,
   IconMail,
   IconMoon,
@@ -24,6 +23,7 @@ import {
 import Link from 'next/link';
 import { Suspense, useSyncExternalStore } from 'react';
 import { SearchBar } from '@/components/search';
+import { NotificationBell } from './NotificationBell';
 
 // Logo SVG component
 function LogoIcon({ size = 32 }: { size?: number }) {
@@ -134,9 +134,7 @@ export function AppHeader() {
                     : <IconSun size={22} />}
                 </ActionIcon>
 
-                <ActionIcon variant="subtle" size="lg" radius="md">
-                  <IconBell size={22} />
-                </ActionIcon>
+                <NotificationBell />
 
                 <ActionIcon variant="subtle" size="lg" radius="md">
                   <IconMail size={22} />

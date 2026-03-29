@@ -1,12 +1,14 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { AuthModule } from '../auth/auth.module';
+import { AutoUnbanTask } from './tasks/auto-unban.task';
 
 @Module({
-    imports: [AuthModule],
+    imports: [AuthModule, ScheduleModule.forRoot()],
     controllers: [AdminController],
-    providers: [AdminService],
+    providers: [AdminService, AutoUnbanTask],
     exports: [AdminService],
 })
 export class AdminModule {}
