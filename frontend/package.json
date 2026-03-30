@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^6.3.0",
+    "@clerk/types": "^4.101.20",
     "@eslint-react/eslint-plugin": "^2.3.12",
     "@lingual/i18n-check": "^0.8.14",
     "@next/bundle-analyzer": "^16.0.10",
@@ -85,6 +86,7 @@
     "storybook": "^10.1.4",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3",
+    "vite": "^8.0.3",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.15",
     "vitest-browser-react": "^2.0.2"

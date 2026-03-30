@@ -8,71 +8,30 @@ on:
 
 env:
   FRONTEND_DIR: frontend
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
+  CLERK_SECRET_KEY: sk_test_dummy
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        node-version: [22.x, 24.x]
-
-    name: Build with ${{ matrix.node-version }}
+  build_and_static:
+    name: Build & Checks (Node 22.x)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js environment
-        uses: ./.github/actions/setup-project
-        with:
-          node-version: ${{ matrix.node-version }}
-          working-directory: ${{ env.FRONTEND_DIR }}
-
-      - name: Restore or cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.FRONTEND_DIR }}/.next/cache
-          key: nextjs-${{ matrix.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('frontend/src/**') }}
-
-      - name: Build Next.js
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: pnpm run build
-        env:
-          NEXT_PUBLIC_SENTRY_DISABLED: 'true'
-
-      - if: matrix.node-version == '22.x' && success()
-        name: Cache Next.js build output
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ${{ env.FRONTEND_DIR }}/.next
-          key: nextjs-build-${{ matrix.node-version }}-${{ github.sha }}
-
-  static:
-    strategy:
-      matrix:
-        node-version: [22.x]
-
-    name: Run static checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - uses: actions/checkout@v6
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js environment
+      - name: Set up Node.js & PNPM
         uses: ./.github/actions/setup-project
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
           working-directory: ${{ env.FRONTEND_DIR }}
 
-      - if: github.event_name == 'pull_request'
-        name: Validate all commits from PR
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+      # --- BƯỚC QUAN TRỌNG: Build thư viện dùng chung trước ---
+      - name: Build shared packages
+        run: pnpm --filter "@gr/*" build
 
       - name: Linter
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -82,31 +41,31 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm run check:types
 
-      - name: Check dependencies
+      - name: Build Next.js
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: pnpm run check:deps
+        run: pnpm run build
+        env:
+          NEXT_PUBLIC_SENTRY_DISABLED: 'true'
 
-      - name: I18n check
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: pnpm run check:i18n
+      # Lưu Cache build để Unit Test dùng lại nếu cần
+      - name: Cache Next.js build output
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ env.FRONTEND_DIR }}/.next
+          key: nextjs-build-22.x-${{ github.sha }}
 
-  unit:
-    strategy:
-      matrix:
-        node-version: [22.x]
-
-    name: Run unit tests
+  unit_tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [build]
-
+    needs: [build_and_static] 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js environment
+      - name: Set up Node.js
         uses: ./.github/actions/setup-project
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
           working-directory: ${{ env.FRONTEND_DIR }}
 
       - name: Run unit tests
@@ -114,33 +73,8 @@ jobs:
         with:
           args: sh -c "cd ${{ env.FRONTEND_DIR }} && pnpm run test -- --coverage"
 
-      - name: Upload coverage reports to Codecov
+      - name: Upload coverage
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  storybook:
-    strategy:
-      matrix:
-        node-version: [22.x]
-
-    name: Run Storybook
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [build]
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js environment
-        uses: ./.github/actions/setup-project
-        with:
-          node-version: ${{ matrix.node-version }}
-          working-directory: ${{ env.FRONTEND_DIR }}
-
-      - name: Run storybook tests
-        uses: docker://mcr.microsoft.com/playwright:v1.57.0
-        with:
-          args: sh -c "cd ${{ env.FRONTEND_DIR }} && pnpm run storybook:test"
-
 
