@@ -18,18 +18,18 @@ import { SearchModule } from '../search/search.module';
 import { STATS_QUEUE_NAME } from './stats.constants';
 
 @Module({
-    imports: [
-        BullModule.registerQueue({
-            name: STATS_QUEUE_NAME,
-        }),
-        SearchModule,
-    ],
-    providers: [
-        ViewService,
-        StatsProcessor,
-        MeilisearchSyncService,
-        ReconciliationTask,
-    ],
-    exports: [ViewService, BullModule],
+  imports: [
+    BullModule.registerQueue({
+      name: STATS_QUEUE_NAME,
+    }),
+    SearchModule,
+  ],
+  providers: [
+    ViewService,
+    StatsProcessor,
+    MeilisearchSyncService,
+    ReconciliationTask,
+  ],
+  exports: [ViewService, BullModule],
 })
 export class StatsModule {}

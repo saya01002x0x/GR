@@ -4,74 +4,93 @@
  * Reference: https://www.meilisearch.com/docs/reference/api/search
  */
 
-import { IsString, IsArray, IsEnum, IsBoolean, IsInt, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsEnum,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum RatingFilter {
-    ALL = 'ALL',
-    SAFE = 'SAFE',
-    R18 = 'R18'
+  ALL = 'ALL',
+  SAFE = 'SAFE',
+  R18 = 'R18',
 }
 
 export enum SortOption {
-    NEWEST = 'newest',
-    POPULAR = 'popular'
+  NEWEST = 'newest',
+  POPULAR = 'popular',
 }
 
 export class SearchArtworkDto {
-    @ApiPropertyOptional({ description: 'Search keyword', example: 'Genshin' })
-    @IsString()
-    @IsOptional()
-    q?: string;
+  @ApiPropertyOptional({ description: 'Search keyword', example: 'Genshin' })
+  @IsString()
+  @IsOptional()
+  q?: string;
 
-    @ApiPropertyOptional({ description: 'Filter by tags (AND logic)', example: ['fantasy', 'landscape'] })
-    @IsArray()
-    @IsOptional()
-    @Transform(({ value }) => {
-        // Handle string or array from query params
-        if (typeof value === 'string') {
-            return value.split(',').map(t => t.trim());
-        }
-        return value as string[]; 
-    })
-    tags?: string[];
+  @ApiPropertyOptional({
+    description: 'Filter by tags (AND logic)',
+    example: ['fantasy', 'landscape'],
+  })
+  @IsArray()
+  @IsOptional()
+  @Transform(({ value }) => {
+    // Handle string or array from query params
+    if (typeof value === 'string') {
+      return value.split(',').map((t) => t.trim());
+    }
+    return value as string[];
+  })
+  tags?: string[];
 
-    @ApiPropertyOptional({ enum: RatingFilter, description: 'Content rating filter' })
-    @IsEnum(RatingFilter)
-    @IsOptional()
-    rating?: RatingFilter;
+  @ApiPropertyOptional({
+    enum: RatingFilter,
+    description: 'Content rating filter',
+  })
+  @IsEnum(RatingFilter)
+  @IsOptional()
+  rating?: RatingFilter;
 
-    @ApiPropertyOptional({ description: 'Exclude AI-generated artworks' })
-    @IsBoolean()
-    @Type(() => Boolean)
-    @IsOptional()
-    excludeAI?: boolean;
+  @ApiPropertyOptional({ description: 'Exclude AI-generated artworks' })
+  @IsBoolean()
+  @Type(() => Boolean)
+  @IsOptional()
+  excludeAI?: boolean;
 
-    @ApiPropertyOptional({ enum: SortOption, description: 'Sort order' })
-    @IsEnum(SortOption)
-    @IsOptional()
-    sort?: SortOption;
+  @ApiPropertyOptional({ enum: SortOption, description: 'Sort order' })
+  @IsEnum(SortOption)
+  @IsOptional()
+  sort?: SortOption;
 
-    @ApiPropertyOptional({ description: 'Page number', default: 1 })
-    @Type(() => Number)
-    @IsInt()
-    @IsOptional()
-    page?: number = 1;
+  @ApiPropertyOptional({ description: 'Page number', default: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  page?: number = 1;
 
-    @ApiPropertyOptional({ description: 'Results per page', default: 20 })
-    @Type(() => Number)
-    @IsInt()
-    @IsOptional()
-    limit?: number = 20;
+  @ApiPropertyOptional({ description: 'Results per page', default: 20 })
+  @Type(() => Number)
+  @IsInt()
+  @IsOptional()
+  limit?: number = 20;
 
-    @ApiPropertyOptional({ description: 'Filter by aspect ratio', enum: ['portrait', 'landscape', 'square'] })
-    @IsString()
-    @IsOptional()
-    ratio?: string;
+  @ApiPropertyOptional({
+    description: 'Filter by aspect ratio',
+    enum: ['portrait', 'landscape', 'square'],
+  })
+  @IsString()
+  @IsOptional()
+  ratio?: string;
 
-    @ApiPropertyOptional({ description: 'Minimum resolution', enum: ['hd', 'full_hd', '2k', '4k'] })
-    @IsString()
-    @IsOptional()
-    minRes?: string;
+  @ApiPropertyOptional({
+    description: 'Minimum resolution',
+    enum: ['hd', 'full_hd', '2k', '4k'],
+  })
+  @IsString()
+  @IsOptional()
+  minRes?: string;
 }

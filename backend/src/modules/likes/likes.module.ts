@@ -12,13 +12,13 @@ import { LikesController } from './likes.controller';
 import { STATS_QUEUE_NAME } from '../stats/stats.constants';
 
 @Module({
-    imports: [
-        BullModule.registerQueue({
-            name: STATS_QUEUE_NAME,
-        }),
-    ],
-    controllers: [LikesController],
-    providers: [LikesService],
-    exports: [LikesService],
+  imports: [
+    BullModule.registerQueue({
+      name: STATS_QUEUE_NAME,
+    }),
+  ],
+  controllers: [LikesController],
+  providers: [LikesService],
+  exports: [LikesService],
 })
 export class LikesModule {}

@@ -76,7 +76,12 @@ async function bootstrap() {
   app.enableCors({
     origin: origin,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+    ],
     credentials: true,
   });
 
@@ -85,10 +90,13 @@ async function bootstrap() {
   serverAdapter.setBasePath('/admin/queues');
 
   // Basic Auth for Bull Board
-  app.use('/admin/queues', basicAuth({
-    users: { 'admin': process.env.ADMIN_PASSWORD || 'admin123' },
-    challenge: true,
-  }));
+  app.use(
+    '/admin/queues',
+    basicAuth({
+      users: { admin: process.env.ADMIN_PASSWORD || 'admin123' },
+      challenge: true,
+    }),
+  );
 
   // Create Queue instances to monitor
   const artworkQueue = new Queue('artwork-processing', {
@@ -118,8 +126,9 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   logger.log(`🚀 Backend running on http://localhost:${port}`);
   logger.log(`📚 Swagger docs at http://localhost:${port}/api`);
-  logger.log(`🎯 Bull Board at http://localhost:${port}/admin/queues (User: admin)`);
+  logger.log(
+    `🎯 Bull Board at http://localhost:${port}/admin/queues (User: admin)`,
+  );
   logger.log(`🌐 CORS enabled for: ${origin}`);
 }
 void bootstrap();
-

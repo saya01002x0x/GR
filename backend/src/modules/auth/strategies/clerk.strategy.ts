@@ -21,7 +21,6 @@ import { User } from '@prisma/client';
 export type AuthenticatedUser = User;
 // User đã có tất cả fields từ Prisma (id, clerkId, email, etc.)
 
-
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
   private readonly secretKey: string;
@@ -63,13 +62,15 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         clerkId: clerkUser.id,
         email: clerkUser.emailAddresses[0]?.emailAddress || '',
         username: clerkUser.username || `user_${clerkUser.id.slice(-8)}`,
-        displayName: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || null,
+        displayName:
+          [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||
+          null,
         avatar: clerkUser.imageUrl || null,
       });
 
       // 5. Return DB User (có id UUID để dùng trong các operations khác)
       return dbUser;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[ClerkStrategy] Authentication error:', error);
 
       if (error instanceof UnauthorizedException) {
@@ -77,7 +78,8 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       }
 
       throw new UnauthorizedException(
-        'Authentication failed: ' + (error?.message || 'Unknown error'),
+        'Authentication failed: ' +
+          (error instanceof Error ? error.message : 'Unknown error'),
       );
     }
   }

@@ -4,9 +4,9 @@ import { AnnouncementsController } from './announcements.controller';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-    imports: [AuthModule],
-    controllers: [AnnouncementsController],
-    providers: [AnnouncementsService],
-    exports: [AnnouncementsService],
+  imports: [AuthModule],
+  controllers: [AnnouncementsController],
+  providers: [AnnouncementsService],
+  exports: [AnnouncementsService],
 })
 export class AnnouncementsModule {}

@@ -2,7 +2,18 @@
  * Announcements Controller
  */
 
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AnnouncementsService } from './announcements.service';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
@@ -17,49 +28,64 @@ import type { User } from '@prisma/client';
 @Controller()
 @UseInterceptors(AuditLogInterceptor)
 export class AnnouncementsController {
-    constructor(
-        private readonly announcementsService: AnnouncementsService,
-        private readonly auditLogsService: AuditLogsService,
-    ) {}
+  constructor(
+    private readonly announcementsService: AnnouncementsService,
+    private readonly auditLogsService: AuditLogsService,
+  ) {}
 
-    @Get('announcements/active')
-    @ApiOperation({ summary: 'Get active announcements (public)' })
-    async getActive() {
-        return this.announcementsService.getActive();
-    }
+  @Get('announcements/active')
+  @ApiOperation({ summary: 'Get active announcements (public)' })
+  async getActive() {
+    return this.announcementsService.getActive();
+  }
 
-    @Post('admin/announcements')
-    @UseGuards(ClerkGuard, RolesGuard)
-    @Roles('ADMIN')
-    @ApiOperation({ summary: 'Create announcement (Admin+)' })
-    async create(@CurrentUser() user: User, @Body() body: { title: string; content: string; type?: string; expiresAt?: string }) {
-        return this.announcementsService.create(user.id, body);
-    }
+  @Post('admin/announcements')
+  @UseGuards(ClerkGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Create announcement (Admin+)' })
+  async create(
+    @CurrentUser() user: User,
+    @Body()
+    body: { title: string; content: string; type?: string; expiresAt?: string },
+  ) {
+    return this.announcementsService.create(user.id, body);
+  }
 
-    @Get('admin/announcements')
-    @UseGuards(ClerkGuard, RolesGuard)
-    @Roles('ADMIN')
-    @ApiOperation({ summary: 'List announcements (Admin+)' })
-    async findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
-        return this.announcementsService.findAll(
-            page ? parseInt(page, 10) : 1,
-            limit ? parseInt(limit, 10) : 20,
-        );
-    }
+  @Get('admin/announcements')
+  @UseGuards(ClerkGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'List announcements (Admin+)' })
+  async findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.announcementsService.findAll(
+      page ? parseInt(page, 10) : 1,
+      limit ? parseInt(limit, 10) : 20,
+    );
+  }
 
-    @Patch('admin/announcements/:id')
-    @UseGuards(ClerkGuard, RolesGuard)
-    @Roles('ADMIN')
-    @ApiOperation({ summary: 'Update announcement (Admin+)' })
-    async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: any) {
-        return this.announcementsService.update(id, body);
-    }
+  @Patch('admin/announcements/:id')
+  @UseGuards(ClerkGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Update announcement (Admin+)' })
+  async update(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body()
+    body: Partial<{
+      title: string;
+      content: string;
+      type: string;
+      isActive: boolean;
+      expiresAt: string;
+    }>,
+  ) {
+    return this.announcementsService.update(id, body);
+  }
 
-    @Delete('admin/announcements/:id')
-    @UseGuards(ClerkGuard, RolesGuard)
-    @Roles('ADMIN')
-    @ApiOperation({ summary: 'Delete announcement (Admin+)' })
-    async remove(@CurrentUser() user: User, @Param('id') id: string) {
-        return this.announcementsService.remove(id);
-    }
+  @Delete('admin/announcements/:id')
+  @UseGuards(ClerkGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Delete announcement (Admin+)' })
+  async remove(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.announcementsService.remove(id);
+  }
 }

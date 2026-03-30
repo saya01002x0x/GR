@@ -14,10 +14,9 @@ import { QueueModule } from '../../queue/queue.module';
 import { StatsModule } from '../../stats/stats.module';
 
 @Module({
-    imports: [PrismaModule, StorageModule, AuthModule, QueueModule, StatsModule],
-    controllers: [ArtworksController],
-    providers: [ArtworksService],
-    exports: [ArtworksService],
+  imports: [PrismaModule, StorageModule, AuthModule, QueueModule, StatsModule],
+  controllers: [ArtworksController],
+  providers: [ArtworksService],
+  exports: [ArtworksService],
 })
 export class ArtworksModule {}
-

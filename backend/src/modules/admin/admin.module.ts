@@ -5,10 +5,9 @@ import { AuthModule } from '../auth/auth.module';
 import { AutoUnbanTask } from './tasks/auto-unban.task';
 
 @Module({
-    imports: [AuthModule],
-    controllers: [AdminController],
-    providers: [AdminService, AutoUnbanTask],
-    exports: [AdminService],
+  imports: [AuthModule],
+  controllers: [AdminController],
+  providers: [AdminService, AutoUnbanTask],
+  exports: [AdminService],
 })
 export class AdminModule {}
-

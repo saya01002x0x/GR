@@ -9,64 +9,64 @@ import { NotificationType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class NotificationsService {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    async create(input: {
-        userId: string;
-        type: NotificationType;
-        title: string;
-        message: string;
-        data?: Record<string, unknown>;
-    }) {
-        return this.prisma.notification.create({
-            data: {
-                userId: input.userId,
-                type: input.type,
-                title: input.title,
-                message: input.message,
-                data: (input.data as Prisma.InputJsonValue) ?? Prisma.JsonNull,
-            },
-        });
-    }
+  async create(input: {
+    userId: string;
+    type: NotificationType;
+    title: string;
+    message: string;
+    data?: Record<string, unknown>;
+  }) {
+    return this.prisma.notification.create({
+      data: {
+        userId: input.userId,
+        type: input.type,
+        title: input.title,
+        message: input.message,
+        data: (input.data as Prisma.InputJsonValue) ?? Prisma.JsonNull,
+      },
+    });
+  }
 
-    async findByUser(userId: string, page = 1, limit = 20) {
-        const [items, total, unreadCount] = await Promise.all([
-            this.prisma.notification.findMany({
-                where: { userId },
-                orderBy: { createdAt: 'desc' },
-                skip: (page - 1) * limit,
-                take: limit,
-            }),
-            this.prisma.notification.count({ where: { userId } }),
-            this.prisma.notification.count({ where: { userId, isRead: false } }),
-        ]);
-        return { items, total, unreadCount, page, limit };
-    }
+  async findByUser(userId: string, page = 1, limit = 20) {
+    const [items, total, unreadCount] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.notification.count({ where: { userId } }),
+      this.prisma.notification.count({ where: { userId, isRead: false } }),
+    ]);
+    return { items, total, unreadCount, page, limit };
+  }
 
-    async markRead(id: string, userId: string) {
-        return this.prisma.notification.updateMany({
-            where: { id, userId },
-            data: { isRead: true },
-        });
-    }
+  async markRead(id: string, userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { id, userId },
+      data: { isRead: true },
+    });
+  }
 
-    async markAllRead(userId: string) {
-        return this.prisma.notification.updateMany({
-            where: { userId, isRead: false },
-            data: { isRead: true },
-        });
-    }
+  async markAllRead(userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+  }
 
-    async delete(id: string, userId: string) {
-        return this.prisma.notification.deleteMany({
-            where: { id, userId },
-        });
-    }
+  async delete(id: string, userId: string) {
+    return this.prisma.notification.deleteMany({
+      where: { id, userId },
+    });
+  }
 
-    async getUnreadCount(userId: string) {
-        const count = await this.prisma.notification.count({
-            where: { userId, isRead: false },
-        });
-        return { count };
-    }
+  async getUnreadCount(userId: string) {
+    const count = await this.prisma.notification.count({
+      where: { userId, isRead: false },
+    });
+    return { count };
+  }
 }

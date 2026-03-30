@@ -7,16 +7,16 @@ import { PrismaModule } from '../../database/prisma.module';
 import { SearchModule } from '../search/search.module';
 
 @Module({
-    imports: [
-        // BullModule.forRootAsync() is now in AppModule (global)
-        BullModule.registerQueue({
-            name: QUEUE_NAME,
-        }),
-        StorageModule,
-        PrismaModule,
-        SearchModule,
-    ],
-    providers: [ArtworkProcessor],
-    exports: [BullModule],
+  imports: [
+    // BullModule.forRootAsync() is now in AppModule (global)
+    BullModule.registerQueue({
+      name: QUEUE_NAME,
+    }),
+    StorageModule,
+    PrismaModule,
+    SearchModule,
+  ],
+  providers: [ArtworkProcessor],
+  exports: [BullModule],
 })
 export class QueueModule {}
