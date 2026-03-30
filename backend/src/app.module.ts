@@ -5,11 +5,14 @@
  */
 
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
+import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './database';
+import { RedisModule } from './database/redis.module';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { UsersModule } from './modules/users/users/users.module';
@@ -20,6 +23,7 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { CollectionsModule } from './modules/collections/collections.module';
 import { QueueModule } from './modules/queue/queue.module';
 import { SearchModule } from './modules/search/search.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -38,6 +42,21 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     }),
 
     PrismaModule,
+    RedisModule,
+    ScheduleModule.forRoot(),
+
+    // BullMQ: Global Redis connection for ALL queues
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: configService.get('REDIS_HOST') || 'localhost',
+          port: Number(configService.get('REDIS_PORT')) || 6379,
+          password: configService.get('REDIS_PASSWORD'),
+        },
+      }),
+      inject: [ConfigService],
+    }),
 
     AuthModule,
     UsersModule,
@@ -48,6 +67,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     CollectionsModule,
     QueueModule,
     SearchModule,
+    StatsModule,
     AuditLogsModule,
     ReportsModule,
     AdminModule,

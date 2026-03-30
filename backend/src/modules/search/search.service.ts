@@ -200,6 +200,25 @@ export class SearchService implements OnModuleInit {
     }
 
     /**
+     * Partial update documents in Meilisearch
+     * Only updates the fields provided (e.g., stats counters)
+     * Used by MeilisearchSyncService for batched stats updates
+     */
+    async updatePartialDocuments(
+        updates: Record<string, any>[],
+    ): Promise<void> {
+        if (updates.length === 0) return;
+
+        try {
+            await this.index.updateDocuments(updates);
+            this.logger.debug(`Partial updated ${updates.length} documents`);
+        } catch (error) {
+            this.logger.error('Failed to partial update documents', error);
+            throw error;
+        }
+    }
+
+    /**
      * Bulk index artworks (for re-indexing)
      */
     async bulkIndex(artworks: ArtworkDocument[]): Promise<void> {

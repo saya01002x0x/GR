@@ -10,6 +10,7 @@ import {
   Post,
   Param,
   Query,
+  Req,
   UseGuards,
   UseInterceptors,
   UploadedFiles,
@@ -20,12 +21,16 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery, 
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ArtworksService, CreateArtworkDto } from './artworks.service';
+import { ViewService } from '../stats/view.service';
 import type { User, ContentRating } from '@prisma/client';
 
 @ApiTags('artworks')
 @Controller('artworks')
 export class ArtworksController {
-  constructor(private readonly artworksService: ArtworksService) { }
+  constructor(
+    private readonly artworksService: ArtworksService,
+    private readonly viewService: ViewService,
+  ) {}
 
   /**
    * Get all published artworks
@@ -88,7 +93,7 @@ export class ArtworksController {
   @ApiParam({ name: 'id', description: 'Artwork ID' })
   @ApiResponse({ status: 200, description: 'Artwork retrieved' })
   @ApiResponse({ status: 404, description: 'Artwork not found' })
-  async findById(@Param('id') id: string) {
+  async findById(@Param('id') id: string, @Req() req: any) {
     const artwork = await this.artworksService.findById(id);
 
     if (!artwork) {
@@ -97,6 +102,12 @@ export class ArtworksController {
         data: null,
       };
     }
+
+    // Track view: extract userId from Clerk auth (optional), fallback to IP
+    const userId = (req as any)['auth']?.userId || undefined;
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    // Fire-and-forget: don't block response for view tracking
+    this.viewService.recordView(id, userId, ip).catch(() => {});
 
     return {
       message: 'Artwork retrieved successfully',

@@ -66,7 +66,7 @@ async function bootstrap() {
     challenge: true,
   }));
 
-  // Create Queue instance to monitor
+  // Create Queue instances to monitor
   const artworkQueue = new Queue('artwork-processing', {
     connection: {
       host: process.env.REDIS_HOST || 'localhost',
@@ -74,8 +74,15 @@ async function bootstrap() {
     },
   });
 
+  const statsQueue = new Queue('stats-queue', {
+    connection: {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: Number(process.env.REDIS_PORT) || 6379,
+    },
+  });
+
   const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
-    queues: [new BullMQAdapter(artworkQueue)],
+    queues: [new BullMQAdapter(artworkQueue), new BullMQAdapter(statsQueue)],
     serverAdapter: serverAdapter,
   });
 

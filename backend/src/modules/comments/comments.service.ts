@@ -1,11 +1,19 @@
 /**
  * Comments Service
  * Handle comment CRUD with nested replies
+ * Refactored: counter update moved to async BullMQ job
  * API returns flat list by parentId, frontend renders recursively
  */
 
 import { Injectable, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../../database/prisma.service';
+import {
+    STATS_QUEUE_NAME,
+    JOB_UPDATE_STATS,
+    UpdateStatsJob,
+} from '../stats/stats.constants';
 
 export interface CreateCommentDto {
     content: string;
@@ -16,7 +24,10 @@ export interface CreateCommentDto {
 export class CommentsService {
     private readonly logger = new Logger(CommentsService.name);
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        @InjectQueue(STATS_QUEUE_NAME) private readonly statsQueue: Queue,
+    ) {}
 
     /**
      * Get comments for artwork (flat list by parentId)
@@ -77,6 +88,8 @@ export class CommentsService {
 
     /**
      * Create a new comment or reply
+     * ACID: Only the Comment record write is synchronous
+     * Counter update: pushed to BullMQ for async processing
      */
     async createComment(
         userId: string,
@@ -102,31 +115,42 @@ export class CommentsService {
             }
         }
 
-        // Create comment and increment count
-        const [comment] = await this.prisma.$transaction([
-            this.prisma.comment.create({
-                data: {
-                    content: dto.content,
-                    userId,
-                    artworkId,
-                    parentId: dto.parentId || null,
-                },
-                include: {
-                    user: {
-                        select: {
-                            id: true,
-                            username: true,
-                            displayName: true,
-                            avatar: true,
-                        },
+        // Create comment (ACID — no transaction needed for single write)
+        const comment = await this.prisma.comment.create({
+            data: {
+                content: dto.content,
+                userId,
+                artworkId,
+                parentId: dto.parentId || null,
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                        displayName: true,
+                        avatar: true,
                     },
                 },
-            }),
-            this.prisma.artwork.update({
-                where: { id: artworkId },
-                data: { commentCount: { increment: 1 } },
-            }),
-        ]);
+            },
+        });
+
+        // Push async counter increment (best-effort, reconciliation cron will fix drift)
+        try {
+            const jobData: UpdateStatsJob = {
+                artworkId,
+                type: 'comment',
+                delta: 1,
+            };
+
+            await this.statsQueue.add(JOB_UPDATE_STATS, jobData, {
+                jobId: `comment:${comment.id}:created`,
+                removeOnComplete: true,
+                removeOnFail: 100,
+            });
+        } catch (queueError) {
+            this.logger.error(`Failed to queue comment stats for ${artworkId}`, queueError);
+        }
 
         this.logger.log(`User ${userId} commented on artwork ${artworkId}`);
 
@@ -143,6 +167,7 @@ export class CommentsService {
     /**
      * Delete a comment (only by owner)
      * Cascade deletes replies
+     * Counter update: pushed to BullMQ for async processing
      */
     async deleteComment(userId: string, commentId: string) {
         const comment = await this.prisma.comment.findUnique({
@@ -164,16 +189,27 @@ export class CommentsService {
         const replyCount = comment._count.replies;
         const totalToDelete = 1 + replyCount;
 
-        // Delete comment (cascade deletes replies) and decrement count
-        await this.prisma.$transaction([
-            this.prisma.comment.delete({
-                where: { id: commentId },
-            }),
-            this.prisma.artwork.update({
-                where: { id: comment.artworkId },
-                data: { commentCount: { decrement: totalToDelete } },
-            }),
-        ]);
+        // Delete comment (cascade deletes replies via Prisma)
+        await this.prisma.comment.delete({
+            where: { id: commentId },
+        });
+
+        // Push async counter decrement (best-effort, reconciliation cron will fix drift)
+        try {
+            const jobData: UpdateStatsJob = {
+                artworkId: comment.artworkId,
+                type: 'comment',
+                delta: -totalToDelete,
+            };
+
+            await this.statsQueue.add(JOB_UPDATE_STATS, jobData, {
+                jobId: `comment:${commentId}:deleted`,
+                removeOnComplete: true,
+                removeOnFail: 100,
+            });
+        } catch (queueError) {
+            this.logger.error(`Failed to queue comment delete stats for ${comment.artworkId}`, queueError);
+        }
 
         this.logger.log(`User ${userId} deleted comment ${commentId}`);
 
