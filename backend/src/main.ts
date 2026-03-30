@@ -91,7 +91,7 @@ async function bootstrap() {
 
   // Basic Auth for Bull Board
   app.use(
-    '/admin/queues',
+    ['/admin/queues', '/admin/queues/*', '/metrics', '/metrics/*'],
     basicAuth({
       users: { admin: process.env.ADMIN_PASSWORD || 'admin123' },
       challenge: true,

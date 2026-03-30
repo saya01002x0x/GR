@@ -24,7 +24,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
@@ -46,10 +46,15 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Your account has been suspended');
     }
 
-    const userLevel = ROLE_HIERARCHY[String(user.role)] ?? 0;
-    const hasRole = requiredRoles.some(
-      (role) => userLevel >= (ROLE_HIERARCHY[role] ?? 0),
-    );
+    const userLevel = ROLE_HIERARCHY[String(user.role)];
+    if (userLevel === undefined) {
+      throw new ForbiddenException('Invalid role');
+    }
+
+    const hasRole = requiredRoles.some((role) => {
+      const requiredLevel = ROLE_HIERARCHY[role];
+      return requiredLevel !== undefined && userLevel >= requiredLevel;
+    });
 
     if (!hasRole) {
       throw new ForbiddenException('Insufficient permissions');
