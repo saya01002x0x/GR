@@ -130,7 +130,7 @@ export default function UserPatrolPage() {
       <Title order={2}>User Patrol</Title>
       <Group>
         <TextInput
-          placeholder="Tìm kiếm user..."
+          placeholder="Search users..."
           leftSection={<IconSearch size={16} />}
           value={search}
           onChange={e => setSearch(e.currentTarget.value)}
@@ -140,7 +140,7 @@ export default function UserPatrolPage() {
           value={roleFilter}
           onChange={setRoleFilter}
           data={visibleRoleOptions}
-          placeholder="Tất cả role"
+          placeholder="All roles"
           clearable
           w={160}
         />
@@ -151,10 +151,10 @@ export default function UserPatrolPage() {
           <Table.Tr>
             <Table.Th>User</Table.Th>
             <Table.Th>Role</Table.Th>
-            <Table.Th>Trạng thái</Table.Th>
+            <Table.Th>Status</Table.Th>
             <Table.Th>Artworks</Table.Th>
-            <Table.Th>Tham gia</Table.Th>
-            <Table.Th>Hành động</Table.Th>
+            <Table.Th>Joined</Table.Th>
+            <Table.Th>Actions</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -172,7 +172,7 @@ export default function UserPatrolPage() {
               <Table.Td><Badge variant="light">{user.role}</Badge></Table.Td>
               <Table.Td>
                 <Badge color={user.isBanned ? 'red' : 'green'} variant="light">
-                  {user.isBanned ? 'Bị khóa' : 'Hoạt động'}
+                  {user.isBanned ? 'Banned' : 'Active'}
                 </Badge>
               </Table.Td>
               <Table.Td>{user._count.artworks}</Table.Td>
@@ -185,7 +185,7 @@ export default function UserPatrolPage() {
                     size="xs"
                     variant="light"
                   >
-                    Xem
+                    View
                   </Button>
                   {myRank >= (ROLE_RANK.ADMIN ?? 0) && (
                     <Button
@@ -194,7 +194,7 @@ export default function UserPatrolPage() {
                       color={user.isBanned ? 'green' : 'red'}
                       onClick={() => handleBanToggle(user.id, user.isBanned)}
                     >
-                      {user.isBanned ? 'Mở khóa' : 'Khóa'}
+                      {user.isBanned ? 'Unban' : 'Ban'}
                     </Button>
                   )}
                 </Group>
@@ -204,7 +204,7 @@ export default function UserPatrolPage() {
           {users.length === 0 && (
             <Table.Tr>
               <Table.Td colSpan={6}>
-                <Text ta="center" c="dimmed" py="md">Không tìm thấy user nào</Text>
+                <Text ta="center" c="dimmed" py="md">No users found</Text>
               </Table.Td>
             </Table.Tr>
           )}

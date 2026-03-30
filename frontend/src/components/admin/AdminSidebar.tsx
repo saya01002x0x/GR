@@ -4,14 +4,12 @@ import { Box, Loader, NavLink, Stack, Text } from '@mantine/core';
 import {
   IconChartBar,
   IconDashboard,
-  IconFlag,
   IconGavel,
   IconReport,
   IconScale,
   IconShieldCheck,
   IconSpeakerphone,
   IconUsers,
-  IconUserSearch,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -38,9 +36,7 @@ type MenuItem = {
 const menuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', href: '/admin', icon: IconDashboard, minRole: 1 },
   { id: 'moderation', label: 'Content Moderation', href: '/admin/moderation', icon: IconGavel, minRole: 1 },
-  { id: 'reports', label: 'Reports', href: '/admin/reports', icon: IconFlag, minRole: 1 },
-  { id: 'user-patrol', label: 'User Patrol', href: '/admin/users', icon: IconUserSearch, minRole: 1 },
-  { id: 'user-mgmt', label: 'User Management', href: '/admin/user-management', icon: IconUsers, minRole: 2 },
+  { id: 'users', label: 'User Management', href: '/admin/users', icon: IconUsers, minRole: 1 },
   { id: 'analytics', label: 'Analytics', href: '/admin/analytics', icon: IconChartBar, minRole: 2 },
   { id: 'ranking', label: 'Dynamic Ranking', href: '/admin/ranking', icon: IconScale, minRole: 2 },
   { id: 'announcements', label: 'Announcements', href: '/admin/announcements', icon: IconSpeakerphone, minRole: 2 },
