@@ -37,7 +37,7 @@ export class StatsProcessor extends WorkerHost {
     async process(job: Job<UpdateStatsJob>): Promise<any> {
         const { artworkId, type, delta } = job.data;
 
-        this.logger.debug(`Processing ${type} stats for artwork ${artworkId} (delta: ${delta})`);
+        this.logger.log(`🔧 Processing ${type} stats for artwork ${artworkId} (delta: ${delta}, jobId: ${job.id})`);
 
         try {
             // Determine which counter field to update

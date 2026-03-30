@@ -52,12 +52,13 @@ export class LikesService {
                 };
 
                 await this.statsQueue.add(JOB_UPDATE_STATS, jobData, {
-                    jobId: `like:${userId}:${artworkId}:unlike:${Date.now()}`,
+                    jobId: `like-${userId}-${artworkId}-unlike-${Date.now()}`,
                     removeOnComplete: true,
                     removeOnFail: 100,
                 });
+                this.logger.log(`✅ Queued unlike stats job for artwork ${artworkId}`);
             } catch (queueError) {
-                this.logger.error(`Failed to queue unlike stats for ${artworkId}`, queueError);
+                this.logger.error(`❌ Failed to queue unlike stats for ${artworkId}:`, queueError?.message || queueError);
             }
 
             this.logger.log(`User ${userId} unliked artwork ${artworkId}`);
@@ -86,12 +87,13 @@ export class LikesService {
                 };
 
                 await this.statsQueue.add(JOB_UPDATE_STATS, jobData, {
-                    jobId: `like:${userId}:${artworkId}:like:${Date.now()}`,
+                    jobId: `like-${userId}-${artworkId}-like-${Date.now()}`,
                     removeOnComplete: true,
                     removeOnFail: 100,
                 });
+                this.logger.log(`✅ Queued like stats job for artwork ${artworkId}`);
             } catch (queueError) {
-                this.logger.error(`Failed to queue like stats for ${artworkId}`, queueError);
+                this.logger.error(`❌ Failed to queue like stats for ${artworkId}:`, queueError?.message || queueError);
             }
 
             this.logger.log(`User ${userId} liked artwork ${artworkId}`);

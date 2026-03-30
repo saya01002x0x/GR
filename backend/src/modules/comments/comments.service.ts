@@ -144,7 +144,7 @@ export class CommentsService {
             };
 
             await this.statsQueue.add(JOB_UPDATE_STATS, jobData, {
-                jobId: `comment:${comment.id}:created`,
+                jobId: `comment-${comment.id}-created`,
                 removeOnComplete: true,
                 removeOnFail: 100,
             });
@@ -203,7 +203,7 @@ export class CommentsService {
             };
 
             await this.statsQueue.add(JOB_UPDATE_STATS, jobData, {
-                jobId: `comment:${commentId}:deleted`,
+                jobId: `comment-${commentId}-deleted`,
                 removeOnComplete: true,
                 removeOnFail: 100,
             });
