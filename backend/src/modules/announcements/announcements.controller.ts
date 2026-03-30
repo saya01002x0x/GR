@@ -2,17 +2,19 @@
  * Announcements Controller
  */
 
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AnnouncementsService } from './announcements.service';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interceptor';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @ApiTags('Announcements')
 @Controller()
+@UseInterceptors(AuditLogInterceptor)
 export class AnnouncementsController {
     constructor(
         private readonly announcementsService: AnnouncementsService,
@@ -30,9 +32,7 @@ export class AnnouncementsController {
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Create announcement (Admin+)' })
     async create(@CurrentUser() user: any, @Body() body: { title: string; content: string; type?: string; expiresAt?: string }) {
-        const result = await this.announcementsService.create(user.id, body);
-        await this.auditLogsService.log(user.id, 'announcement.create', { title: body.title }, { id: result.id, type: 'announcement' });
-        return result;
+        return this.announcementsService.create(user.id, body);
     }
 
     @Get('admin/announcements')
@@ -51,9 +51,7 @@ export class AnnouncementsController {
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Update announcement (Admin+)' })
     async update(@CurrentUser() user: any, @Param('id') id: string, @Body() body: any) {
-        const result = await this.announcementsService.update(id, body);
-        await this.auditLogsService.log(user.id, 'announcement.update', null, { id, type: 'announcement' });
-        return result;
+        return this.announcementsService.update(id, body);
     }
 
     @Delete('admin/announcements/:id')
@@ -61,8 +59,6 @@ export class AnnouncementsController {
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Delete announcement (Admin+)' })
     async remove(@CurrentUser() user: any, @Param('id') id: string) {
-        const result = await this.announcementsService.remove(id);
-        await this.auditLogsService.log(user.id, 'announcement.delete', null, { id, type: 'announcement' });
-        return result;
+        return this.announcementsService.remove(id);
     }
 }

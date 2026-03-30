@@ -8,6 +8,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bullmq';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -44,6 +45,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     PrismaModule,
     RedisModule,
     ScheduleModule.forRoot(),
+    PrometheusModule.register({
+      path: '/metrics',
+    }),
 
     // BullMQ: Global Redis connection for ALL queues
     BullModule.forRootAsync({

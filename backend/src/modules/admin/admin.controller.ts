@@ -3,18 +3,20 @@
  * API endpoints for admin panel operations
  */
 
-import { Controller, Get, Delete, Patch, Put, Param, Query, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Delete, Patch, Put, Param, Query, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interceptor';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 
 @ApiTags('Admin')
 @Controller('admin')
 @UseGuards(ClerkGuard, RolesGuard)
+@UseInterceptors(AuditLogInterceptor)
 export class AdminController {
     constructor(
         private readonly adminService: AdminService,
@@ -74,18 +76,14 @@ export class AdminController {
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'Approve a flagged artwork (Mod+)' })
     async approveArtwork(@CurrentUser() user: any, @Param('id') id: string) {
-        const result = await this.adminService.approveArtwork(id, user.id);
-        await this.auditLogsService.log(user.id, 'artwork.approve', null, { id, type: 'artwork' });
-        return result;
+        return this.adminService.approveArtwork(id, user.id);
     }
 
     @Patch('artworks/:id/reject')
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'Reject a flagged artwork and warn the author (Mod+)' })
     async rejectArtwork(@CurrentUser() user: any, @Param('id') id: string) {
-        const result = await this.adminService.rejectArtwork(id, user.id);
-        await this.auditLogsService.log(user.id, 'artwork.reject', { tempBanned: result.tempBanned, warningCount: result.warningCount }, { id, type: 'artwork' });
-        return result;
+        return this.adminService.rejectArtwork(id, user.id);
     }
 
     // ── Warning Management ──
@@ -101,9 +99,7 @@ export class AdminController {
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Remove a warning (Admin+)' })
     async removeWarning(@CurrentUser() actor: any, @Param('id') id: string) {
-        const result = await this.adminService.removeWarning(id);
-        await this.auditLogsService.log(actor.id, 'warning.remove', null, { id, type: 'warning' });
-        return result;
+        return this.adminService.removeWarning(id);
     }
 
     // ── User Management ──
@@ -138,18 +134,14 @@ export class AdminController {
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Ban a user (Admin+)' })
     async banUser(@CurrentUser() actor: any, @Param('id') id: string) {
-        const result = await this.adminService.banUser(id, actor.id, actor.role);
-        await this.auditLogsService.log(actor.id, 'user.ban', null, { id, type: 'user' });
-        return result;
+        return this.adminService.banUser(id, actor.id, actor.role);
     }
 
     @Patch('users/:id/unban')
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Unban a user (Admin+)' })
     async unbanUser(@CurrentUser() actor: any, @Param('id') id: string) {
-        const result = await this.adminService.unbanUser(id);
-        await this.auditLogsService.log(actor.id, 'user.unban', null, { id, type: 'user' });
-        return result;
+        return this.adminService.unbanUser(id);
     }
 
     @Patch('users/:id/role')
@@ -160,13 +152,7 @@ export class AdminController {
         @Param('id') id: string,
         @Body('role') newRole: string,
     ) {
-        const result = await this.adminService.changeRole(id, newRole);
-        await this.auditLogsService.log(
-            actor.id, 'user.role_change',
-            { newRole },
-            { id, type: 'user' },
-        );
-        return result;
+        return this.adminService.changeRole(id, newRole);
     }
 
     // ── Analytics ──
@@ -205,9 +191,7 @@ export class AdminController {
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Update ranking weights (Admin+)' })
     async updateRankingWeights(@CurrentUser() actor: any, @Body() weights: Record<string, number>) {
-        const result = await this.adminService.updateRankingWeights(weights);
-        await this.auditLogsService.log(actor.id, 'ranking.update', { weights });
-        return result;
+        return this.adminService.updateRankingWeights(weights);
     }
 
     // ── Staff Management ──

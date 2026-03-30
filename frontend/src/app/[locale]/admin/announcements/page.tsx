@@ -148,8 +148,25 @@ export default function AnnouncementsPage() {
 
       <Modal opened={opened} onClose={close} title="New Announcement" centered>
         <Stack gap="md">
-          <TextInput label="Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.currentTarget.value }))} required />
-          <Textarea label="Content" value={form.content} onChange={e => setForm(f => ({ ...f, content: e.currentTarget.value }))} rows={4} required />
+          <TextInput
+            label="Title"
+            value={form.title}
+            onChange={(e) => {
+              const val = e.currentTarget.value;
+              setForm(f => ({ ...f, title: val }));
+            }}
+            required
+          />
+          <Textarea
+            label="Content"
+            value={form.content}
+            onChange={(e) => {
+              const val = e.currentTarget.value;
+              setForm(f => ({ ...f, content: val }));
+            }}
+            rows={4}
+            required
+          />
           <Select label="Type" value={form.type} onChange={v => setForm(f => ({ ...f, type: v || 'INFO' }))} data={['INFO', 'WARNING', 'MAINTENANCE']} />
           <Group justify="flex-end">
             <Button variant="default" onClick={close}>Cancel</Button>

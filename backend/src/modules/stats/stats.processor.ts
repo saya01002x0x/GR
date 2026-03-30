@@ -20,6 +20,8 @@ import {
     UpdateStatsJob,
 } from './stats.constants';
 
+import * as Sentry from '@sentry/nestjs';
+
 @Processor(STATS_QUEUE_NAME, {
     concurrency: 5, // Process up to 5 stats jobs concurrently
 })
@@ -84,6 +86,7 @@ export class StatsProcessor extends WorkerHost {
             this.logger.debug(`Stats updated: artwork=${artworkId}, ${type} += ${delta}`);
             return { success: true };
         } catch (error) {
+            Sentry.captureException(error);
             this.logger.error(
                 `Failed to update ${type} stats for artwork ${artworkId}`,
                 error,

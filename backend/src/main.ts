@@ -1,10 +1,29 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
+import { ValidationPipe, Catch, ArgumentsHost } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as Sentry from '@sentry/nestjs';
+import { BaseExceptionFilter } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ExpressAdapter } from '@bull-board/express';
 
+@Catch()
+export class SentryFilter extends BaseExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    if (!process.env.SENTRY_DISABLED) {
+      Sentry.captureException(exception);
+    }
+    super.catch(exception, host);
+  }
+}
+
 async function bootstrap() {
+  if (!process.env.SENTRY_DISABLED) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      tracesSampleRate: 1.0,
+      debug: false,
+    });
+  }
   const app = await NestFactory.create(AppModule);
 
   // Global Validation
@@ -15,6 +34,12 @@ async function bootstrap() {
       forbidNonWhitelisted: false,
     }),
   );
+
+  // Sentry
+  if (!process.env.SENTRY_DISABLED) {
+    const { httpAdapter } = app.get(HttpAdapterHost);
+    app.useGlobalFilters(new SentryFilter(httpAdapter));
+  }
 
   // Swagger Setup
   const config = new DocumentBuilder()
