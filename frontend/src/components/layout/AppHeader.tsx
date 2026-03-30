@@ -8,6 +8,7 @@ import {
   Button,
   Group,
   Menu,
+  Skeleton,
   Text,
   useComputedColorScheme,
   useMantineColorScheme,
@@ -62,13 +63,14 @@ export function AppHeader() {
   const { toggleColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme('light');
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isArtist, setIsArtist] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isSignedIn) {
       return;
     }
     let cancelled = false;
-    async function loadRole() {
+    async function loadUser() {
       try {
         const token = await getToken();
         if (!token || cancelled) {
@@ -80,10 +82,11 @@ export function AppHeader() {
         if (res.ok && !cancelled) {
           const data = await res.json();
           setUserRole(data.role);
+          setIsArtist(data.isArtist === true);
         }
       } catch { /* ignore */ }
     }
-    loadRole();
+    loadUser();
     return () => {
       cancelled = true;
     };
@@ -139,128 +142,138 @@ export function AppHeader() {
         </Group>
 
         {/* Right Actions - Varies by auth state */}
-        {isLoaded && isSignedIn
+        {!isLoaded
           ? (
-            // ========== LOGGED IN STATE ==========
+            // ========== LOADING STATE (Skeleton) ==========
               <Group gap="sm">
-                <Button
-                  component={Link}
-                  href="/upload"
-                  radius="md"
-                  visibleFrom="md"
-                >
-                  Upload Work
-                </Button>
-
-                {/* Theme Toggle */}
-                <ActionIcon
-                  variant="subtle"
-                  size="lg"
-                  radius="md"
-                  onClick={() => toggleColorScheme()}
-                  aria-label="Toggle color scheme"
-                >
-                  {mounted
-                    ? (computedColorScheme === 'dark'
-                        ? <IconSun size={22} />
-                        : <IconMoon size={22} />)
-                    : <IconSun size={22} />}
-                </ActionIcon>
-
-                <NotificationBell />
-
-                <ActionIcon variant="subtle" size="lg" radius="md">
-                  <IconMail size={22} />
-                </ActionIcon>
-
-                {/* User Avatar Menu */}
-                <Menu shadow="md" width={200} position="bottom-end">
-                  <Menu.Target>
-                    <Avatar
-                      src={user?.imageUrl}
-                      size={36}
-                      radius="xl"
-                      style={{ cursor: 'pointer' }}
-                      alt={user?.fullName || 'User avatar'}
-                    />
-                  </Menu.Target>
-
-                  <Menu.Dropdown>
-                    <Menu.Label>
-                      <Text size="sm" fw={500} lineClamp={1}>
-                        {user?.fullName || user?.primaryEmailAddress?.emailAddress}
-                      </Text>
-                      <Text size="xs" c="dimmed" lineClamp={1}>
-                        @
-                        {user?.username || 'user'}
-                      </Text>
-                    </Menu.Label>
-                    <Menu.Divider />
-                    <Menu.Item
-                      component={Link}
-                      href="/dashboard/profile"
-                      leftSection={<IconUser size={16} />}
-                    >
-                      My Profile
-                    </Menu.Item>
-                    {isStaff && (
-                      <Menu.Item
-                        component={Link}
-                        href="/admin/"
-                        leftSection={<IconGavel size={16} />}
-                      >
-                        Admin Panel
-                      </Menu.Item>
-                    )}
-                    <Menu.Item
-                      component={Link}
-                      href="/dashboard/general"
-                      leftSection={<IconSettings size={16} />}
-                    >
-                      Settings
-                    </Menu.Item>
-                    <Menu.Divider />
-                    <Menu.Item
-                      color="red"
-                      leftSection={<IconLogout size={16} />}
-                      onClick={() => signOut()}
-                    >
-                      Sign Out
-                    </Menu.Item>
-                  </Menu.Dropdown>
-                </Menu>
+                <Skeleton height={36} width={36} radius="md" />
+                <Skeleton height={36} width={36} radius="xl" />
               </Group>
             )
-          : (
-            // ========== LOGGED OUT STATE ==========
-              <Group gap="sm">
-                {/* Theme Toggle for logged out users too */}
-                <ActionIcon
-                  variant="subtle"
-                  size="lg"
-                  radius="md"
-                  onClick={() => toggleColorScheme()}
-                  aria-label="Toggle color scheme"
-                >
-                  {mounted
-                    ? (computedColorScheme === 'dark'
-                        ? <IconSun size={22} />
-                        : <IconMoon size={22} />)
-                    : <IconSun size={22} />}
-                </ActionIcon>
+          : isSignedIn
+            ? (
+          // ========== LOGGED IN STATE ==========
+                <Group gap="sm">
+                  {isArtist && (
+                    <Button
+                      component={Link}
+                      href="/upload"
+                      radius="md"
+                      visibleFrom="md"
+                    >
+                      Upload Work
+                    </Button>
+                  )}
 
-                <SignInButton mode="modal">
-                  <Button variant="subtle" radius="md">
-                    Sign In
-                  </Button>
-                </SignInButton>
-                <SignInButton mode="modal">
-                  <Button radius="md">
-                    Get Started
-                  </Button>
-                </SignInButton>
-              </Group>
-            )}
+                  {/* Theme Toggle */}
+                  <ActionIcon
+                    variant="subtle"
+                    size="lg"
+                    radius="md"
+                    onClick={() => toggleColorScheme()}
+                    aria-label="Toggle color scheme"
+                  >
+                    {mounted
+                      ? (computedColorScheme === 'dark'
+                          ? <IconSun size={22} />
+                          : <IconMoon size={22} />)
+                      : <IconSun size={22} />}
+                  </ActionIcon>
+
+                  <NotificationBell />
+
+                  <ActionIcon variant="subtle" size="lg" radius="md">
+                    <IconMail size={22} />
+                  </ActionIcon>
+
+                  {/* User Avatar Menu */}
+                  <Menu shadow="md" width={200} position="bottom-end">
+                    <Menu.Target>
+                      <Avatar
+                        src={user?.imageUrl}
+                        size={36}
+                        radius="xl"
+                        style={{ cursor: 'pointer' }}
+                        alt={user?.fullName || 'User avatar'}
+                      />
+                    </Menu.Target>
+
+                    <Menu.Dropdown>
+                      <Menu.Label>
+                        <Text size="sm" fw={500} lineClamp={1}>
+                          {user?.fullName || user?.primaryEmailAddress?.emailAddress}
+                        </Text>
+                        <Text size="xs" c="dimmed" lineClamp={1}>
+                          @
+                          {user?.username || 'user'}
+                        </Text>
+                      </Menu.Label>
+                      <Menu.Divider />
+                      <Menu.Item
+                        component={Link}
+                        href="/dashboard/profile"
+                        leftSection={<IconUser size={16} />}
+                      >
+                        My Profile
+                      </Menu.Item>
+                      {isStaff && (
+                        <Menu.Item
+                          component={Link}
+                          href="/admin/"
+                          leftSection={<IconGavel size={16} />}
+                        >
+                          Admin Panel
+                        </Menu.Item>
+                      )}
+                      <Menu.Item
+                        component={Link}
+                        href="/dashboard/general"
+                        leftSection={<IconSettings size={16} />}
+                      >
+                        Settings
+                      </Menu.Item>
+                      <Menu.Divider />
+                      <Menu.Item
+                        color="red"
+                        leftSection={<IconLogout size={16} />}
+                        onClick={() => signOut()}
+                      >
+                        Sign Out
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Group>
+              )
+            : (
+          // ========== LOGGED OUT STATE ==========
+                <Group gap="sm">
+                  {/* Theme Toggle for logged out users too */}
+                  <ActionIcon
+                    variant="subtle"
+                    size="lg"
+                    radius="md"
+                    onClick={() => toggleColorScheme()}
+                    aria-label="Toggle color scheme"
+                  >
+                    {mounted
+                      ? (computedColorScheme === 'dark'
+                          ? <IconSun size={22} />
+                          : <IconMoon size={22} />)
+                      : <IconSun size={22} />}
+                  </ActionIcon>
+
+                  <SignInButton mode="modal">
+                    <Button variant="subtle" radius="md">
+                      Sign In
+                    </Button>
+                  </SignInButton>
+                  <SignInButton mode="modal">
+                    <Button radius="md">
+                      Get Started
+                    </Button>
+                  </SignInButton>
+                </Group>
+              )}
       </Group>
     </Box>
   );
