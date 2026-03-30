@@ -15,4 +15,4 @@ import { SearchService } from './search.service';
   providers: [SearchService],
   exports: [SearchService], // Export for use in QueueModule
 })
-export class SearchModule { }
+export class SearchModule {}

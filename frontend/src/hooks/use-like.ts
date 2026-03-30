@@ -6,7 +6,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useCallback } from 'react';
 import useSWR from 'swr';
-import { authFetcher, postFetcher } from '@/lib/fetcher';
+import { authFetcher, postFetcher } from '@/libs/fetcher';
 
 type LikeStatus = {
   liked: boolean;

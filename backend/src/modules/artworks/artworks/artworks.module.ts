@@ -11,11 +11,12 @@ import { PrismaModule } from '../../../database';
 import { StorageModule } from '../../storage/storage/storage.module';
 import { AuthModule } from '../../auth/auth.module';
 import { QueueModule } from '../../queue/queue.module';
+import { StatsModule } from '../../stats/stats.module';
 
 @Module({
-    imports: [PrismaModule, StorageModule, AuthModule, QueueModule],
-    controllers: [ArtworksController],
-    providers: [ArtworksService],
-    exports: [ArtworksService],
+  imports: [PrismaModule, StorageModule, AuthModule, QueueModule, StatsModule],
+  controllers: [ArtworksController],
+  providers: [ArtworksService],
+  exports: [ArtworksService],
 })
-export class ArtworksModule { }
+export class ArtworksModule {}

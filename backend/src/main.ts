@@ -1,10 +1,33 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { NestFactory, HttpAdapterHost } from '@nestjs/core';
+import { ValidationPipe, Catch, ArgumentsHost, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as Sentry from '@sentry/nestjs';
+import { BaseExceptionFilter } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ExpressAdapter } from '@bull-board/express';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { Queue } from 'bullmq';
+import basicAuth from 'express-basic-auth';
+
+@Catch()
+export class SentryFilter extends BaseExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    if (!process.env.SENTRY_DISABLED) {
+      Sentry.captureException(exception);
+    }
+    super.catch(exception, host);
+  }
+}
 
 async function bootstrap() {
+  if (!process.env.SENTRY_DISABLED) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      tracesSampleRate: 1.0,
+      debug: false,
+    });
+  }
   const app = await NestFactory.create(AppModule);
 
   // Global Validation
@@ -15,6 +38,12 @@ async function bootstrap() {
       forbidNonWhitelisted: false,
     }),
   );
+
+  // Sentry
+  if (!process.env.SENTRY_DISABLED) {
+    const { httpAdapter } = app.get(HttpAdapterHost);
+    app.useGlobalFilters(new SentryFilter(httpAdapter));
+  }
 
   // Swagger Setup
   const config = new DocumentBuilder()
@@ -47,7 +76,12 @@ async function bootstrap() {
   app.enableCors({
     origin: origin,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+    ],
     credentials: true,
   });
 
@@ -55,18 +89,16 @@ async function bootstrap() {
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath('/admin/queues');
 
-  const { createBullBoard } = require('@bull-board/api');
-  const { BullMQAdapter } = require('@bull-board/api/bullMQAdapter');
-  const { Queue } = require('bullmq');
-
   // Basic Auth for Bull Board
-  const basicAuth = require('express-basic-auth');
-  app.use('/admin/queues', basicAuth({
-    users: { 'admin': process.env.ADMIN_PASSWORD || 'admin123' },
-    challenge: true,
-  }));
+  app.use(
+    ['/admin/queues', '/admin/queues/*', '/metrics', '/metrics/*'],
+    basicAuth({
+      users: { admin: process.env.ADMIN_PASSWORD || 'admin123' },
+      challenge: true,
+    }),
+  );
 
-  // Create Queue instance to monitor
+  // Create Queue instances to monitor
   const artworkQueue = new Queue('artwork-processing', {
     connection: {
       host: process.env.REDIS_HOST || 'localhost',
@@ -74,8 +106,16 @@ async function bootstrap() {
     },
   });
 
-  const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
-    queues: [new BullMQAdapter(artworkQueue)],
+  const statsQueue = new Queue('stats-queue', {
+    connection: {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: Number(process.env.REDIS_PORT) || 6379,
+    },
+  });
+
+  // Setup Bull Board
+  createBullBoard({
+    queues: [new BullMQAdapter(artworkQueue), new BullMQAdapter(statsQueue)],
     serverAdapter: serverAdapter,
   });
 
@@ -83,10 +123,12 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3847;
   await app.listen(port);
-  console.log(`🚀 Backend running on http://localhost:${port}`);
-  console.log(`📚 Swagger docs at http://localhost:${port}/api`);
-  console.log(`🎯 Bull Board at http://localhost:${port}/admin/queues (User: admin)`);
-  console.log(`🌐 CORS enabled for: ${origin}`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`🚀 Backend running on http://localhost:${port}`);
+  logger.log(`📚 Swagger docs at http://localhost:${port}/api`);
+  logger.log(
+    `🎯 Bull Board at http://localhost:${port}/admin/queues (User: admin)`,
+  );
+  logger.log(`🌐 CORS enabled for: ${origin}`);
 }
-bootstrap();
-
+void bootstrap();

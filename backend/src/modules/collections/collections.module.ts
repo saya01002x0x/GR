@@ -9,8 +9,8 @@ import { CollectionsController } from './collections.controller';
 import { PrismaService } from '../../database/prisma.service';
 
 @Module({
-    controllers: [CollectionsController],
-    providers: [CollectionsService, PrismaService],
-    exports: [CollectionsService],
+  controllers: [CollectionsController],
+  providers: [CollectionsService, PrismaService],
+  exports: [CollectionsService],
 })
-export class CollectionsModule { }
+export class CollectionsModule {}

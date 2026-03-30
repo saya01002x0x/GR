@@ -7,7 +7,7 @@
 export default () => ({
   environment: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3847', 10),
-  
+
   clerk: {
     secretKey: process.env.CLERK_SECRET_KEY,
     publishableKey: process.env.CLERK_PUBLISHABLE_KEY,

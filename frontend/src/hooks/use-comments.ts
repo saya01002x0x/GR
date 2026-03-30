@@ -6,7 +6,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useCallback, useState } from 'react';
 import useSWR from 'swr';
-import { authFetcher, deleteFetcher, postFetcher } from '@/lib/fetcher';
+import { authFetcher, deleteFetcher, postFetcher } from '@/libs/fetcher';
 
 export type Comment = {
   id: string;

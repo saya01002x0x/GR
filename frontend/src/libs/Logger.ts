@@ -1,33 +1,12 @@
-import type { AsyncSink } from '@logtape/logtape';
-import { configure, fromAsyncSink, getConsoleSink, getJsonLinesFormatter, getLogger } from '@logtape/logtape';
-import { Env } from './Env';
+/* eslint-disable no-console */
+/**
+ * Simple application logger
+ * Uses console output — Sentry handles exceptions, Grafana handles metrics
+ */
 
-const betterStackSink: AsyncSink = async (record) => {
-  await fetch(`https://${Env.NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${Env.NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN}`,
-    },
-    body: JSON.stringify(record),
-  });
+export const logger = {
+  debug: (...args: any[]) => console.debug('[app]', ...args),
+  info: (...args: any[]) => console.info('[app]', ...args),
+  warn: (...args: any[]) => console.warn('[app]', ...args),
+  error: (...args: any[]) => console.error('[app]', ...args),
 };
-
-await configure({
-  sinks: {
-    console: getConsoleSink({ formatter: getJsonLinesFormatter() }),
-    betterStack: fromAsyncSink(betterStackSink),
-  },
-  loggers: [
-    { category: ['logtape', 'meta'], sinks: ['console'], lowestLevel: 'warning' },
-    {
-      category: ['app'],
-      sinks: Env.NEXT_PUBLIC_BETTER_STACK_SOURCE_TOKEN && Env.NEXT_PUBLIC_BETTER_STACK_INGESTING_HOST
-        ? ['console', 'betterStack']
-        : ['console'],
-      lowestLevel: 'debug',
-    },
-  ],
-});
-
-export const logger = getLogger(['app']);

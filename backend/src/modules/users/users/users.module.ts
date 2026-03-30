@@ -15,4 +15,4 @@ import { UsersController } from './users.controller';
   exports: [UsersService],
   controllers: [UsersController], // Export để AuthModule có thể dùng
 })
-export class UsersModule { }
+export class UsersModule {}

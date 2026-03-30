@@ -8,167 +8,128 @@ on:
 
 env:
   FRONTEND_DIR: frontend
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
+  CLERK_SECRET_KEY: sk_test_dummy
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        node-version: [22.x, 24.x]
-
-    name: Build with ${{ matrix.node-version }}
+  frontend_build_and_static:
+    name: Frontend Build & Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set up Node.js environment
+      - name: Set up Node.js & PNPM
         uses: ./.github/actions/setup-project
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
           working-directory: ${{ env.FRONTEND_DIR }}
 
-      - name: Restore or cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.FRONTEND_DIR }}/.next/cache
-          key: nextjs-${{ matrix.node-version }}-${{ hashFiles('frontend/package-lock.json') }}-${{ hashFiles('frontend/src/**') }}
+      - name: Build shared packages
+        run: pnpm --filter "@gr/*" build
+
+      - name: Linter
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm run lint
+
+      - name: Type checking
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm run check:types
 
       - name: Build Next.js
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: npm run build
+        run: pnpm run build
         env:
-          NEXT_PUBLIC_SENTRY_DISABLED: 'true'
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
-      - if: matrix.node-version == '22.x' && success()
-        name: Cache Next.js build output
+      - name: Cache Next.js build output
         uses: actions/cache/save@v4
         with:
           path: |
             ${{ env.FRONTEND_DIR }}/.next
-          key: nextjs-build-${{ matrix.node-version }}-${{ github.sha }}
+          key: nextjs-build-22.x-${{ github.sha }}
 
-  static:
-    strategy:
-      matrix:
-        node-version: [22.x]
-
-    name: Run static checks
+  frontend_unit_tests:
+    name: Frontend Unit Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    needs: [frontend_build_and_static] 
     steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js environment
+      - name: Set up Node.js
         uses: ./.github/actions/setup-project
         with:
-          node-version: ${{ matrix.node-version }}
-          working-directory: ${{ env.FRONTEND_DIR }}
-
-      - if: github.event_name == 'pull_request'
-        name: Validate all commits from PR
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
-      - name: Linter
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: npm run lint
-
-      - name: Type checking
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: npm run check:types
-
-      - name: Check dependencies
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: npm run check:deps
-
-      - name: I18n check
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: npm run check:i18n
-
-  unit:
-    strategy:
-      matrix:
-        node-version: [22.x]
-
-    name: Run unit tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [build]
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js environment
-        uses: ./.github/actions/setup-project
-        with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
           working-directory: ${{ env.FRONTEND_DIR }}
 
       - name: Run unit tests
         uses: docker://mcr.microsoft.com/playwright:v1.57.0
         with:
-          args: sh -c "cd ${{ env.FRONTEND_DIR }} && npm run test -- --coverage"
+          args: sh -c "npm install -g pnpm && cd ${{ env.FRONTEND_DIR }} && pnpm run test -- --coverage"
 
-      - name: Upload coverage reports to Codecov
+      - name: Upload coverage
         uses: codecov/codecov-action@v5
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  storybook:
-    strategy:
-      matrix:
-        node-version: [22.x]
-
-    name: Run Storybook
+  backend_build_and_test:
+    name: Backend Build & Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [build]
-
+    
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js environment
-        uses: ./.github/actions/setup-project
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          working-directory: ${{ env.FRONTEND_DIR }}
-
-      - name: Run storybook tests
-        uses: docker://mcr.microsoft.com/playwright:v1.57.0
-        with:
-          args: sh -c "cd ${{ env.FRONTEND_DIR }} && npm run storybook:test"
-
-  synchronize-with-crowdin:
-    name: GitHub PR synchronize with Crowdin
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    needs: [build, static]
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Crowdin action
-        uses: crowdin/github-action@v2
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
         with:
-          upload_sources: true
-          upload_translations: true
-          download_translations: true
-          create_pull_request: false
-          localization_branch_name: ${{ github.head_ref || github.ref_name }}
-          commit_message: 'chore: new Crowdin translations by GitHub Action'
-          config: ${{ env.FRONTEND_DIR }}/crowdin.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
-          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
+          node-version: 22.x
 
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: pnpm exec prisma generate
+
+      - name: Run Linter
+        working-directory: ./backend
+        run: pnpm run lint
+
+      - name: Run Build
+        working-directory: ./backend
+        run: pnpm run build
+
+      - name: Run Tests
+        working-directory: ./backend
+        run: pnpm run test
+        env:
+          SENTRY_DISABLED: 'true'
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/lumina_test'

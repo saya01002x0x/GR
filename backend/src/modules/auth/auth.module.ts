@@ -18,4 +18,4 @@ import { UsersModule } from '../users/users/users.module';
   providers: [AuthService, ClerkClientProvider, ClerkStrategy, ClerkGuard],
   exports: [AuthService, ClerkGuard],
 })
-export class AuthModule { }
+export class AuthModule {}

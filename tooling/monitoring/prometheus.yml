@@ -1,0 +1,5 @@
+scrape_configs:
+  - job_name: 'lumina-backend'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['host.docker.internal:3847'] # Trỏ về Backend NestJS đang chạy local (theo main.ts là 3847)

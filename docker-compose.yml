@@ -150,12 +150,42 @@ services:
     networks:
       - gr-network
 
+  # ============================================
+  # Monitoring (Prometheus & Grafana)
+  # ============================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: gr-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./tooling/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    networks:
+      - gr-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: gr-grafana
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - gr-network
+
 volumes:
   postgres_data:
   redis_data:
   meilisearch_data:
   minio_data:
   pgadmin_data:
+  grafana_data:
 
 # ============================================
 # Networks
