@@ -85,6 +85,34 @@ export class ArtworksController {
   }
 
   /**
+   * Get current user's artworks
+   * GET /artworks/user/me
+   */
+  @Get('user/me')
+  @UseGuards(ClerkGuard)
+  @ApiBearerAuth('clerk-auth')
+  @ApiOperation({ summary: 'Get my artworks' })
+  @ApiResponse({ status: 200, description: 'My artworks retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMyArtworks(@CurrentUser() user: User) {
+    const artworks = await this.artworksService.findByUserId(user.id);
+
+    // Transform artworks to include thumbnailUrl for frontend
+    const transformedArtworks = artworks.map(artwork => ({
+      id: artwork.id,
+      title: artwork.title,
+      status: artwork.status,
+      createdAt: artwork.createdAt,
+      thumbnailUrl: artwork.images[0]?.thumbnailUrl || null,
+    }));
+
+    return {
+      message: 'My artworks',
+      data: transformedArtworks,
+    };
+  }
+
+  /**
    * Get artwork by ID
    * GET /artworks/:id
    */
@@ -189,31 +217,4 @@ export class ArtworksController {
     };
   }
 
-  /**
-   * Get current user's artworks
-   * GET /artworks/user/me
-   */
-  @Get('user/me')
-  @UseGuards(ClerkGuard)
-  @ApiBearerAuth('clerk-auth')
-  @ApiOperation({ summary: 'Get my artworks' })
-  @ApiResponse({ status: 200, description: 'My artworks retrieved' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getMyArtworks(@CurrentUser() user: User) {
-    const artworks = await this.artworksService.findByUserId(user.id);
-
-    // Transform artworks to include thumbnailUrl for frontend
-    const transformedArtworks = artworks.map(artwork => ({
-      id: artwork.id,
-      title: artwork.title,
-      status: artwork.status,
-      createdAt: artwork.createdAt,
-      thumbnailUrl: artwork.images[0]?.thumbnailUrl || null,
-    }));
-
-    return {
-      message: 'My artworks',
-      data: transformedArtworks,
-    };
-  }
 }

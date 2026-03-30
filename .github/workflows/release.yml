@@ -2,7 +2,7 @@ name: Release
 
 on:
   workflow_run:
-    workflows: ["Frontend CI", "Backend CI"]
+    workflows: ["CI"]
     types:
       - completed
     branches:

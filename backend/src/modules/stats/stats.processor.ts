@@ -50,7 +50,15 @@ export class StatsProcessor extends WorkerHost {
                 // This prevents race conditions where new views arrive between read and reset
                 const countKey = `${VIEW_COUNT_PREFIX}:${artworkId}`;
                 const redisCount = await this.redis.getdel(countKey);
-                const actualDelta = redisCount ? parseInt(redisCount, 10) : delta;
+                
+                // If redisCount is null, another job has already picked up the batch.
+                // We should completely skip modifying the database for this job to avoid duplicates.
+                if (!redisCount) {
+                    this.logger.debug(`Skipping view stats for artwork ${artworkId} (no pending views in Redis)`);
+                    return { success: true };
+                }
+
+                const actualDelta = parseInt(redisCount, 10);
 
                 if (actualDelta > 0) {
                     await this.prisma.artwork.update({

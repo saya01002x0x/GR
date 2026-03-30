@@ -185,9 +185,18 @@ export class CommentsService {
             throw new ForbiddenException('You can only delete your own comments');
         }
 
-        // Count total comments to delete (including replies)
-        const replyCount = comment._count.replies;
-        const totalToDelete = 1 + replyCount;
+        // Find total comments to delete (comment + all deep nested replies)
+        // using a Recursive CTE query in Postgres to traverse the hierarchy
+        const result: any[] = await this.prisma.$queryRaw`
+            WITH RECURSIVE c AS (
+                SELECT id FROM "comments" WHERE id = ${commentId}
+                UNION ALL
+                SELECT child.id FROM "comments" child
+                JOIN c ON child.parent_id = c.id
+            )
+            SELECT COUNT(*) as count FROM c;
+        `;
+        const totalToDelete = Number(result[0]?.count || 1);
 
         // Delete comment (cascade deletes replies via Prisma)
         await this.prisma.comment.delete({
