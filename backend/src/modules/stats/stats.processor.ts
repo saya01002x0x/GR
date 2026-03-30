@@ -111,11 +111,13 @@ export class StatsProcessor extends WorkerHost {
   /**
    * Map stat type to Prisma field name
    */
-  private getCounterField(type: 'view' | 'like' | 'comment'): string {
-    const map: Record<string, string> = {
-      view: 'viewCount',
-      like: 'likeCount',
-      comment: 'commentCount',
+  private getCounterField(
+    type: 'view' | 'like' | 'comment',
+  ): 'viewCount' | 'likeCount' | 'commentCount' {
+    const map = {
+      view: 'viewCount' as const,
+      like: 'likeCount' as const,
+      comment: 'commentCount' as const,
     };
     return map[type];
   }

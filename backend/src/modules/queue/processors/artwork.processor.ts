@@ -243,11 +243,10 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         `Job ${job.id}: Successfully processed artwork ${artworkId}`,
       );
       return { success: true, images: processedImages.length, nsfw: isNSFW };
-    } catch (error: any) {
-      this.logger.error(
-        `Job ${job.id} FAILED: ${String(error?.message || error)}`,
-        error?.stack,
-      );
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Job ${job.id} FAILED: ${errMsg}`, errStack);
 
       // Update Status to FAILED
       await this.prisma.artwork.update({

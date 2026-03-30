@@ -60,7 +60,7 @@ export class ArtworksService {
     }[],
     userId: string,
     isArtist: boolean,
-  ): Promise<any> {
+  ): Promise<{ message: string; artwork: Artwork; jobId: string }> {
     // Only artists can upload
     if (!isArtist) {
       throw new ForbiddenException('Only artists can upload artworks');
