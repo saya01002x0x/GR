@@ -18,24 +18,33 @@ runs:
   using: composite
   steps:
     - name: Use Node.js ${{ inputs.node-version }}
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: npm
-        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
 
-    - name: Restore or cache node_modules
-      id: cache-node-modules
+    - name: Setup PNPM
+      uses: pnpm/action-setup@v3
+      with:
+        version: 9
+        run_install: false
+
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+    - name: Restore or cache pnpm store
       uses: actions/cache@v4
       with:
-        path: ${{ inputs.working-directory }}/node_modules
-        key: node-modules-${{ inputs.node-version }}-${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory)) }}
+        path: ${{ env.STORE_PATH }}
+        key: pnpm-store-${{ runner.os }}-${{ inputs.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          pnpm-store-${{ runner.os }}-${{ inputs.node-version }}-
 
     - name: Install dependencies
-      if: steps.cache-node-modules.outputs.cache-hit != 'true'
       shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: npm ci
+      run: pnpm install --frozen-lockfile
 
     - name: Restore Next.js build output
       if: inputs.restore-nextjs-cache == 'true'
