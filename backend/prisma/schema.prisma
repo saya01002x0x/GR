@@ -9,26 +9,38 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(uuid())
-  clerkId     String       @unique @map("clerk_id")
-  email       String       @unique
-  username    String       @unique
-  displayName String?      @map("display_name")
-  avatar      String?
-  banner      String?
-  bio         String?
-  role        UserRole     @default(USER)
-  isArtist    Boolean      @default(false) @map("is_artist")
-  preferences Json?
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  artworks    Artwork[]
-  bookmarks   Bookmark[]
-  collections Collection[]
-  comments    Comment[]
-  following   Follow[]     @relation("following")
-  followers   Follow[]     @relation("followers")
-  likes       Like[]
+  id           String       @id @default(uuid())
+  clerkId      String       @unique @map("clerk_id")
+  email        String       @unique
+  username     String       @unique
+  displayName  String?      @map("display_name")
+  avatar       String?
+  banner       String?
+  bio          String?
+  role         UserRole     @default(USER)
+  isArtist     Boolean      @default(false) @map("is_artist")
+  isBanned     Boolean      @default(false) @map("is_banned")
+  bannedAt     DateTime?    @map("banned_at")
+  bannedUntil  DateTime?    @map("banned_until")
+  bannedById   String?      @map("banned_by_id")
+  warningCount Int          @default(0) @map("warning_count")
+  preferences  Json?
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  artworks     Artwork[]
+  bookmarks    Bookmark[]
+  collections  Collection[]
+  comments     Comment[]
+  following    Follow[]     @relation("following")
+  followers    Follow[]     @relation("followers")
+  likes        Like[]
+
+  reportsFiled    Report[]       @relation("reports_filed")
+  reportsResolved Report[]       @relation("reports_resolved")
+  announcements   Announcement[]
+  auditLogs       AuditLog[]
+  warnings        UserWarning[]
+  notifications   Notification[]
 
   @@map("users")
 }
@@ -56,6 +68,8 @@ model Artwork {
   bookmarks    Bookmark[]
   comments     Comment[]
   likes        Like[]
+  reports      Report[]
+  warnings     UserWarning[]
 
   @@index([authorId])
   @@index([status])
@@ -176,7 +190,9 @@ model Bookmark {
 
 enum UserRole {
   USER
+  MODERATOR
   ADMIN
+  SUPER_ADMIN
 }
 
 enum ArtworkType {
@@ -190,10 +206,133 @@ enum ArtworkStatus {
   ARCHIVED
   PROCESSING
   FAILED
+  HIDDEN
 }
 
 enum ContentRating {
   SAFE
   R18
   R18G
+}
+
+model Report {
+  id           String       @id @default(uuid())
+  reason       ReportReason
+  description  String?
+  status       ReportStatus @default(PENDING)
+  artworkId    String?      @map("artwork_id")
+  reporterId   String       @map("reporter_id")
+  resolvedById String?      @map("resolved_by_id")
+  resolution   String?
+  resolvedAt   DateTime?    @map("resolved_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  artwork      Artwork?     @relation(fields: [artworkId], references: [id], onDelete: SetNull)
+  reporter     User         @relation("reports_filed", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy   User?        @relation("reports_resolved", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([artworkId])
+  @@map("reports")
+}
+
+enum ReportReason {
+  SPAM
+  NSFW
+  COPYRIGHT
+  HARASSMENT
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model Announcement {
+  id        String           @id @default(uuid())
+  title     String
+  content   String
+  type      AnnouncementType @default(INFO)
+  isActive  Boolean          @default(true) @map("is_active")
+  expiresAt DateTime?        @map("expires_at")
+  authorId  String           @map("author_id")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("announcements")
+}
+
+enum AnnouncementType {
+  INFO
+  WARNING
+  MAINTENANCE
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  details    Json?
+  targetId   String?  @map("target_id")
+  targetType String?  @map("target_type")
+  actorId    String   @map("actor_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+model UserWarning {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  artworkId String?  @map("artwork_id")
+  reason    String
+  note      String?
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artwork   Artwork? @relation(fields: [artworkId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_warnings")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false) @map("is_read")
+  data      Json?
+  createdAt DateTime         @default(now()) @map("created_at")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  WARNING
+  TEMP_BAN
+  UNBAN
+  SYSTEM
+  LIKE
+  COMMENT
+  FOLLOW
 }

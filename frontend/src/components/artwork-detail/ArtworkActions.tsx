@@ -8,13 +8,14 @@ import {
 import {
   IconBookmark,
   IconBookmarkFilled,
-  IconDots,
+  IconFlag,
   IconHeart,
   IconHeartFilled,
   IconShare,
 } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useLike } from '@/hooks';
+import { ReportModal } from './ReportModal';
 import { SaveToCollectionModal } from './SaveToCollectionModal';
 
 type ArtworkActionsProps = {
@@ -38,6 +39,7 @@ export function ArtworkActions({
 }: ArtworkActionsProps) {
   const { liked, likeCount, toggleLike } = useLike(artworkId);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   const handleShare = () => {
@@ -94,22 +96,29 @@ export function ArtworkActions({
           <IconShare size={20} />
         </ActionIcon>
 
-        {/* More Options */}
+        {/* Report */}
         <ActionIcon
           variant="default"
           size="lg"
           radius="md"
+          onClick={() => setReportModalOpen(true)}
+          title="Report"
         >
-          <IconDots size={20} />
+          <IconFlag size={20} />
         </ActionIcon>
       </Group>
 
-      {/* Save to Collection Modal */}
       <SaveToCollectionModal
         artworkId={artworkId}
         opened={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
         onSaved={() => setIsSaved(true)}
+      />
+
+      <ReportModal
+        artworkId={artworkId}
+        opened={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
       />
     </>
   );
