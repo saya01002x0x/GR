@@ -12,6 +12,7 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { User } from '@prisma/client';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 
 const ROLE_HIERARCHY: Record<string, number> = {
@@ -35,7 +36,7 @@ export class RolesGuard implements CanActivate {
             return true;
         }
 
-        const { user } = context.switchToHttp().getRequest();
+        const { user } = context.switchToHttp().getRequest<{ user: User }>();
 
         if (!user) {
             throw new ForbiddenException('Authentication required');
@@ -45,7 +46,7 @@ export class RolesGuard implements CanActivate {
             throw new ForbiddenException('Your account has been suspended');
         }
 
-        const userLevel = ROLE_HIERARCHY[user.role] ?? 0;
+        const userLevel = ROLE_HIERARCHY[String(user.role)] ?? 0;
         const hasRole = requiredRoles.some(
             (role) => userLevel >= (ROLE_HIERARCHY[role] ?? 0),
         );

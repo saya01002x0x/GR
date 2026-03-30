@@ -5,6 +5,7 @@
 
 import { Controller, Get, Delete, Patch, Put, Param, Query, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import type { User } from '@prisma/client';
 import { AdminService } from './admin.service';
 import { ClerkGuard } from '../auth/clerk/clerk.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -64,7 +65,7 @@ export class AdminController {
     @Get('reports/my-history')
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'Get current moderator resolution history (Mod+)' })
-    async myModerationHistory(@CurrentUser() user: any, @Query('page') page?: string, @Query('limit') limit?: string) {
+    async myModerationHistory(@CurrentUser() user: User, @Query('page') page?: string, @Query('limit') limit?: string) {
         return this.adminService.getMyModerationHistory(
             user.id,
             page ? parseInt(page, 10) : 1,
@@ -75,14 +76,14 @@ export class AdminController {
     @Patch('artworks/:id/approve')
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'Approve a flagged artwork (Mod+)' })
-    async approveArtwork(@CurrentUser() user: any, @Param('id') id: string) {
+    async approveArtwork(@CurrentUser() user: User, @Param('id') id: string) {
         return this.adminService.approveArtwork(id, user.id);
     }
 
     @Patch('artworks/:id/reject')
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'Reject a flagged artwork and warn the author (Mod+)' })
-    async rejectArtwork(@CurrentUser() user: any, @Param('id') id: string) {
+    async rejectArtwork(@CurrentUser() user: User, @Param('id') id: string) {
         return this.adminService.rejectArtwork(id, user.id);
     }
 
@@ -98,7 +99,7 @@ export class AdminController {
     @Delete('warnings/:id')
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Remove a warning (Admin+)' })
-    async removeWarning(@CurrentUser() actor: any, @Param('id') id: string) {
+    async removeWarning(@CurrentUser() actor: User, @Param('id') id: string) {
         return this.adminService.removeWarning(id);
     }
 
@@ -108,7 +109,7 @@ export class AdminController {
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'List users (Mod+ for patrol, Admin+ for management)' })
     async getUsers(
-        @CurrentUser() actor: any,
+        @CurrentUser() actor: User,
         @Query('page') page?: string,
         @Query('limit') limit?: string,
         @Query('search') search?: string,
@@ -133,14 +134,14 @@ export class AdminController {
     @Patch('users/:id/ban')
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Ban a user (Admin+)' })
-    async banUser(@CurrentUser() actor: any, @Param('id') id: string) {
+    async banUser(@CurrentUser() actor: User, @Param('id') id: string) {
         return this.adminService.banUser(id, actor.id, actor.role);
     }
 
     @Patch('users/:id/unban')
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Unban a user (Admin+)' })
-    async unbanUser(@CurrentUser() actor: any, @Param('id') id: string) {
+    async unbanUser(@CurrentUser() actor: User, @Param('id') id: string) {
         return this.adminService.unbanUser(id);
     }
 
@@ -148,7 +149,7 @@ export class AdminController {
     @Roles('SUPER_ADMIN')
     @ApiOperation({ summary: 'Change user role (Super Admin only)' })
     async changeRole(
-        @CurrentUser() actor: any,
+        @CurrentUser() actor: User,
         @Param('id') id: string,
         @Body('role') newRole: string,
     ) {
@@ -190,7 +191,7 @@ export class AdminController {
     @Put('ranking/weights')
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Update ranking weights (Admin+)' })
-    async updateRankingWeights(@CurrentUser() actor: any, @Body() weights: Record<string, number>) {
+    async updateRankingWeights(@CurrentUser() actor: User, @Body() weights: Record<string, number>) {
         return this.adminService.updateRankingWeights(weights);
     }
 

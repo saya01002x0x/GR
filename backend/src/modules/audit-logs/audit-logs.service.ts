@@ -6,6 +6,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AuditLogsService {
@@ -44,7 +45,7 @@ export class AuditLogsService {
     }) {
         const { page = 1, limit = 20, action, actorId, startDate, endDate } = options;
 
-        const where: any = {};
+        const where: Prisma.AuditLogWhereInput = {};
         if (action) where.action = { startsWith: action };
         if (actorId) where.actorId = actorId;
         if (startDate || endDate) {

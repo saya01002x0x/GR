@@ -5,7 +5,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { ReportReason, ReportStatus } from '@prisma/client';
+import { ReportReason, ReportStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class ReportsService {
@@ -33,7 +33,7 @@ export class ReportsService {
     }) {
         const { page = 1, limit = 20, status, reason } = options;
 
-        const where: any = {};
+        const where: Prisma.ReportWhereInput = {};
         if (status) where.status = status as ReportStatus;
         if (reason) where.reason = reason as ReportReason;
 

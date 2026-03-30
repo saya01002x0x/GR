@@ -42,7 +42,7 @@ export class MeilisearchSyncService {
             let merged: StatsUpdate = {};
 
             if (existing) {
-                merged = JSON.parse(existing);
+                merged = JSON.parse(existing) as StatsUpdate;
             }
 
             // Merge stats (additive — accumulate deltas)
@@ -64,7 +64,7 @@ export class MeilisearchSyncService {
                 this.logger.log(`Buffer threshold reached (${bufferSize}), flushing to Meilisearch...`);
                 await this.flush();
             }
-        } catch (error) {
+        } catch (error: any) {
             this.logger.error(`Failed to buffer Meilisearch update for ${artworkId}`, error);
         }
     }
@@ -106,8 +106,8 @@ export class MeilisearchSyncService {
 
             // Build partial documents for Meilisearch
             const partialDocs = entries.map(([artworkId, statsJson]) => {
-                const stats: StatsUpdate = JSON.parse(statsJson);
-                const doc: Record<string, any> = { id: artworkId };
+                const stats: StatsUpdate = JSON.parse(statsJson) as StatsUpdate;
+                const doc: Record<string, string | number> = { id: artworkId };
 
                 // Note: Meilisearch partial update replaces fields, not increments
                 // So we need to fetch current values from DB first
@@ -123,7 +123,7 @@ export class MeilisearchSyncService {
             await this.searchService.updatePartialDocuments(partialDocs);
 
             this.logger.log(`Flushed ${entries.length} stats updates to Meilisearch`);
-        } catch (error) {
+        } catch (error: any) {
             this.logger.error('Failed to flush Meilisearch buffer', error);
             // Buffer is already deleted from Redis — data may be lost
             // Reconciliation cron at 3:00 AM will fix this

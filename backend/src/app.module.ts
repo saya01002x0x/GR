@@ -52,7 +52,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     // BullMQ: Global Redis connection for ALL queues
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         connection: {
           host: configService.get('REDIS_HOST') || 'localhost',
           port: Number(configService.get('REDIS_PORT')) || 6379,

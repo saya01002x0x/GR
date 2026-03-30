@@ -33,7 +33,7 @@ export class SearchArtworkDto {
         if (typeof value === 'string') {
             return value.split(',').map(t => t.trim());
         }
-        return value;
+        return value as string[]; 
     })
     tags?: string[];
 

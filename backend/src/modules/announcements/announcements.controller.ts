@@ -11,6 +11,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interceptor';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import type { User } from '@prisma/client';
 
 @ApiTags('Announcements')
 @Controller()
@@ -31,7 +32,7 @@ export class AnnouncementsController {
     @UseGuards(ClerkGuard, RolesGuard)
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Create announcement (Admin+)' })
-    async create(@CurrentUser() user: any, @Body() body: { title: string; content: string; type?: string; expiresAt?: string }) {
+    async create(@CurrentUser() user: User, @Body() body: { title: string; content: string; type?: string; expiresAt?: string }) {
         return this.announcementsService.create(user.id, body);
     }
 
@@ -50,7 +51,7 @@ export class AnnouncementsController {
     @UseGuards(ClerkGuard, RolesGuard)
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Update announcement (Admin+)' })
-    async update(@CurrentUser() user: any, @Param('id') id: string, @Body() body: any) {
+    async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: any) {
         return this.announcementsService.update(id, body);
     }
 
@@ -58,7 +59,7 @@ export class AnnouncementsController {
     @UseGuards(ClerkGuard, RolesGuard)
     @Roles('ADMIN')
     @ApiOperation({ summary: 'Delete announcement (Admin+)' })
-    async remove(@CurrentUser() user: any, @Param('id') id: string) {
+    async remove(@CurrentUser() user: User, @Param('id') id: string) {
         return this.announcementsService.remove(id);
     }
 }

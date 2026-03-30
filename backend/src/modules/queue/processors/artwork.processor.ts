@@ -4,14 +4,13 @@ import { Job } from 'bullmq';
 import { PrismaService } from '../../../database/prisma.service';
 import { StorageService } from '../../storage/storage.service';
 import { ConfigService } from '@nestjs/config';
-import { QUEUE_NAME, JOB_PROCESS_IMAGES, ProcessArtworkJob, AI_TAGGING_CONCURRENCY } from '../queue.constants';
+import { QUEUE_NAME, ProcessArtworkJob, AI_TAGGING_CONCURRENCY } from '../queue.constants';
 import * as nsfwjs from 'nsfwjs';
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-cpu';
 import { ArtworkStatus } from '@prisma/client';
-import { SearchService, ArtworkDocument } from '../../search/search.service';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const sharp = require('sharp');
+import { SearchService, type ArtworkDocument } from '../../search/search.service';
+import sharp from 'sharp';
 
 @Processor(QUEUE_NAME, {
     concurrency: AI_TAGGING_CONCURRENCY, // Limit to 1 job to save RAM
@@ -216,16 +215,16 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
             this.logger.log(`Job ${job.id}: Successfully processed artwork ${artworkId}`);
             return { success: true, images: processedImages.length, nsfw: isNSFW };
 
-        } catch (error) {
-            this.logger.error(`Job ${job.id} FAILED: ${error.message}`, error.stack);
+        } catch (error: any) {
+            this.logger.error(`Job ${job.id} FAILED: ${String(error?.message || error)}`, error?.stack);
 
             // Update Status to FAILED
             await this.prisma.artwork.update({
                 where: { id: artworkId },
-                data: { status: 'FAILED' as ArtworkStatus }, // Requires FAILED in Prisma enum
+                data: { status: 'FAILED' as ArtworkStatus },
             });
 
-            throw error; // Let BullMQ handle retry
+            throw error;
         }
     }
 }

@@ -57,7 +57,7 @@ export class LikesService {
                     removeOnFail: 100,
                 });
                 this.logger.log(`✅ Queued unlike stats job for artwork ${artworkId}`);
-            } catch (queueError) {
+            } catch (queueError: any) {
                 this.logger.error(`❌ Failed to queue unlike stats for ${artworkId}:`, queueError?.message || queueError);
             }
 
@@ -92,7 +92,7 @@ export class LikesService {
                     removeOnFail: 100,
                 });
                 this.logger.log(`✅ Queued like stats job for artwork ${artworkId}`);
-            } catch (queueError) {
+            } catch (queueError: any) {
                 this.logger.error(`❌ Failed to queue like stats for ${artworkId}:`, queueError?.message || queueError);
             }
 

@@ -16,7 +16,7 @@ import {
 import * as path from 'path';
 import * as fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const sharp = require('sharp');
+import sharp from 'sharp';
 
 export interface ImageMetadata {
     width: number;
@@ -75,7 +75,7 @@ export class StorageService implements OnModuleInit {
         try {
             await this.s3Client.send(new HeadBucketCommand({ Bucket: this.bucket }));
             this.logger.log(`Bucket "${this.bucket}" exists`);
-        } catch (error) {
+        } catch (error: any) {
             if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
                 this.logger.log(`Creating bucket "${this.bucket}"...`);
                 await this.s3Client.send(new CreateBucketCommand({ Bucket: this.bucket }));
@@ -108,7 +108,7 @@ export class StorageService implements OnModuleInit {
         // Process image
         const processed = await sharp(buffer)
             .rotate() // Auto-rotate based on EXIF
-            .withMetadata(false) // Strip EXIF (GPS, camera info)
+            .withMetadata() // Strip EXIF (GPS, camera info)
             .resize(maxWidth, undefined, { withoutEnlargement: true })
             .jpeg({ quality, progressive: true })
             .toBuffer();
@@ -131,9 +131,9 @@ export class StorageService implements OnModuleInit {
      * Create thumbnail
      */
     async createThumbnail(buffer: Buffer, size = 400): Promise<Buffer> {
-        return sharp(buffer)
+        return await sharp(buffer)
             .rotate()
-            .withMetadata(false)
+            .withMetadata()
             .resize(size, size, { fit: 'cover' })
             .jpeg({ quality: 70 })
             .toBuffer();

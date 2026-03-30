@@ -23,6 +23,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ArtworksService, CreateArtworkDto } from './artworks.service';
 import { ViewService } from '../stats/view.service';
 import type { User, ContentRating } from '@prisma/client';
+import type { Request } from 'express';
 
 @ApiTags('artworks')
 @Controller('artworks')
@@ -121,7 +122,7 @@ export class ArtworksController {
   @ApiParam({ name: 'id', description: 'Artwork ID' })
   @ApiResponse({ status: 200, description: 'Artwork retrieved' })
   @ApiResponse({ status: 404, description: 'Artwork not found' })
-  async findById(@Param('id') id: string, @Req() req: any) {
+  async findById(@Param('id') id: string, @Req() req: Request) {
     const artwork = await this.artworksService.findById(id);
 
     if (!artwork) {
@@ -132,10 +133,10 @@ export class ArtworksController {
     }
 
     // Track view: extract userId from Clerk auth (optional), fallback to IP
-    const userId = (req as any)['auth']?.userId || undefined;
+    const userId = (req as any)['auth']?.userId as string | undefined;
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     // Fire-and-forget: don't block response for view tracking
-    this.viewService.recordView(id, userId, ip).catch(() => {});
+    void this.viewService.recordView(id, userId, ip).catch(() => {});
 
     return {
       message: 'Artwork retrieved successfully',

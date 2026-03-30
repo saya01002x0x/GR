@@ -18,9 +18,9 @@ import { User } from '@prisma/client';
  * User Payload trả về từ strategy
  * Bao gồm cả thông tin từ Database (id UUID) và Clerk
  */
-export interface AuthenticatedUser extends User {
-  // User đã có tất cả fields từ Prisma (id, clerkId, email, etc.)
-}
+export type AuthenticatedUser = User;
+// User đã có tất cả fields từ Prisma (id, clerkId, email, etc.)
+
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {

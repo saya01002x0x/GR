@@ -1,10 +1,14 @@
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
-import { ValidationPipe, Catch, ArgumentsHost } from '@nestjs/common';
+import { ValidationPipe, Catch, ArgumentsHost, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as Sentry from '@sentry/nestjs';
 import { BaseExceptionFilter } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ExpressAdapter } from '@bull-board/express';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { Queue } from 'bullmq';
+import basicAuth from 'express-basic-auth';
 
 @Catch()
 export class SentryFilter extends BaseExceptionFilter {
@@ -80,12 +84,7 @@ async function bootstrap() {
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath('/admin/queues');
 
-  const { createBullBoard } = require('@bull-board/api');
-  const { BullMQAdapter } = require('@bull-board/api/bullMQAdapter');
-  const { Queue } = require('bullmq');
-
   // Basic Auth for Bull Board
-  const basicAuth = require('express-basic-auth');
   app.use('/admin/queues', basicAuth({
     users: { 'admin': process.env.ADMIN_PASSWORD || 'admin123' },
     challenge: true,
@@ -106,7 +105,8 @@ async function bootstrap() {
     },
   });
 
-  const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
+  // Setup Bull Board
+  createBullBoard({
     queues: [new BullMQAdapter(artworkQueue), new BullMQAdapter(statsQueue)],
     serverAdapter: serverAdapter,
   });
@@ -115,10 +115,11 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3847;
   await app.listen(port);
-  console.log(`🚀 Backend running on http://localhost:${port}`);
-  console.log(`📚 Swagger docs at http://localhost:${port}/api`);
-  console.log(`🎯 Bull Board at http://localhost:${port}/admin/queues (User: admin)`);
-  console.log(`🌐 CORS enabled for: ${origin}`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`🚀 Backend running on http://localhost:${port}`);
+  logger.log(`📚 Swagger docs at http://localhost:${port}/api`);
+  logger.log(`🎯 Bull Board at http://localhost:${port}/admin/queues (User: admin)`);
+  logger.log(`🌐 CORS enabled for: ${origin}`);
 }
-bootstrap();
+void bootstrap();
 

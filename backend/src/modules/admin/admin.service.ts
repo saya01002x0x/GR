@@ -5,7 +5,7 @@
 
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { ArtworkStatus, UserRole } from '@prisma/client';
+import { ArtworkStatus, UserRole, Prisma, ReportStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const WARNING_EXPIRY_DAYS = 30;
@@ -41,9 +41,9 @@ export class AdminService {
     // ── Content Moderation ──
 
     async getFlaggedArtworks(page = 1, limit = 20) {
-        const where = {
-            reports: { some: { status: 'PENDING' as any } },
-            status: 'PUBLISHED' as ArtworkStatus,
+        const where: Prisma.ArtworkWhereInput = {
+            reports: { some: { status: ReportStatus.PENDING } },
+            status: ArtworkStatus.PUBLISHED,
         };
 
         const [artworks, total] = await Promise.all([
@@ -61,10 +61,10 @@ export class AdminService {
                     reports: {
                         where: { status: 'PENDING' },
                         select: { id: true, reason: true, description: true, createdAt: true },
-                        orderBy: { createdAt: 'desc' },
+                        orderBy: { createdAt: Prisma.SortOrder.desc },
                     },
                 },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { createdAt: Prisma.SortOrder.desc },
                 skip: (page - 1) * limit,
                 take: limit,
             }),
@@ -262,7 +262,7 @@ export class AdminService {
     async getUsers(options: { page?: number; limit?: number; search?: string; role?: string; banned?: string; actorRole?: string }) {
         const { page = 1, limit = 20, search, role, banned, actorRole } = options;
 
-        const where: any = {};
+        const where: Prisma.UserWhereInput = {};
 
         if (actorRole) {
             const visibleRoles = this.getVisibleRoles(actorRole);
@@ -272,7 +272,7 @@ export class AdminService {
                 }
                 where.role = role as UserRole;
             } else {
-                where.role = { in: visibleRoles };
+                where.role = { in: visibleRoles as UserRole[] };
             }
         }
 
@@ -398,7 +398,7 @@ export class AdminService {
     // ── Analytics ──
 
     async getAnalyticsOverview() {
-        const [totalUsers, totalArtworks, totalViews, totalLikes] = await Promise.all([
+        const [totalUsers, totalArtworks, totalViewsResult, totalLikesResult] = await Promise.all([
             this.prisma.user.count(),
             this.prisma.artwork.count({ where: { status: 'PUBLISHED' } }),
             this.prisma.artwork.aggregate({ _sum: { viewCount: true } }),
@@ -408,8 +408,8 @@ export class AdminService {
         return {
             totalUsers,
             totalArtworks,
-            totalViews: totalViews._sum.viewCount || 0,
-            totalLikes: totalLikes._sum.likeCount || 0,
+            totalViews: totalViewsResult._sum.viewCount || 0,
+            totalLikes: totalLikesResult._sum.likeCount || 0,
         };
     }
 

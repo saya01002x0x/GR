@@ -15,7 +15,6 @@ import { REDIS_CLIENT } from '../../database/redis.constants';
 import { MeilisearchSyncService } from './meilisearch-sync.service';
 import {
     STATS_QUEUE_NAME,
-    JOB_UPDATE_STATS,
     VIEW_COUNT_PREFIX,
     UpdateStatsJob,
 } from './stats.constants';
@@ -93,7 +92,7 @@ export class StatsProcessor extends WorkerHost {
 
             this.logger.debug(`Stats updated: artwork=${artworkId}, ${type} += ${delta}`);
             return { success: true };
-        } catch (error) {
+        } catch (error: any) {
             Sentry.captureException(error);
             this.logger.error(
                 `Failed to update ${type} stats for artwork ${artworkId}`,

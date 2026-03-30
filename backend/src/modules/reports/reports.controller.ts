@@ -12,6 +12,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import type { User } from '@prisma/client';
 
 @ApiTags('Reports')
 @Controller('reports')
@@ -24,7 +25,7 @@ export class ReportsController {
     @Post()
     @UseGuards(ClerkGuard)
     @ApiOperation({ summary: 'Create a new report' })
-    async create(@CurrentUser() user: any, @Body() dto: CreateReportDto) {
+    async create(@CurrentUser() user: User, @Body() dto: CreateReportDto) {
         return this.reportsService.create(user.id, {
             reason: dto.reason,
             description: dto.description,
@@ -55,7 +56,7 @@ export class ReportsController {
     @Roles('MODERATOR')
     @ApiOperation({ summary: 'Resolve a report (Mod+)' })
     async resolve(
-        @CurrentUser() user: any,
+        @CurrentUser() user: User,
         @Param('id') id: string,
         @Body() dto: ResolveReportDto,
     ) {
