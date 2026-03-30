@@ -44,7 +44,8 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm run build
         env:
-          NEXT_PUBLIC_SENTRY_DISABLED: 'true'
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
       - name: Cache Next.js build output
         uses: actions/cache/save@v4
