@@ -12,8 +12,8 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { ClerkGuard } from '../../auth/clerk/clerk.guard';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 
 @ApiTags('users')

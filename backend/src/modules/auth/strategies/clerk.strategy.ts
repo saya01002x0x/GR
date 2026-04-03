@@ -11,7 +11,7 @@ import { Strategy } from 'passport-custom';
 import { Request } from 'express';
 import { verifyToken, type ClerkClient } from '@clerk/backend';
 import { CLERK_CLIENT } from '../providers/clerk-client.provider';
-import { UsersService } from '../../users/users/users.service';
+import { UsersService } from '../../users/users.service';
 import { User } from '@prisma/client';
 
 /**

@@ -5,7 +5,7 @@
  */
 
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../../database';
+import { PrismaModule } from '../../database';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 
