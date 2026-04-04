@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Clerk Client Provider
- * Tạo và inject Clerk client vào application
+ * T蘯｡o vﾃ inject Clerk client vﾃo application
  * Reference: https://clerk.com/docs/references/backend/overview
  */
 

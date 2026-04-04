@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Users Controller
  * Handle user-related endpoints
  * Reference: https://docs.nestjs.com/controllers
@@ -12,7 +12,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 

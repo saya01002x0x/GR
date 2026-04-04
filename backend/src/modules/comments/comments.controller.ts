@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Comments Controller
  * Handle comment endpoints with pagination
  */
@@ -23,7 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { CommentsService } from './comments.service';
 import type { CreateCommentDto } from './comments.service';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 

@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Clerk Auth Guard
- * Protect routes với Clerk authentication
+ * Protect routes v盻嬖 Clerk authentication
  * Usage: @UseGuards(ClerkGuard)
  */
 

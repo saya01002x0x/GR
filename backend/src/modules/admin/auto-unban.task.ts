@@ -1,13 +1,13 @@
 /**
  * Auto-Unban Scheduled Task
  * Runs every hour to lift temporary bans that have expired.
- * After a temp ban expires, if the user continues to violate → Admin review.
+ * After a temp ban expires, if the user continues to violate 竊・Admin review.
  */
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '../../../database/prisma.service';
-import { NotificationsService } from '../../notifications/notifications.service';
+import { PrismaService } from '../../database/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AutoUnbanTask {
@@ -50,9 +50,9 @@ export class AutoUnbanTask {
       await this.notificationsService.create({
         userId: user.id,
         type: 'UNBAN',
-        title: 'Tài khoản đã được mở khóa',
+        title: 'Tﾃi kho蘯｣n ﾄ妥｣ ﾄ柁ｰ盻｣c m盻・khﾃｳa',
         message:
-          'Lệnh cấm tạm thời của bạn đã hết hạn. Tài khoản được khôi phục, nhưng hãy tuân thủ quy tắc cộng đồng để tránh bị cấm vĩnh viễn.',
+          'L盻㌻h c蘯･m t蘯｡m th盻拱 c盻ｧa b蘯｡n ﾄ妥｣ h蘯ｿt h蘯｡n. Tﾃi kho蘯｣n ﾄ柁ｰ盻｣c khﾃｴi ph盻･c, nhﾆｰng hﾃ｣y tuﾃ｢n th盻ｧ quy t蘯ｯc c盻冢g ﾄ黛ｻ渡g ﾄ黛ｻ・trﾃ｡nh b盻・c蘯･m vﾄｩnh vi盻・.',
         data: { warningCount: user.warningCount },
       });
 

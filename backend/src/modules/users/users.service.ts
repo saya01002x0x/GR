@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Users Service
  * Handle user operations including Lazy Sync with Clerk
  * Reference: https://docs.nestjs.com/providers
@@ -22,9 +22,9 @@ export class UsersService {
 
   /**
    * Find or Create user by Clerk ID (Lazy Sync)
-   * Được gọi mỗi khi user authenticate thành công
-   * @param clerkData - Data từ Clerk API
-   * @returns User record từ database
+   * ﾄ脆ｰ盻｣c g盻絞 m盻擁 khi user authenticate thﾃnh cﾃｴng
+   * @param clerkData - Data t盻ｫ Clerk API
+   * @returns User record t盻ｫ database
    */
   async findOrCreateByClerkId(clerkData: ClerkUserData): Promise<User> {
     const { clerkId, email, username, displayName, avatar } = clerkData;
@@ -32,7 +32,7 @@ export class UsersService {
     return this.prisma.user.upsert({
       where: { clerkId },
       update: {
-        // Update các field có thể thay đổi
+        // Update cﾃ｡c field cﾃｳ th盻・thay ﾄ黛ｻ品
         displayName: displayName || undefined,
         avatar: avatar || undefined,
       },

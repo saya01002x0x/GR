@@ -1,6 +1,6 @@
 /**
  * Clerk Passport Strategy
- * Verify JWT token từ Clerk và Lazy Sync user vào Database
+ * Verify JWT token t盻ｫ Clerk vﾃ Lazy Sync user vﾃo Database
  * Reference: https://clerk.com/docs/backend-requests/handling/nodejs
  */
 
@@ -10,16 +10,16 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-custom';
 import { Request } from 'express';
 import { verifyToken, type ClerkClient } from '@clerk/backend';
-import { CLERK_CLIENT } from '../providers/clerk-client.provider';
-import { UsersService } from '../../users/users.service';
+import { CLERK_CLIENT } from './clerk-client.provider';
+import { UsersService } from '../users/users.service';
 import { User } from '@prisma/client';
 
 /**
- * User Payload trả về từ strategy
- * Bao gồm cả thông tin từ Database (id UUID) và Clerk
+ * User Payload tr蘯｣ v盻・t盻ｫ strategy
+ * Bao g盻杜 c蘯｣ thﾃｴng tin t盻ｫ Database (id UUID) vﾃ Clerk
  */
 export type AuthenticatedUser = User;
-// User đã có tất cả fields từ Prisma (id, clerkId, email, etc.)
+// User ﾄ妥｣ cﾃｳ t蘯･t c蘯｣ fields t盻ｫ Prisma (id, clerkId, email, etc.)
 
 @Injectable()
 export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
@@ -36,14 +36,14 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
 
   async validate(req: Request): Promise<AuthenticatedUser> {
     try {
-      // 1. Lấy token từ Authorization header
+      // 1. L蘯･y token t盻ｫ Authorization header
       const token = this.extractTokenFromHeader(req);
 
       if (!token) {
         throw new UnauthorizedException('No authentication token provided');
       }
 
-      // 2. Verify JWT token với Clerk
+      // 2. Verify JWT token v盻嬖 Clerk
       const payload = await verifyToken(token, {
         secretKey: this.secretKey,
       });
@@ -54,10 +54,10 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         throw new UnauthorizedException('Invalid token: no user ID');
       }
 
-      // 3. Lấy user info từ Clerk API
+      // 3. L蘯･y user info t盻ｫ Clerk API
       const clerkUser = await this.clerkClient.users.getUser(clerkId);
 
-      // 4. LAZY SYNC: Tạo hoặc cập nhật user trong Database
+      // 4. LAZY SYNC: T蘯｡o ho蘯ｷc c蘯ｭp nh蘯ｭt user trong Database
       const dbUser = await this.usersService.findOrCreateByClerkId({
         clerkId: clerkUser.id,
         email: clerkUser.emailAddresses[0]?.emailAddress || '',
@@ -68,7 +68,7 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
         avatar: clerkUser.imageUrl || null,
       });
 
-      // 5. Return DB User (có id UUID để dùng trong các operations khác)
+      // 5. Return DB User (cﾃｳ id UUID ﾄ黛ｻ・dﾃｹng trong cﾃ｡c operations khﾃ｡c)
       return dbUser;
     } catch (error: unknown) {
       console.error('[ClerkStrategy] Authentication error:', error);
