@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   Avatar,
   Badge,
@@ -16,19 +15,8 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type StaffMember = {
-  id: string;
-  username: string;
-  email: string;
-  displayName: string | null;
-  avatar: string | null;
-  role: string;
-  createdAt: string;
-};
+import { useState } from 'react';
+import { useAdminStaff } from '@/api/hooks';
 
 const ROLE_COLORS: Record<string, string> = {
   MODERATOR: 'green',
@@ -37,65 +25,35 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function StaffPage() {
-  const { getToken } = useAuth();
-  const [staff, setStaff] = useState<StaffMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<StaffMember | null>(null);
+  const { staff, isLoading, changeRole, demoteUser } = useAdminStaff();
+  const [selectedUser, setSelectedUser] = useState<NonNullable<typeof staff>[number] | null>(null);
   const [newRole, setNewRole] = useState<string | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
-
-  const fetchStaff = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/staff`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setStaff(await res.json());
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
-
-  useEffect(() => {
-    fetchStaff();
-  }, [fetchStaff]);
 
   const handleRoleChange = async () => {
     if (!selectedUser || !newRole) {
       return;
     }
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/admin/users/${selectedUser.id}/role`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ role: newRole }),
-    });
-    if (res.ok) {
+    try {
+      await changeRole({ userId: selectedUser.id, role: newRole });
       notifications.show({ message: 'Role updated', color: 'green' });
       close();
-      fetchStaff();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      notifications.show({ message: err.message || 'Failed', color: 'red' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed';
+      notifications.show({ message, color: 'red' });
     }
   };
 
   const handleDemote = async (userId: string) => {
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/admin/users/${userId}/role`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ role: 'USER' }),
-    });
-    if (res.ok) {
+    try {
+      await demoteUser(userId);
       notifications.show({ message: 'User demoted to USER', color: 'green' });
-      fetchStaff();
+    } catch {
+      // ignore
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 

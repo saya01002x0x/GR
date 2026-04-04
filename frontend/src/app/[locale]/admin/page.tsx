@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import { Card, Grid, Group, Loader, Stack, Text, Title } from '@mantine/core';
 import {
   IconAlertTriangle,
@@ -9,17 +8,7 @@ import {
   IconUserOff,
   IconUsers,
 } from '@tabler/icons-react';
-import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type DashboardStats = {
-  pendingReports: number;
-  flaggedContent: number;
-  bannedToday: number;
-  totalUsers: number;
-  totalArtworks: number;
-};
+import { useAdminDashboard } from '@/api/hooks';
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: number; icon: React.ElementType; color: string }) {
   return (
@@ -36,29 +25,9 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: n
 }
 
 export default function AdminDashboardPage() {
-  const { getToken } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: stats, isLoading } = useAdminDashboard();
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/dashboard/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setStats(await res.json());
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
-
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 

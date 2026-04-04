@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   Avatar,
   Badge,
@@ -13,59 +12,14 @@ import {
   Title,
 } from '@mantine/core';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type PatrolData = {
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    displayName: string | null;
-    avatar: string | null;
-    role: string;
-    isBanned: boolean;
-    bannedAt: string | null;
-    isArtist: boolean;
-    createdAt: string;
-    _count: { artworks: number; comments: number; likes: number };
-  };
-  reports: {
-    id: string;
-    reason: string;
-    status: string;
-    createdAt: string;
-    artwork: { id: string; title: string } | null;
-  }[];
-};
+import { useAdminUserPatrol } from '@/api/hooks';
 
 export default function UserPatrolDetailPage() {
-  const { getToken } = useAuth();
   const params = useParams();
   const userId = params.id as string;
-  const [data, setData] = useState<PatrolData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useAdminUserPatrol(userId);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/users/${userId}/patrol`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        setData(await res.json());
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [userId, getToken]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
   if (!data) {

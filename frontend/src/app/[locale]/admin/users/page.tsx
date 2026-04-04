@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   Avatar,
   Badge,
@@ -18,9 +17,8 @@ import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconSearch } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { useState } from 'react';
+import { useAdminUsers, useUserProfile } from '@/api/hooks';
 
 const ROLE_RANK: Record<string, number> = {
   USER: 0,
@@ -31,97 +29,29 @@ const ROLE_RANK: Record<string, number> = {
 
 const ALL_ROLES = ['USER', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN'];
 
-type UserItem = {
-  id: string;
-  username: string;
-  email: string;
-  displayName: string | null;
-  avatar: string | null;
-  role: string;
-  isBanned: boolean;
-  isArtist: boolean;
-  createdAt: string;
-  _count: { artworks: number };
-};
-
 export default function UserPatrolPage() {
-  const { getToken } = useAuth();
-  const [users, setUsers] = useState<UserItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
-  const [myRole, setMyRole] = useState<string | null>(null);
 
+  const { data: profile } = useUserProfile();
+  const myRole = profile?.role ?? null;
   const myRank = ROLE_RANK[myRole ?? ''] ?? 0;
   const visibleRoleOptions = ALL_ROLES.filter(r => (ROLE_RANK[r] ?? 0) < myRank);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadRole() {
-      try {
-        const token = await getToken();
-        if (!token || cancelled) {
-          return;
-        }
-        const res = await fetch(`${API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok && !cancelled) {
-          const data = await res.json();
-          setMyRole(data.role);
-        }
-      } catch { /* ignore */ }
-    }
-    loadRole();
-    return () => {
-      cancelled = true;
-    };
-  }, [getToken]);
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const params = new URLSearchParams();
-      if (debouncedSearch) {
-        params.set('search', debouncedSearch);
-      }
-      if (roleFilter) {
-        params.set('role', roleFilter);
-      }
-      const res = await fetch(`${API_URL}/admin/users?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, roleFilter, getToken]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  const { users, isLoading, banUser } = useAdminUsers(debouncedSearch || undefined, roleFilter || undefined);
 
   const handleBanToggle = async (userId: string, isBanned: boolean) => {
-    const token = await getToken();
-    const endpoint = isBanned ? 'unban' : 'ban';
-    const res = await fetch(`${API_URL}/admin/users/${userId}/${endpoint}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      notifications.show({ message: `User ${endpoint}ned`, color: 'green' });
-      fetchUsers();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      notifications.show({ message: err.message || 'Action failed', color: 'red' });
+    try {
+      await banUser({ userId, isBanned });
+      notifications.show({ message: `User ${isBanned ? 'unbanned' : 'banned'}`, color: 'green' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Action failed';
+      notifications.show({ message, color: 'red' });
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 
