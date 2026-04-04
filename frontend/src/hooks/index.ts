@@ -1,4 +1,2 @@
-export { type Collection, useArtworkCollections, useCollections } from './use-collections';
-export { type Comment, useComments } from './use-comments';
-// Export all hooks
-export { useLike } from './use-like';
+export { useArtworkCollections, useCollections, useComments, useLike } from '@/api/hooks';
+export { type Collection, type Comment } from '@gr/shared';

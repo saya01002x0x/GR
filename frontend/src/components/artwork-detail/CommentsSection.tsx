@@ -1,6 +1,6 @@
 'use client';
 
-import type { Comment } from '@/hooks';
+import type { Comment } from '@gr/shared';
 import { useAuth, useUser } from '@clerk/nextjs';
 import {
   ActionIcon,
@@ -17,7 +17,7 @@ import {
 } from '@mantine/core';
 import { IconCornerDownRight, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
-import { useComments } from '@/hooks';
+import { useComments } from '@/api/hooks';
 
 type CommentsSectionProps = {
   artworkId: string;
@@ -66,7 +66,6 @@ function CommentItem({
   const [showReplies, setShowReplies] = useState(false);
   const { isSignedIn } = useAuth();
 
-  // Fetch replies for this comment
   const {
     comments: replies,
     hasMore: hasMoreReplies,
@@ -145,7 +144,6 @@ function CommentItem({
             )}
           </Group>
 
-          {/* Reply Input */}
           {showReply && (
             <Group align="flex-start" gap="xs" mt="sm" wrap="nowrap">
               <Textarea
@@ -164,7 +162,6 @@ function CommentItem({
             </Group>
           )}
 
-          {/* Replies */}
           {showReplies && (
             <Stack gap="md" mt="md">
               {loadingReplies
@@ -228,7 +225,6 @@ export function CommentsSection({ artworkId }: CommentsSectionProps) {
         )
       </Title>
 
-      {/* Comment Input */}
       {isSignedIn
         ? (
             <Group align="flex-start" gap="sm" mb="lg" wrap="nowrap">
@@ -266,7 +262,6 @@ export function CommentsSection({ artworkId }: CommentsSectionProps) {
 
       <Divider mb="lg" />
 
-      {/* Comments List */}
       {isLoading
         ? (
             <Stack gap="md">
@@ -295,7 +290,6 @@ export function CommentsSection({ artworkId }: CommentsSectionProps) {
               </Stack>
             )}
 
-      {/* Load More */}
       {hasMore && (
         <Button
           variant="subtle"

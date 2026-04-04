@@ -19,17 +19,14 @@ import {
   IconSparkles,
 } from '@tabler/icons-react';
 import Link from 'next/link';
-import useSWR from 'swr';
-import { fetcher } from '@/lib/fetcher';
+import { useTrendingArtworks } from '@/api/hooks';
 import classes from './HeroSection.module.css';
 
 export function HeroSection() {
   const [motionActive, { toggle: toggleMotion }] = useDisclosure(true);
-  const { data: trendingData } = useSWR('/artworks/popular', fetcher);
-  const artworks = trendingData?.data || [];
+  const { data: artworks = [] } = useTrendingArtworks();
 
-  // Find a landscape image or fallback to first
-  const heroArtwork = artworks.find((a: any) => {
+  const heroArtwork = artworks.find((a) => {
     const img = a.images?.[0];
     return img && (img.width || 0) > (img.height || 0);
   }) || artworks[0];

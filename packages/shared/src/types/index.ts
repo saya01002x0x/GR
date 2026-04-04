@@ -3,6 +3,8 @@
  * Shared TypeScript interfaces and types
  */
 
+export * from './api';
+
 /**
  * Standard API Response wrapper
  */

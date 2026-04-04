@@ -10,14 +10,12 @@ import {
   Title,
 } from '@mantine/core';
 import { IconArrowRight } from '@tabler/icons-react';
-import useSWR from 'swr';
 
+import { useTrendingArtworks } from '@/api/hooks';
 import { ArtworkCard } from '@/components/artwork';
-import { fetcher } from '@/lib/fetcher';
 
 export function TrendingSection() {
-  const { data: trendingData } = useSWR('/artworks/popular?limit=4', fetcher);
-  const artworks = trendingData?.data || [];
+  const { data: artworks = [] } = useTrendingArtworks(4);
 
   return (
     <Container size="xl" pt={120} pb={80}>
@@ -43,7 +41,7 @@ export function TrendingSection() {
       </Group>
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="xl" mb={80}>
-        {artworks.map((artwork: any) => (
+        {artworks.map(artwork => (
           <ArtworkCard
             key={artwork.id}
             title={artwork.title}

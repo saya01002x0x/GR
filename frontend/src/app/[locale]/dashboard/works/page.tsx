@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   Box,
   Container,
@@ -14,52 +13,11 @@ import {
 } from '@mantine/core';
 import { IconPhoto, IconPlus } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-
-type Artwork = {
-  id: string;
-  title: string;
-  thumbnailUrl?: string;
-  status: string;
-  createdAt: string;
-};
+import { useMyArtworks } from '@/api/hooks';
 
 export default function DashboardWorksPage() {
-  const { getToken, isLoaded } = useAuth();
-  const [artworks, setArtworks] = useState<Artwork[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchArtworks() {
-      // Wait for Clerk to be loaded
-      if (!isLoaded) {
-        return;
-      }
-
-      try {
-        const token = await getToken();
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/artworks/user/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.ok) {
-          const response = await res.json();
-          // API returns { data: [...] } format
-          setArtworks(Array.isArray(response) ? response : (response.data || []));
-        }
-      } catch {
-        // Ignore
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchArtworks();
-  }, [isLoaded, getToken]);
+  const { data: artworks, isLoading: loading } = useMyArtworks();
+  const list = artworks ?? [];
 
   return (
     <Container size="xl" py="xl">
@@ -93,7 +51,7 @@ export default function DashboardWorksPage() {
               ))}
             </SimpleGrid>
           )
-        : artworks.length === 0
+        : list.length === 0
           ? (
               <Paper withBorder p="xl" radius="lg" ta="center">
                 <Stack align="center" gap="md">
@@ -122,15 +80,15 @@ export default function DashboardWorksPage() {
             )
           : (
               <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }}>
-                {artworks.map(artwork => (
+                {list.map(artwork => (
                   <Paper key={artwork.id} withBorder radius="md" p="md">
                     <Stack gap="sm">
-                      {artwork.thumbnailUrl
+                      {artwork.images?.[0]?.thumbnailUrl
                         ? (
                             <Box
                               h={150}
                               style={{
-                                backgroundImage: `url(${artwork.thumbnailUrl})`,
+                                backgroundImage: `url(${artwork.images[0].thumbnailUrl})`,
                                 backgroundSize: 'cover',
                                 backgroundPosition: 'center',
                                 borderRadius: 'var(--mantine-radius-md)',

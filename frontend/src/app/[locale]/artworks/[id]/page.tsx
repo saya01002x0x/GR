@@ -1,11 +1,11 @@
 'use client';
 
-import type { ArtworkDetail as APIArtworkDetail, ArtworkDetailResponse, ArtworkListItem, RelatedArtworksResponse } from '@/types/artwork';
+import type { ArtworkDetail as APIArtworkDetail, ArtworkListItem } from '@/types/artwork';
 import { Box, Center, Flex, Skeleton, Stack, Text, Title } from '@mantine/core';
 import { IconPhoto } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useArtwork } from '@/api/hooks';
 import {
   ArtworkActions,
   ArtworkImageGallery,
@@ -14,9 +14,6 @@ import {
   RelatedArtworks,
 } from '@/components/artwork-detail';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-// Transform API artwork to component format
 function transformArtworkForSidebar(artwork: APIArtworkDetail) {
   return {
     id: artwork.id,
@@ -35,12 +32,12 @@ function transformArtworkForSidebar(artwork: APIArtworkDetail) {
       id: artwork.author.id,
       name: artwork.author.displayName || artwork.author.username,
       avatar: artwork.author.avatar || '',
-      role: 'Artist', // TODO: Add role to user model
+      role: 'Artist',
     },
     specs: {
       size: artwork.images[0] ? `${artwork.images[0].width} x ${artwork.images[0].height} px` : 'Unknown',
-      software: 'Unknown', // TODO: Add software field
-      license: 'All Rights Reserved', // TODO: Add license field
+      software: 'Unknown',
+      license: 'All Rights Reserved',
     },
   };
 }
@@ -55,7 +52,6 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
-// Transform related artworks
 function transformRelatedArtworks(artworks: ArtworkListItem[]) {
   return artworks.map(artwork => ({
     id: artwork.id,
@@ -69,47 +65,9 @@ export default function ArtworkDetailPage() {
   const params = useParams();
   const artworkId = params.id as string;
 
-  const [artwork, setArtwork] = useState<APIArtworkDetail | null>(null);
-  const [relatedArtworks, setRelatedArtworks] = useState<ArtworkListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { artwork, relatedArtworks, isLoading, error } = useArtwork(artworkId);
 
-  // Fetch artwork detail
-  const fetchArtwork = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const res = await fetch(`${API_URL}/artworks/${artworkId}`);
-      const response: ArtworkDetailResponse = await res.json();
-
-      if (!response.data) {
-        setError('Artwork not found');
-        return;
-      }
-
-      setArtwork(response.data);
-
-      // Fetch related artworks
-      const relatedRes = await fetch(`${API_URL}/artworks/${artworkId}/related?limit=6`);
-      const relatedResponse: RelatedArtworksResponse = await relatedRes.json();
-      setRelatedArtworks(relatedResponse.data || []);
-    } catch (err) {
-      console.error('Failed to fetch artwork:', err);
-      setError('Failed to load artwork');
-    } finally {
-      setLoading(false);
-    }
-  }, [artworkId]);
-
-  useEffect(() => {
-    if (artworkId) {
-      fetchArtwork();
-    }
-  }, [artworkId, fetchArtwork]);
-
-  // Loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <Box maw={1400} mx="auto" px={{ base: 'md', md: 'xl' }} py="xl">
         <Flex direction={{ base: 'column', lg: 'row' }} gap="xl">
@@ -128,14 +86,13 @@ export default function ArtworkDetailPage() {
     );
   }
 
-  // Error state
   if (error || !artwork) {
     return (
       <Box maw={1400} mx="auto" px={{ base: 'md', md: 'xl' }} py="xl">
         <Center h={400}>
           <Stack align="center" gap="md">
             <IconPhoto size={64} color="var(--mantine-color-dimmed)" />
-            <Title order={2}>{error || 'Artwork not found'}</Title>
+            <Title order={2}>{error?.message || 'Artwork not found'}</Title>
             <Text c="dimmed">The artwork you&apos;re looking for doesn&apos;t exist or has been removed.</Text>
             <Link href="/discover">
               <Text c="primary" fw={600}>← Back to Discover</Text>
@@ -155,29 +112,23 @@ export default function ArtworkDetailPage() {
         direction={{ base: 'column', lg: 'row' }}
         gap="xl"
       >
-        {/* Left Column - Main Content */}
         <Box flex={1} miw={0}>
-          {/* Artwork Image Gallery */}
           <ArtworkImageGallery
             images={artwork.images}
             alt={artwork.title}
           />
 
-          {/* Action Bar */}
           <ArtworkActions
             artworkId={artworkId}
             initialLikeCount={artwork.likeCount || 0}
           />
 
-          {/* Comments Section */}
           <CommentsSection artworkId={artworkId} />
         </Box>
 
-        {/* Right Column - Sidebar */}
         <ArtworkSidebar artwork={transformedArtwork} />
       </Flex>
 
-      {/* Related Artworks */}
       {transformedRelated.length > 0 && (
         <RelatedArtworks artworks={transformedRelated} />
       )}

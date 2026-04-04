@@ -9,14 +9,11 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import useSWR from 'swr';
-
-import { fetcher } from '@/lib/fetcher';
+import { useFeaturedArtists } from '@/api/hooks';
 import classes from './ArtistSpotlight.module.css';
 
 export function ArtistSpotlight() {
-  const { data: artistsData } = useSWR('/users/artists', fetcher);
-  const artists = artistsData?.data || [];
+  const { data: artists = [] } = useFeaturedArtists();
 
   return (
     <Container size="xl" pb={120}>
@@ -31,7 +28,7 @@ export function ArtistSpotlight() {
         </Stack>
 
         <Flex gap={40} justify={{ base: 'center', md: 'flex-start' }} wrap="wrap">
-          {artists.map((artist: any) => (
+          {artists.map(artist => (
             <Stack key={artist.id} align="center" gap="sm">
               <Box
                 p={2}

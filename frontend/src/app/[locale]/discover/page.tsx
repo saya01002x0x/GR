@@ -1,8 +1,7 @@
 'use client';
 
-import type { ArtworkListItem, ArtworksListResponse } from '@/types/artwork';
 import { Box, Flex, Skeleton, Stack, Text, Title } from '@mantine/core';
-import { useCallback, useEffect, useState } from 'react';
+import { useArtworks } from '@/api/hooks';
 import {
   CategoryPills,
   DiscoverGrid,
@@ -21,57 +20,9 @@ import {
   risingStars,
 } from '@/mocks/discoverData';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export default function DiscoverPage() {
-  const [artworks, setArtworks] = useState<ArtworkListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [offset, setOffset] = useState(0);
+  const { artworks, hasMore, isLoading, isLoadingMore, loadMore } = useArtworks({ limit: 25 });
 
-  // Fetch artworks from API
-  const fetchArtworks = useCallback(async (currentOffset: number, append: boolean = false) => {
-    try {
-      if (append) {
-        setLoadingMore(true);
-      }
-
-      const res = await fetch(`${API_URL}/artworks?limit=25&offset=${currentOffset}`);
-
-      if (res.ok) {
-        const response: ArtworksListResponse = await res.json();
-
-        if (append) {
-          setArtworks(prev => [...prev, ...response.data]);
-        } else {
-          setArtworks(response.data);
-        }
-
-        setHasMore(response.pagination.hasMore);
-        setOffset(currentOffset + response.data.length);
-      }
-    } catch (error) {
-      console.error('Failed to fetch artworks:', error);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, []);
-
-  // Initial load
-  useEffect(() => {
-    fetchArtworks(0);
-  }, [fetchArtworks]);
-
-  // Load more handler
-  const handleLoadMore = useCallback(() => {
-    if (!loadingMore && hasMore) {
-      fetchArtworks(offset, true);
-    }
-  }, [fetchArtworks, loadingMore, hasMore, offset]);
-
-  // Transform API data to component format
   const discoverArtworks = artworks.map(artwork => ({
     id: artwork.id,
     title: artwork.title,
@@ -80,34 +31,27 @@ export default function DiscoverPage() {
       avatar: artwork.author.avatar || '',
     },
     image: artwork.images[0]?.url || artwork.images[0]?.thumbnailUrl || '',
-    liked: false, // TODO: implement liked state
+    liked: false,
   }));
 
   return (
     <Box maw={1600} mx="auto">
-      {/* Hero Section */}
       <HeroSection items={featuredItems} />
 
-      {/* Category Pills */}
       <CategoryPills categories={categories} />
 
-      {/* Main Content with Sidebar */}
       <Flex
         direction={{ base: 'column', lg: 'row' }}
         gap="xl"
         px={{ base: 'md', md: 'xl' }}
         pb="xl"
       >
-        {/* Main Content */}
         <Box flex={1} miw={0}>
-          {/* Ranking Section */}
           <RankingSection tabs={rankingTabs} artworks={rankingArtworks} />
 
-          {/* Featured Artwork */}
           <FeaturedArtwork artwork={featuredArtwork} />
 
-          {/* Discover Grid - Real Data */}
-          {loading
+          {isLoading
             ? (
                 <Box>
                   <Title order={3} mb="lg">
@@ -135,13 +79,12 @@ export default function DiscoverPage() {
               : (
                   <DiscoverGrid
                     artworks={discoverArtworks}
-                    onLoadMore={hasMore ? handleLoadMore : undefined}
-                    loading={loadingMore}
+                    onLoadMore={hasMore ? loadMore : undefined}
+                    loading={isLoadingMore}
                   />
                 )}
         </Box>
 
-        {/* Sidebar */}
         <SidebarContent
           risingStars={risingStars}
           popularTags={popularTags}

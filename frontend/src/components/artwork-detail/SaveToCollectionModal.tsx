@@ -1,6 +1,6 @@
 'use client';
 
-import type { Collection } from '@/hooks';
+import type { Collection } from '@gr/shared';
 import {
   Box,
   Button,
@@ -15,7 +15,7 @@ import {
 } from '@mantine/core';
 import { IconFolder, IconLock, IconPlus, IconWorld } from '@tabler/icons-react';
 import { useState } from 'react';
-import { useArtworkCollections, useCollections } from '@/hooks';
+import { useArtworkCollections, useCollections } from '@/api/hooks';
 
 type SaveToCollectionModalProps = {
   artworkId: string;
@@ -56,9 +56,9 @@ export function SaveToCollectionModal({
       return;
     }
 
-    const collection = await createCollection(newName.trim(), isPrivate);
-    if (collection) {
-      setSelectedIds(prev => new Set(prev).add(collection.id));
+    const response = await createCollection({ name: newName.trim(), isPrivate });
+    if (response?.data) {
+      setSelectedIds(prev => new Set(prev).add(response.data.id));
       setNewName('');
       setShowCreateForm(false);
     }
@@ -68,7 +68,7 @@ export function SaveToCollectionModal({
     setSaving(true);
     try {
       for (const collectionId of selectedIds) {
-        await toggleCollection(collectionId, false);
+        await toggleCollection({ collectionId, isCurrentlyInCollection: false });
       }
       onSaved?.();
       onClose();
@@ -93,7 +93,6 @@ export function SaveToCollectionModal({
           )
         : (
             <Stack gap="md">
-              {/* Collection List */}
               {collections.map((collection: Collection) => (
                 <Group
                   key={collection.id}
@@ -140,7 +139,6 @@ export function SaveToCollectionModal({
 
               <Divider />
 
-              {/* Create New Collection */}
               {showCreateForm
                 ? (
                     <Stack gap="sm">
@@ -178,7 +176,6 @@ export function SaveToCollectionModal({
 
               <Divider />
 
-              {/* Save Button */}
               <Button
                 fullWidth
                 onClick={handleSave}
