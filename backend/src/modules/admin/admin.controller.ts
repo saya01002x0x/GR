@@ -18,7 +18,7 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { User } from '@prisma/client';
 import { AdminService } from './admin.service';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -33,7 +33,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly auditLogsService: AuditLogsService,
-  ) {}
+  ) { }
 
   // ── Dashboard ──
 

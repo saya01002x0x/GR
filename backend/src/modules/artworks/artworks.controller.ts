@@ -26,7 +26,7 @@ import {
   ApiQuery,
   ApiConsumes,
 } from '@nestjs/swagger';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ArtworksService, CreateArtworkDto } from './artworks.service';
 import { ViewService } from '../stats/view.service';
