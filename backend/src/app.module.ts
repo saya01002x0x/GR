@@ -17,8 +17,8 @@ import { RedisModule } from './database/redis.module';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { UsersModule } from './modules/users/users.module';
-import { StorageModule } from './modules/storage/storage/storage.module';
-import { ArtworksModule } from './modules/artworks/artworks/artworks.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { ArtworksModule } from './modules/artworks/artworks.module';
 import { LikesModule } from './modules/likes/likes.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { CollectionsModule } from './modules/collections/collections.module';
@@ -81,4 +81,4 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
