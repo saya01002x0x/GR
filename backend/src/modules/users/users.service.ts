@@ -74,4 +74,19 @@ export class UsersService {
       data: { isArtist: true },
     });
   }
+
+  /**
+   * Get list of artists with their artwork count
+   */
+  async findArtists(limit = 10) {
+    return this.prisma.user.findMany({
+      where: { isArtist: true },
+      include: {
+        _count: {
+          select: { artworks: true },
+        },
+      },
+      take: limit,
+    });
+  }
 }

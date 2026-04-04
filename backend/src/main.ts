@@ -121,7 +121,7 @@ async function bootstrap() {
 
   app.use('/admin/queues', serverAdapter.getRouter());
 
-  const port = process.env.PORT ?? 3847;
+  const port = process.env.PORT ?? 5145;
   await app.listen(port);
   const logger = new Logger('Bootstrap');
   logger.log(`🚀 Backend running on http://localhost:${port}`);

@@ -122,3 +122,27 @@ Tổng hợp các khái niệm NestJS đã sử dụng trong dự án.
   export class AdminController {}
   ```
 - **Ứng dụng:** `AuditLogInterceptor` tự động ghi nhận lại mọi request POST/PUT/PATCH/DELETE từ Admin/Moderator vào Database mà không cần nhúng rườm rà `auditLogService` ở từng route method một.
+
+---
+
+#### Guards (Bảo vệ Route)
+- **Là gì:** Lớp (class) dùng để kiểm tra quyền truy cập của request trước khi vào Controller.
+- **Cách dùng:**
+  ```typescript
+  @UseGuards(ClerkGuard)
+  @Get('me')
+  getMe() {}
+  ```
+- **Ứng dụng:** `ClerkGuard` xác thực Clerk JWT token và cho phép truy cập nếu hợp lệ.
+
+---
+
+#### Custom Decorators (Param Decorators)
+- **Là gì:** Tạo decorator riêng để trích xuất dữ liệu từ request object gọn gàng hơn.
+- **Cách dùng:**
+  ```typescript
+  export const CurrentUser = createParamDecorator((data, ctx) => {
+    return ctx.switchToHttp().getRequest().user;
+  });
+  ```
+- **Ứng dụng:** `@CurrentUser()` lấy nhanh thông tin user hiện tại từ request.

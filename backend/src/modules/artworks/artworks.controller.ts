@@ -39,7 +39,7 @@ export class ArtworksController {
   constructor(
     private readonly artworksService: ArtworksService,
     private readonly viewService: ViewService,
-  ) {}
+  ) { }
 
   /**
    * Get all published artworks
@@ -74,6 +74,27 @@ export class ArtworksController {
         total: result.total,
         hasMore: result.hasMore,
       },
+    };
+  }
+
+  /**
+ * Get trending/popular artworks
+ * GET /artworks/popular?limit=10
+ * @description This get all of the artworks, timerannge is not implemented yet
+ * @todo implement timerannge
+ */
+  @Get('popular')
+  @ApiOperation({ summary: 'Get trending artworks' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiResponse({ status: 200, description: 'Trending artworks retrieved' })
+  async findTrending(@Query('limit') limit?: string) {
+    const artworks = await this.artworksService.findTrending(
+      limit ? parseInt(limit, 10) : 10,
+    );
+
+    return {
+      message: 'Trending artworks retrieved successfully',
+      data: artworks,
     };
   }
 
@@ -154,7 +175,7 @@ export class ArtworksController {
       ?.userId;
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     // Fire-and-forget: don't block response for view tracking
-    void this.viewService.recordView(id, userId, ip).catch(() => {});
+    void this.viewService.recordView(id, userId, ip).catch(() => { });
 
     return {
       message: 'Artwork retrieved successfully',
@@ -259,4 +280,5 @@ export class ArtworksController {
       data: result,
     };
   }
+
 }

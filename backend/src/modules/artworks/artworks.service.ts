@@ -356,7 +356,31 @@ export class ArtworksService {
           orderBy: { order: 'asc' },
         },
       },
-      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Get trending artworks (by viewCount)
+   */
+  async findTrending(limit = 10) {
+    return this.prisma.artwork.findMany({
+      where: { status: 'PUBLISHED' },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatar: true,
+          },
+        },
+        images: {
+          take: 1,
+          orderBy: { order: 'asc' },
+        },
+      },
+      orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
     });
   }
 }

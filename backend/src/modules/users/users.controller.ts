@@ -83,4 +83,18 @@ export class UsersController {
       },
     };
   }
+  /**
+   * Get list of artists
+   * GET /users/artists
+   */
+  @Get('artists')
+  @ApiOperation({ summary: 'Get list of artists' })
+  @ApiResponse({ status: 200, description: 'Artists retrieved' })
+  async findArtists() {
+    const artists = await this.usersService.findArtists();
+    return {
+      message: 'Artists retrieved successfully',
+      data: artists,
+    };
+  }
 }
