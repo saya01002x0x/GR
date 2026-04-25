@@ -103,6 +103,46 @@ export const E = {
       growth: (days = 30) => `/admin/analytics/growth?days=${days}`,
       trendingTags: () => '/admin/analytics/tags/trending',
     },
+    payouts: {
+      list: (status?: string) => {
+        const params = new URLSearchParams();
+        if (status) {
+          params.set('status', status);
+        }
+        return `/admin/payouts${params.toString() ? `?${params.toString()}` : ''}`;
+      },
+      approve: (id: string) => `/admin/payouts/${id}/approve`,
+      reject: (id: string) => `/admin/payouts/${id}/reject`,
+      markPaid: (id: string) => `/admin/payouts/${id}/mark-paid`,
+    },
+  },
+
+  payments: {
+    plans: () => '/payments/plans',
+    plan: (id: string) => `/payments/plans/${id}`,
+    createPlan: () => '/payments/plans',
+    subscription: {
+      me: () => '/payments/subscription/me',
+      checkout: () => '/payments/subscription/checkout',
+      cancel: () => '/payments/subscription/cancel',
+      portal: () => '/payments/subscription/portal',
+    },
+    history: () => '/payments/history/me',
+    tiers: {
+      me: () => '/payments/tiers/me',
+      create: () => '/payments/tiers/me',
+      update: (id: string) => `/payments/tiers/me/${id}`,
+      delete: (id: string) => `/payments/tiers/me/${id}`,
+      subscribers: () => '/payments/tiers/me/subscribers',
+      subscribed: () => '/payments/tiers/subscribed',
+      subscribe: (tierId: string) => `/payments/tiers/${tierId}/subscribe`,
+      unsubscribe: (tierId: string) => `/payments/tiers/${tierId}/subscribe`,
+    },
+    payouts: {
+      request: () => '/payments/payouts/me',
+      me: () => '/payments/payouts/me',
+      revenue: () => '/payments/revenue/me',
+    },
   },
 
   search: {

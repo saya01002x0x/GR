@@ -24,6 +24,7 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconCrown,
+  IconCurrencyDollar,
   IconEye,
   IconPalette,
   IconPhoto,
@@ -50,6 +51,7 @@ const iconMap: Record<string, React.ElementType> = {
   'upload': IconUpload,
   'analytics': IconChartBar,
   'commissions': IconPalette,
+  'payouts': IconCurrencyDollar,
 };
 
 const settingsMenuItems = [
@@ -66,6 +68,7 @@ const creatorMenuItems = [
   { id: 'upload', label: 'Upload New', href: '/upload' },
   { id: 'analytics', label: 'Analytics', href: '/dashboard/analytics' },
   { id: 'commissions', label: 'Commissions', href: '/dashboard/commissions' },
+  { id: 'payouts', label: 'Payouts', href: '/dashboard/payouts' },
 ];
 
 export function DashboardSidebar() {

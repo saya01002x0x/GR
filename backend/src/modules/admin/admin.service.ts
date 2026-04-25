@@ -687,4 +687,51 @@ export class AdminService {
 
     return { user, reports, activeWarnings };
   }
+
+  // ==================== PAYOUTS ====================
+
+  async getAllPayouts(status?: string) {
+    return this.prisma.payout.findMany({
+      where: status ? { status: status as any } : undefined,
+      include: {
+        artist: { select: { id: true, username: true, displayName: true, avatar: true, email: true } },
+        approver: { select: { id: true, username: true, displayName: true } },
+      },
+      orderBy: { requestedAt: 'desc' },
+    });
+  }
+
+  async approvePayout(payoutId: string, adminId: string) {
+    return this.prisma.payout.update({
+      where: { id: payoutId },
+      data: {
+        status: 'APPROVED',
+        approvedBy: adminId,
+        approvedAt: new Date(),
+      },
+    });
+  }
+
+  async rejectPayout(payoutId: string, adminId: string, reason: string) {
+    return this.prisma.payout.update({
+      where: { id: payoutId },
+      data: {
+        status: 'REJECTED',
+        approvedBy: adminId,
+        rejectedAt: new Date(),
+        rejectionReason: reason,
+      },
+    });
+  }
+
+  async markPayoutAsPaid(payoutId: string, adminId: string) {
+    return this.prisma.payout.update({
+      where: { id: payoutId },
+      data: {
+        status: 'PAID',
+        approvedBy: adminId,
+        paidAt: new Date(),
+      },
+    });
+  }
 }

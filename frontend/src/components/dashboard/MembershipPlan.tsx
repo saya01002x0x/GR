@@ -9,6 +9,7 @@ import {
   Grid,
   Group,
   List,
+  Loader,
   Stack,
   Table,
   Text,
@@ -21,25 +22,72 @@ import {
   IconCrown,
   IconDownload,
   IconFileDescription,
-  IconX,
 } from '@tabler/icons-react';
-
-// Mock billing history data
-const billingHistory = [
-  { date: 'Oct 24, 2023', amount: '$5.00', status: 'Paid' },
-  { date: 'Sep 24, 2023', amount: '$5.00', status: 'Paid' },
-  { date: 'Aug 24, 2023', amount: '$5.00', status: 'Paid' },
-];
+import { useCreateSubscriptionCheckout, useMyPayments, useMySubscription, usePlans, useSubscriptionPortal } from '@/api/hooks/use-payments';
 
 export function MembershipPlan() {
-  const handleChangePlan = () => {
-    // eslint-disable-next-line no-console
-    console.log('Payment integration coming soon!');
+  const { data: plansData, isLoading: plansLoading } = usePlans();
+  const { data: subData, isLoading: subLoading } = useMySubscription();
+  const { data: paymentsData, isLoading: paymentsLoading } = useMyPayments();
+
+  const createCheckout = useCreateSubscriptionCheckout();
+  const subscriptionPortal = useSubscriptionPortal();
+
+  const plans = plansData?.data || [];
+  const subscription = subData?.data;
+  const payments = (paymentsData?.data as Array<{ id: string; amount: number; status: string; createdAt: string }>) || [];
+
+  const currentPlan = subscription?.plan;
+  const isActive = subscription?.status === 'ACTIVE';
+
+  const handleChangePlan = (planId: string) => {
+    createCheckout.mutate(
+      { planId },
+      {
+        onSuccess: (response) => {
+          const checkoutUrl = response.data.checkoutUrl;
+          if (checkoutUrl) {
+            window.location.href = checkoutUrl;
+          }
+        },
+      },
+    );
+  };
+
+  const handleCancel = () => {
+    subscriptionPortal.mutate(undefined, {
+      onSuccess: (response) => {
+        const portalUrl = response.data.url;
+        if (portalUrl) {
+          window.location.href = portalUrl;
+        }
+      },
+    });
+  };
+
+  if (plansLoading || subLoading) {
+    return (
+      <Stack align="center" py="xl">
+        <Loader size="lg" />
+        <Text c="dimmed">Loading subscription details...</Text>
+      </Stack>
+    );
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatCurrency = (amount: number, currency = 'USD') => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
   };
 
   return (
     <Stack gap="xl">
-      {/* Page Header */}
       <Box pb="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
         <Title order={2} mb="xs">
           Membership Plan
@@ -49,210 +97,202 @@ export function MembershipPlan() {
         </Text>
       </Box>
 
-      {/* Current Plan Card */}
-      <Card
-        withBorder
-        radius="lg"
-        p="lg"
-        pos="relative"
-        style={{ overflow: 'hidden' }}
-      >
-        {/* Background Icon */}
-        <Box
-          pos="absolute"
-          top={-20}
-          right={-20}
-          style={{ opacity: 0.1, transform: 'rotate(12deg)' }}
+      {subscription && (
+        <Card
+          withBorder
+          radius="lg"
+          p="lg"
+          pos="relative"
+          style={{ overflow: 'hidden' }}
         >
-          <IconCrown size={180} color="var(--mantine-color-primary-6)" />
-        </Box>
-
-        <Stack gap="lg" pos="relative">
-          {/* Plan Name & Status */}
-          <Group justify="space-between" align="flex-start" wrap="wrap">
-            <Box>
-              <Group gap="sm" mb="xs">
-                <Title order={3}>Premium Plan</Title>
-                <Badge color="green" variant="light" size="sm">
-                  Active
-                </Badge>
-              </Group>
-              <Text size="sm" c="dimmed">
-                Your next billing date is
-                {' '}
-                <Text span fw={600} c="dark">November 24, 2023</Text>
-                .
-              </Text>
-            </Box>
-            <Group gap="sm">
-              <Button variant="default" size="sm">
-                Manage Subscription
-              </Button>
-              <Button size="sm" onClick={handleChangePlan}>
-                Change Plan
-              </Button>
-            </Group>
-          </Group>
-
-          <Box style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }} pt="lg">
-            <Grid>
-              <Grid.Col span={{ base: 12, md: 4 }}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>
-                  Payment Method
-                </Text>
-                <Group gap="xs">
-                  <IconCreditCard size={18} color="var(--mantine-color-gray-5)" />
-                  <Text fw={500}>Visa ending in 4242</Text>
-                </Group>
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, md: 4 }}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>
-                  Plan Cost
-                </Text>
-                <Text fw={500}>$5.00 / month</Text>
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, md: 4 }}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>
-                  Status
-                </Text>
-                <Group gap="xs">
-                  <ThemeIcon size="xs" color="green" variant="transparent">
-                    <IconCheck size={14} />
-                  </ThemeIcon>
-                  <Text fw={500} c="green">Auto-renewal on</Text>
-                </Group>
-              </Grid.Col>
-            </Grid>
+          <Box
+            pos="absolute"
+            top={-20}
+            right={-20}
+            style={{ opacity: 0.1, transform: 'rotate(12deg)' }}
+          >
+            <IconCrown size={180} color="var(--mantine-color-primary-6)" />
           </Box>
-        </Stack>
-      </Card>
 
-      {/* Available Plans */}
+          <Stack gap="lg" pos="relative">
+            <Group justify="space-between" align="flex-start" wrap="wrap">
+              <Box>
+                <Group gap="sm" mb="xs">
+                  <Title order={3}>{currentPlan?.name || 'Free'}</Title>
+                  <Badge color={isActive ? '-green' : 'gray'} variant="light" size="sm">
+                    {isActive ? 'Active' : subscription.status}
+                  </Badge>
+                </Group>
+                {currentPlan?.price
+                  ? (
+                      <Text size="sm" c="dimmed">
+                        Your next billing date is
+                        {' '}
+                        <Text span fw={600} c="dark">
+                          {subscription.currentPeriodEnd ? formatDate(subscription.currentPeriodEnd) : 'N/A'}
+                        </Text>
+                        .
+                      </Text>
+                    )
+                  : (
+                      <Text size="sm" c="dimmed">
+                        Upgrade to unlock premium features.
+                      </Text>
+                    )}
+              </Box>
+              {isActive && currentPlan?.price && currentPlan.price > 0 && (
+                <Group gap="sm">
+                  <Button variant="default" size="sm" onClick={handleCancel} loading={subscriptionPortal.isPending}>
+                    Manage Subscription
+                  </Button>
+                </Group>
+              )}
+            </Group>
+
+            {currentPlan?.price && (
+              <Box style={{ borderTop: '1px solid var(--mantine-color-gray-2)' }} pt="lg">
+                <Grid>
+                  <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>
+                      Payment Method
+                    </Text>
+                    <Group gap="xs">
+                      <IconCreditCard size={18} color="var(--mantine-color-gray-5)" />
+                      <Text fw={500}>
+                        {subscription.provider}
+                        {' '}
+                        ending in ***
+                      </Text>
+                    </Group>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>
+                      Plan Cost
+                    </Text>
+                    <Text fw={500}>
+                      {formatCurrency(currentPlan.price)}
+                      {' '}
+                      / month
+                    </Text>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={600} mb={4}>
+                      Auto-Renewal
+                    </Text>
+                    <Group gap="xs">
+                      <ThemeIcon size="xs" color={isActive ? 'green' : 'gray'} variant="transparent">
+                        <IconCheck size={14} />
+                      </ThemeIcon>
+                      <Text fw={500} c={isActive ? 'green' : 'dimmed'}>
+                        {isActive ? 'Auto-renewal on' : 'Off'}
+                      </Text>
+                    </Group>
+                  </Grid.Col>
+                </Grid>
+              </Box>
+            )}
+          </Stack>
+        </Card>
+      )}
+
       <Box>
         <Title order={4} mb="md">
           Available Plans
         </Title>
 
         <Grid>
-          {/* Free Plan */}
-          <Grid.Col span={{ base: 12, md: 6 }}>
-            <Card
-              withBorder
-              radius="lg"
-              p="lg"
-              h="100%"
-              style={{ opacity: 0.8, transition: 'opacity 0.2s' }}
-            >
-              <Stack h="100%">
-                <Box>
-                  <Title order={4}>Free</Title>
-                  <Group gap={4} mt="xs">
-                    <Text size="xl" fw={700}>$0</Text>
-                    <Text size="sm" c="dimmed">/mo</Text>
-                  </Group>
-                </Box>
+          {plans.map((plan) => {
+            const isCurrentPlan = subscription?.planId === plan.id;
+            const canUpgrade = !subscription || subscription.status !== 'ACTIVE' || (currentPlan?.price || 0) < plan.price;
 
-                <List
-                  spacing="sm"
-                  size="sm"
-                  flex={1}
-                  icon={(
-                    <ThemeIcon color="green" size="sm" radius="xl" variant="light">
-                      <IconCheck size={12} />
-                    </ThemeIcon>
-                  )}
+            return (
+              <Grid.Col span={{ base: 12, md: 6 }} key={plan.id}>
+                <Card
+                  withBorder
+                  radius="lg"
+                  p="lg"
+                  h="100%"
+                  pos="relative"
+                  style={{
+                    backgroundColor: isCurrentPlan ? 'var(--mantine-color-primary-0)' : undefined,
+                    borderColor: isCurrentPlan ? 'var(--mantine-color-primary-6)' : undefined,
+                    borderWidth: isCurrentPlan ? 2 : 1,
+                  }}
                 >
-                  <List.Item>Browse and view artworks</List.Item>
-                  <List.Item>Upload up to 10 works/day</List.Item>
-                  <List.Item
-                    icon={(
-                      <ThemeIcon color="gray" size="sm" radius="xl" variant="light">
-                        <IconX size={12} />
-                      </ThemeIcon>
-                    )}
-                    c="dimmed"
-                  >
-                    Access to analytics
-                  </List.Item>
-                  <List.Item
-                    icon={(
-                      <ThemeIcon color="gray" size="sm" radius="xl" variant="light">
-                        <IconX size={12} />
-                      </ThemeIcon>
-                    )}
-                    c="dimmed"
-                  >
-                    Sort by popularity
-                  </List.Item>
-                </List>
-
-                <Button variant="default" fullWidth onClick={handleChangePlan}>
-                  Downgrade
-                </Button>
-              </Stack>
-            </Card>
-          </Grid.Col>
-
-          {/* Premium Plan */}
-          <Grid.Col span={{ base: 12, md: 6 }}>
-            <Card
-              withBorder
-              radius="lg"
-              p="lg"
-              h="100%"
-              pos="relative"
-              style={{
-                backgroundColor: 'var(--mantine-color-primary-0)',
-                borderColor: 'var(--mantine-color-primary-2)',
-                borderWidth: 2,
-              }}
-            >
-              <Badge
-                pos="absolute"
-                top={-10}
-                right={16}
-                color="primary"
-                size="sm"
-                tt="uppercase"
-              >
-                Current Plan
-              </Badge>
-
-              <Stack h="100%">
-                <Box>
-                  <Title order={4} c="primary">Premium</Title>
-                  <Group gap={4} mt="xs">
-                    <Text size="xl" fw={700}>$5</Text>
-                    <Text size="sm" c="dimmed">/mo</Text>
-                  </Group>
-                </Box>
-
-                <List
-                  spacing="sm"
-                  size="sm"
-                  flex={1}
-                  icon={(
-                    <ThemeIcon color="primary" size="sm" radius="xl" variant="light">
-                      <IconCheck size={12} />
-                    </ThemeIcon>
+                  {isCurrentPlan && (
+                    <Badge
+                      pos="absolute"
+                      top={-10}
+                      right={16}
+                      color="primary"
+                      size="sm"
+                      tt="uppercase"
+                    >
+                      Current Plan
+                    </Badge>
                   )}
-                >
-                  <List.Item>Everything in Free</List.Item>
-                  <List.Item>Unlimited uploads</List.Item>
-                  <List.Item>Advanced Analytics</List.Item>
-                  <List.Item>Popularity sorting & filters</List.Item>
-                </List>
 
-                <Button fullWidth disabled style={{ opacity: 0.9 }}>
-                  Current Plan
-                </Button>
-              </Stack>
-            </Card>
-          </Grid.Col>
+                  <Stack h="100%">
+                    <Box>
+                      <Title order={4} c={isCurrentPlan ? 'primary' : undefined}>
+                        {plan.name}
+                      </Title>
+                      <Group gap={4} mt="xs">
+                        <Text size="xl" fw={700}>
+                          {plan.price === 0 ? '$0' : formatCurrency(plan.price)}
+                        </Text>
+                        <Text size="sm" c="dimmed">/mo</Text>
+                      </Group>
+                      {plan.description && (
+                        <Text size="sm" c="dimmed" mt="xs">
+                          {plan.description}
+                        </Text>
+                      )}
+                    </Box>
+
+                    <List
+                      spacing="sm"
+                      size="sm"
+                      flex={1}
+                      icon={(
+                        <ThemeIcon color="green" size="sm" radius="xl" variant="light">
+                          <IconCheck size={12} />
+                        </ThemeIcon>
+                      )}
+                    >
+                      {plan.features.map((feature: string) => (
+                        <List.Item key={`${plan.id}-${feature}`}>{feature}</List.Item>
+                      ))}
+                    </List>
+
+                    {plan.price === 0
+                      ? (
+                          <Button variant="default" fullWidth disabled={isCurrentPlan}>
+                            {isCurrentPlan ? 'Current Plan' : 'Downgrade'}
+                          </Button>
+                        )
+                      : (
+                          <Button
+                            fullWidth
+                            disabled={isCurrentPlan}
+                            loading={createCheckout.isPending && createCheckout.variables?.planId === plan.id}
+                            onClick={() => handleChangePlan(plan.id)}
+                          >
+                            {isCurrentPlan
+                              ? 'Current Plan'
+                              : canUpgrade
+                                ? 'Upgrade'
+                                : 'Switch'}
+                          </Button>
+                        )}
+                  </Stack>
+                </Card>
+              </Grid.Col>
+            );
+          })}
         </Grid>
       </Box>
 
-      {/* Billing History */}
       <Card withBorder radius="lg" p="lg">
         <Group justify="space-between" mb="lg">
           <Title order={4}>Billing History</Title>
@@ -265,36 +305,52 @@ export function MembershipPlan() {
           </Button>
         </Group>
 
-        <Table.ScrollContainer minWidth={500}>
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Date</Table.Th>
-                <Table.Th>Amount</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th ta="right">Invoice</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {billingHistory.map((item, index) => (
-                <Table.Tr key={index}>
-                  <Table.Td>{item.date}</Table.Td>
-                  <Table.Td fw={500}>{item.amount}</Table.Td>
-                  <Table.Td>
-                    <Badge color="green" variant="light" size="sm">
-                      {item.status}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td ta="right">
-                    <ActionIcon variant="subtle" color="gray">
-                      <IconFileDescription size={18} />
-                    </ActionIcon>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+        {paymentsLoading
+          ? (
+              <Loader size="sm" />
+            )
+          : payments.length === 0
+            ? (
+                <Text c="dimmed" ta="center" py="lg">
+                  No payment history yet.
+                </Text>
+              )
+            : (
+                <Table.ScrollContainer minWidth={500}>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Date</Table.Th>
+                        <Table.Th>Amount</Table.Th>
+                        <Table.Th>Status</Table.Th>
+                        <Table.Th ta="right">Invoice</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {payments.map(payment => (
+                        <Table.Tr key={payment.id}>
+                          <Table.Td>{formatDate(payment.createdAt)}</Table.Td>
+                          <Table.Td fw={500}>{formatCurrency(payment.amount)}</Table.Td>
+                          <Table.Td>
+                            <Badge
+                              color={payment.status === 'COMPLETED' ? 'green' : payment.status === 'PENDING' ? 'yellow' : 'red'}
+                              variant="light"
+                              size="sm"
+                            >
+                              {payment.status}
+                            </Badge>
+                          </Table.Td>
+                          <Table.Td ta="right">
+                            <ActionIcon variant="subtle" color="gray">
+                              <IconFileDescription size={18} />
+                            </ActionIcon>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Table.ScrollContainer>
+              )}
       </Card>
     </Stack>
   );

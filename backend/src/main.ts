@@ -28,7 +28,7 @@ async function bootstrap() {
       debug: false,
     });
   }
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // Global Validation
   app.useGlobalPipes(

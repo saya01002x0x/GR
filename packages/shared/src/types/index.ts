@@ -4,6 +4,7 @@
  */
 
 export * from './api';
+export * from './payment';
 
 /**
  * Standard API Response wrapper
