@@ -27,10 +27,11 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { ClerkGuard } from '../auth/clerk.guard';
+import { AuthService } from '../auth/auth.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ArtworksService, CreateArtworkDto } from './artworks.service';
 import { ViewService } from '../stats/view.service';
-import type { User, ContentRating } from '@prisma/client';
+import type { User, ContentRating, ArtworkVisibility } from '@prisma/client';
 import type { Request } from 'express';
 
 @ApiTags('artworks')
@@ -39,6 +40,7 @@ export class ArtworksController {
   constructor(
     private readonly artworksService: ArtworksService,
     private readonly viewService: ViewService,
+    private readonly authService: AuthService,
   ) { }
 
   /**
@@ -61,10 +63,13 @@ export class ArtworksController {
   async findAll(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Req() req?: Request,
   ) {
+    const viewer = req ? await this.authService.getOptionalUser(req) : null;
     const result = await this.artworksService.findAll({
       limit: limit ? parseInt(limit, 10) : 25,
       offset: offset ? parseInt(offset, 10) : 0,
+      viewerId: viewer?.id,
     });
 
     return {
@@ -111,10 +116,12 @@ export class ArtworksController {
     description: 'Number of related artworks',
   })
   @ApiResponse({ status: 200, description: 'Related artworks retrieved' })
-  async findRelated(@Param('id') id: string, @Query('limit') limit?: string) {
+  async findRelated(@Param('id') id: string, @Query('limit') limit?: string, @Req() req?: Request) {
+    const viewer = req ? await this.authService.getOptionalUser(req) : null;
     const relatedArtworks = await this.artworksService.findRelated(
       id,
       limit ? parseInt(limit, 10) : 10,
+      viewer?.id,
     );
 
     return {
@@ -142,7 +149,7 @@ export class ArtworksController {
       title: artwork.title,
       status: artwork.status,
       createdAt: artwork.createdAt,
-      thumbnailUrl: artwork.images[0]?.thumbnailUrl || null,
+      thumbnailUrl: artwork.thumbnailUrl || null,
     }));
 
     return {
@@ -161,7 +168,8 @@ export class ArtworksController {
   @ApiResponse({ status: 200, description: 'Artwork retrieved' })
   @ApiResponse({ status: 404, description: 'Artwork not found' })
   async findById(@Param('id') id: string, @Req() req: Request) {
-    const artwork = await this.artworksService.findById(id);
+    const viewer = await this.authService.getOptionalUser(req);
+    const artwork = await this.artworksService.findById(id, viewer?.id);
 
     if (!artwork) {
       return {
@@ -223,6 +231,8 @@ export class ArtworksController {
       tags: string;
       rating: ContentRating;
       isAI: string;
+      visibility?: ArtworkVisibility;
+      requiredTierId?: string;
       metadata?: string; // JSON string: [{ order: 0, caption: '' }, ...]
     },
   ) {
@@ -265,6 +275,8 @@ export class ArtworksController {
       tags,
       rating: body.rating || 'SAFE',
       isAI: body.isAI === 'true',
+      visibility: body.visibility || 'PUBLIC',
+      requiredTierId: body.requiredTierId,
     };
 
     const result = await this.artworksService.create(

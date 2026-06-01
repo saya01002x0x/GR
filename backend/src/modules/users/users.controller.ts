@@ -4,7 +4,7 @@
  * Reference: https://docs.nestjs.com/controllers
  */
 
-import { Controller, Get, Patch, UseGuards, Body } from '@nestjs/common';
+import { Controller, Get, Patch, UseGuards, Body, Param, Query, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -13,13 +13,18 @@ import {
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { ClerkGuard } from '../auth/clerk.guard';
+import { AuthService } from '../auth/auth.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
+import type { Request } from 'express';
 
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * Get current authenticated user
@@ -95,6 +100,56 @@ export class UsersController {
     return {
       message: 'Artists retrieved successfully',
       data: artists,
+    };
+  }
+
+  @Get('artists/:artistId')
+  @ApiOperation({ summary: 'Get public artist detail' })
+  @ApiResponse({ status: 200, description: 'Artist detail retrieved' })
+  async findArtistDetail(@Param('artistId') artistId: string, @Req() req: Request) {
+    const viewer = await this.authService.getOptionalUser(req);
+    const artist = await this.usersService.findPublicArtistDetail(artistId, viewer?.id);
+
+    return {
+      message: 'Artist detail retrieved successfully',
+      data: artist,
+    };
+  }
+
+  @Get('artists/:artistId/artworks')
+  @ApiOperation({ summary: 'Get artist artworks for public detail page' })
+  @ApiResponse({ status: 200, description: 'Artist artworks retrieved' })
+  async findArtistArtworks(
+    @Param('artistId') artistId: string,
+    @Query('filter') filter: string | undefined,
+    @Query('limit') limit: string | undefined,
+    @Query('offset') offset: string | undefined,
+    @Req() req: Request,
+  ) {
+    const viewer = await this.authService.getOptionalUser(req);
+    const parsedFilter = filter && filter !== 'all'
+      ? filter === 'free'
+        ? { visibility: 'free' as const }
+        : { tierId: filter }
+      : { visibility: 'all' as const };
+
+    const result = await this.usersService.findArtistArtworks(
+      artistId,
+      {
+        ...parsedFilter,
+        limit: limit ? Number.parseInt(limit, 10) : 24,
+        offset: offset ? Number.parseInt(offset, 10) : 0,
+      },
+      viewer?.id,
+    );
+
+    return {
+      message: 'Artist artworks retrieved successfully',
+      data: result.artworks,
+      pagination: {
+        total: result.total,
+        hasMore: result.hasMore,
+      },
     };
   }
 }

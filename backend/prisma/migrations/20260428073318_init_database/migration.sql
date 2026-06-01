@@ -1,6 +1,3 @@
-﻿-- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('USER', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN');
 
@@ -25,6 +22,24 @@ CREATE TYPE "AnnouncementType" AS ENUM ('INFO', 'WARNING', 'MAINTENANCE');
 -- CreateEnum
 CREATE TYPE "NotificationType" AS ENUM ('WARNING', 'TEMP_BAN', 'UNBAN', 'SYSTEM', 'LIKE', 'COMMENT', 'FOLLOW');
 
+-- CreateEnum
+CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'CANCELED', 'EXPIRED', 'PAST_DUE');
+
+-- CreateEnum
+CREATE TYPE "PaymentProvider" AS ENUM ('PAYPAL', 'STRIPE');
+
+-- CreateEnum
+CREATE TYPE "PaymentType" AS ENUM ('SUBSCRIPTION', 'TIER_SUBSCRIPTION', 'PAYOUT');
+
+-- CreateEnum
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED');
+
+-- CreateEnum
+CREATE TYPE "InvoiceStatus" AS ENUM ('PAID', 'UNPAID', 'VOID');
+
+-- CreateEnum
+CREATE TYPE "PayoutStatus" AS ENUM ('PENDING', 'APPROVED', 'PAID', 'REJECTED');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -35,6 +50,7 @@ CREATE TABLE "users" (
     "avatar" TEXT,
     "banner" TEXT,
     "bio" TEXT,
+    "stripe_customer_id" TEXT,
     "role" "UserRole" NOT NULL DEFAULT 'USER',
     "is_artist" BOOLEAN NOT NULL DEFAULT false,
     "is_banned" BOOLEAN NOT NULL DEFAULT false,
@@ -242,6 +258,133 @@ CREATE TABLE "notifications" (
     CONSTRAINT "notifications_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "plans" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "price" DECIMAL(10,2) NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'VND',
+    "features" JSONB NOT NULL DEFAULT '[]',
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "sort_order" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "plans_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "subscriptions" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "plan_id" TEXT NOT NULL,
+    "status" "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE',
+    "current_period_end" TIMESTAMP(3),
+    "cancel_at_period_end" BOOLEAN NOT NULL DEFAULT false,
+    "provider" "PaymentProvider" NOT NULL DEFAULT 'PAYPAL',
+    "provider_sub_id" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "subscriptions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "artist_tiers" (
+    "id" TEXT NOT NULL,
+    "artist_id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "price" DECIMAL(10,2) NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'VND',
+    "benefits" JSONB NOT NULL DEFAULT '[]',
+    "max_members" INTEGER,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "artist_tiers_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "tier_subscriptions" (
+    "id" TEXT NOT NULL,
+    "tier_id" TEXT NOT NULL,
+    "subscriber_id" TEXT NOT NULL,
+    "artist_id" TEXT NOT NULL,
+    "status" "SubscriptionStatus" NOT NULL DEFAULT 'ACTIVE',
+    "current_period_end" TIMESTAMP(3),
+    "cancel_at_period_end" BOOLEAN NOT NULL DEFAULT false,
+    "provider" "PaymentProvider" NOT NULL DEFAULT 'PAYPAL',
+    "provider_sub_id" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "tier_subscriptions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "tier_contents" (
+    "id" TEXT NOT NULL,
+    "tier_id" TEXT NOT NULL,
+    "artwork_id" TEXT NOT NULL,
+    "description" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "tier_contents_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "payments" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "provider" "PaymentProvider" NOT NULL,
+    "provider_txn_id" TEXT,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'VND',
+    "type" "PaymentType" NOT NULL,
+    "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "metadata" JSONB DEFAULT '{}',
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "subscription_id" TEXT,
+    "tier_subscription_id" TEXT,
+
+    CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "invoices" (
+    "id" TEXT NOT NULL,
+    "payment_id" TEXT NOT NULL,
+    "items" JSONB NOT NULL DEFAULT '[]',
+    "total" DECIMAL(10,2) NOT NULL,
+    "status" "InvoiceStatus" NOT NULL DEFAULT 'PAID',
+    "pdf_url" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "invoices_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "payouts" (
+    "id" TEXT NOT NULL,
+    "artist_id" TEXT NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "fee" DECIMAL(10,2) NOT NULL DEFAULT 0,
+    "net_amount" DECIMAL(10,2) NOT NULL,
+    "status" "PayoutStatus" NOT NULL DEFAULT 'PENDING',
+    "note" TEXT,
+    "requested_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "approved_at" TIMESTAMP(3),
+    "approved_by" TEXT,
+    "paid_at" TIMESTAMP(3),
+    "rejected_at" TIMESTAMP(3),
+    "rejection_reason" TEXT,
+
+    CONSTRAINT "payouts_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_clerk_id_key" ON "users"("clerk_id");
 
@@ -250,6 +393,9 @@ CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_username_key" ON "users"("username");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_stripe_customer_id_key" ON "users"("stripe_customer_id");
 
 -- CreateIndex
 CREATE INDEX "artworks_author_id_idx" ON "artworks"("author_id");
@@ -316,6 +462,54 @@ CREATE INDEX "notifications_user_id_idx" ON "notifications"("user_id");
 
 -- CreateIndex
 CREATE INDEX "notifications_is_read_idx" ON "notifications"("is_read");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_user_id_idx" ON "subscriptions"("user_id");
+
+-- CreateIndex
+CREATE INDEX "subscriptions_status_idx" ON "subscriptions"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "subscriptions_user_id_key" ON "subscriptions"("user_id");
+
+-- CreateIndex
+CREATE INDEX "artist_tiers_artist_id_idx" ON "artist_tiers"("artist_id");
+
+-- CreateIndex
+CREATE INDEX "tier_subscriptions_tier_id_idx" ON "tier_subscriptions"("tier_id");
+
+-- CreateIndex
+CREATE INDEX "tier_subscriptions_subscriber_id_idx" ON "tier_subscriptions"("subscriber_id");
+
+-- CreateIndex
+CREATE INDEX "tier_subscriptions_artist_id_idx" ON "tier_subscriptions"("artist_id");
+
+-- CreateIndex
+CREATE INDEX "tier_subscriptions_status_idx" ON "tier_subscriptions"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "tier_contents_tier_id_artwork_id_key" ON "tier_contents"("tier_id", "artwork_id");
+
+-- CreateIndex
+CREATE INDEX "payments_user_id_idx" ON "payments"("user_id");
+
+-- CreateIndex
+CREATE INDEX "payments_provider_txn_id_idx" ON "payments"("provider_txn_id");
+
+-- CreateIndex
+CREATE INDEX "payments_status_idx" ON "payments"("status");
+
+-- CreateIndex
+CREATE INDEX "payments_type_idx" ON "payments"("type");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "invoices_payment_id_key" ON "invoices"("payment_id");
+
+-- CreateIndex
+CREATE INDEX "payouts_artist_id_idx" ON "payouts"("artist_id");
+
+-- CreateIndex
+CREATE INDEX "payouts_status_idx" ON "payouts"("status");
 
 -- AddForeignKey
 ALTER TABLE "artworks" ADD CONSTRAINT "artworks_author_id_fkey" FOREIGN KEY ("author_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -386,3 +580,44 @@ ALTER TABLE "user_warnings" ADD CONSTRAINT "user_warnings_artwork_id_fkey" FOREI
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- AddForeignKey
+ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "plans"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "artist_tiers" ADD CONSTRAINT "artist_tiers_artist_id_fkey" FOREIGN KEY ("artist_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tier_subscriptions" ADD CONSTRAINT "tier_subscriptions_tier_id_fkey" FOREIGN KEY ("tier_id") REFERENCES "artist_tiers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tier_subscriptions" ADD CONSTRAINT "tier_subscriptions_subscriber_id_fkey" FOREIGN KEY ("subscriber_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tier_subscriptions" ADD CONSTRAINT "tier_subscriptions_artist_id_fkey" FOREIGN KEY ("artist_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tier_contents" ADD CONSTRAINT "tier_contents_tier_id_fkey" FOREIGN KEY ("tier_id") REFERENCES "artist_tiers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tier_contents" ADD CONSTRAINT "tier_contents_artwork_id_fkey" FOREIGN KEY ("artwork_id") REFERENCES "artworks"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payments" ADD CONSTRAINT "payments_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payments" ADD CONSTRAINT "payments_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "subscriptions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payments" ADD CONSTRAINT "payments_tier_subscription_id_fkey" FOREIGN KEY ("tier_subscription_id") REFERENCES "tier_subscriptions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "invoices" ADD CONSTRAINT "invoices_payment_id_fkey" FOREIGN KEY ("payment_id") REFERENCES "payments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payouts" ADD CONSTRAINT "payouts_artist_id_fkey" FOREIGN KEY ("artist_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "payouts" ADD CONSTRAINT "payouts_approved_by_fkey" FOREIGN KEY ("approved_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -4,9 +4,9 @@
  * Reference: https://docs.nestjs.com/providers
  */
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { User } from '@prisma/client';
+import { ArtworkVisibility, User } from '@prisma/client';
 
 export interface ClerkUserData {
   clerkId: string;
@@ -19,6 +19,29 @@ export interface ClerkUserData {
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private readonly artworkSummaryInclude = {
+    author: {
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatar: true,
+      },
+    },
+    images: {
+      take: 1,
+      orderBy: { order: 'asc' as const },
+    },
+    requiredTier: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        currency: true,
+      },
+    },
+  };
 
   /**
    * Find or Create user by Clerk ID (Lazy Sync)
@@ -88,5 +111,176 @@ export class UsersService {
       },
       take: limit,
     });
+  }
+
+  async findPublicArtistDetail(artistId: string, viewerId?: string | null) {
+    const artist = await this.prisma.user.findFirst({
+      where: { id: artistId, isArtist: true },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatar: true,
+        banner: true,
+        bio: true,
+        createdAt: true,
+        _count: {
+          select: {
+            artworks: true,
+            followers: true,
+          },
+        },
+      },
+    });
+
+    if (!artist) {
+      throw new NotFoundException('Artist not found');
+    }
+
+    const activeTiers = await this.prisma.artistTier.findMany({
+      where: { artistId, isActive: true },
+      orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        _count: {
+          select: { subscriptions: true },
+        },
+      },
+    });
+
+    const activeSubscriptions = viewerId
+      ? await this.prisma.tierSubscription.findMany({
+          where: {
+            subscriberId: viewerId,
+            artistId,
+            status: 'ACTIVE',
+          },
+          select: { tierId: true },
+        })
+      : [];
+
+    const accessibleTierIds = new Set(activeSubscriptions.map(subscription => subscription.tierId));
+    const isOwner = viewerId === artistId;
+
+    const counts = await Promise.all([
+      this.prisma.artwork.count({
+        where: {
+          authorId: artistId,
+          status: 'PUBLISHED',
+          OR: isOwner
+            ? undefined
+            : [
+                { visibility: ArtworkVisibility.PUBLIC },
+                ...(accessibleTierIds.size > 0
+                  ? [{ requiredTierId: { in: Array.from(accessibleTierIds) } }]
+                  : []),
+              ],
+        },
+      }),
+      this.prisma.artwork.count({
+        where: {
+          authorId: artistId,
+          status: 'PUBLISHED',
+          visibility: ArtworkVisibility.PUBLIC,
+        },
+      }),
+      ...activeTiers.map(tier =>
+        this.prisma.artwork.count({
+          where: {
+            authorId: artistId,
+            status: 'PUBLISHED',
+            requiredTierId: tier.id,
+            ...(isOwner ? {} : accessibleTierIds.has(tier.id) ? {} : { id: { equals: '__hidden__' } }),
+          },
+        }),
+      ),
+    ]);
+
+    return {
+      ...artist,
+      isOwner,
+      tiers: activeTiers.map(tier => ({
+        ...tier,
+        memberCount: tier._count.subscriptions,
+      })),
+      accessibleTierIds: Array.from(accessibleTierIds),
+      artworkCounts: {
+        all: counts[0],
+        free: counts[1],
+        tiers: activeTiers.reduce<Record<string, number>>((acc, tier, index) => {
+          acc[tier.id] = counts[index + 2];
+          return acc;
+        }, {}),
+      },
+    };
+  }
+
+  async findArtistArtworks(
+    artistId: string,
+    filter: { visibility?: 'all' | 'free'; tierId?: string | null; limit?: number; offset?: number },
+    viewerId?: string | null,
+  ) {
+    const artist = await this.prisma.user.findFirst({
+      where: { id: artistId, isArtist: true },
+      select: { id: true },
+    });
+
+    if (!artist) {
+      throw new NotFoundException('Artist not found');
+    }
+
+    const isOwner = viewerId === artistId;
+    const activeSubscriptions = !isOwner && viewerId
+      ? await this.prisma.tierSubscription.findMany({
+          where: {
+            subscriberId: viewerId,
+            artistId,
+            status: 'ACTIVE',
+          },
+          select: { tierId: true },
+        })
+      : [];
+
+    const accessibleTierIds = activeSubscriptions.map(subscription => subscription.tierId);
+    const accessWhere = isOwner
+      ? {}
+      : {
+          OR: [
+            { visibility: ArtworkVisibility.PUBLIC },
+            ...(accessibleTierIds.length > 0 ? [{ requiredTierId: { in: accessibleTierIds } }] : []),
+          ],
+        };
+
+    const visibilityWhere = filter.tierId
+      ? { requiredTierId: filter.tierId }
+      : filter.visibility === 'free'
+        ? { visibility: ArtworkVisibility.PUBLIC }
+        : {};
+
+    const where = {
+      authorId: artistId,
+      status: 'PUBLISHED' as const,
+      ...accessWhere,
+      ...visibilityWhere,
+    };
+
+    const limit = filter.limit ?? 24;
+    const offset = filter.offset ?? 0;
+
+    const [artworks, total] = await Promise.all([
+      this.prisma.artwork.findMany({
+        where,
+        include: this.artworkSummaryInclude,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+      }),
+      this.prisma.artwork.count({ where }),
+    ]);
+
+    return {
+      artworks,
+      total,
+      hasMore: offset + artworks.length < total,
+    };
   }
 }

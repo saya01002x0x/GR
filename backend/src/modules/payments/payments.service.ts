@@ -223,6 +223,8 @@ export class PaymentsService {
     benefits?: string[];
     maxMembers?: number;
   }) {
+    this.validateTierPrice(data.price);
+
     return this.prisma.artistTier.create({
       data: {
         ...data,
@@ -244,6 +246,9 @@ export class PaymentsService {
     const tier = await this.prisma.artistTier.findUnique({ where: { id: tierId } });
     if (!tier) throw new NotFoundException('Tier not found');
     if (tier.artistId !== artistId) throw new BadRequestException('Not your tier');
+    if (typeof data.price === 'number') {
+      this.validateTierPrice(data.price);
+    }
 
     return this.prisma.artistTier.update({
       where: { id: tierId },
@@ -265,10 +270,21 @@ export class PaymentsService {
   async getPublicArtistTiers(artistId: string) {
     return this.prisma.artistTier.findMany({
       where: { artistId, isActive: true },
+      orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
       include: {
         _count: { select: { subscriptions: true } },
       },
     });
+  }
+
+  private validateTierPrice(price: number) {
+    if (!Number.isFinite(price) || price <= 0) {
+      throw new BadRequestException('Tier price must be greater than 0');
+    }
+
+    if (price > 1000) {
+      throw new BadRequestException('Tier price cannot exceed 1000');
+    }
   }
 
   async createTierCheckout(

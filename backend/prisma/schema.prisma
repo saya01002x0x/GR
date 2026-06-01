@@ -66,12 +66,15 @@ model Artwork {
   ratioClass    String?        @map("ratio_class")
   maxResolution Int?           @map("max_resolution")
   isHighRes     Boolean        @default(false) @map("is_high_res")
+  visibility    ArtworkVisibility @default(PUBLIC) @map("visibility")
+  requiredTierId String?       @map("required_tier_id")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   authorId      String         @map("author_id")
   images       ArtworkImage[]
   tags         ArtworkTag[]
   author       User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  requiredTier ArtistTier?    @relation("ArtworkRequiredTier", fields: [requiredTierId], references: [id], onDelete: SetNull)
   bookmarks    Bookmark[]
   comments     Comment[]
   likes        Like[]
@@ -80,6 +83,7 @@ model Artwork {
   warnings     UserWarning[]
 
   @@index([authorId])
+  @@index([requiredTierId])
   @@index([status])
   @@index([rating])
   @@index([createdAt])
@@ -221,6 +225,11 @@ enum ContentRating {
   SAFE
   R18
   R18G
+}
+
+enum ArtworkVisibility {
+  PUBLIC
+  TIER_GATED
 }
 
 model Report {
@@ -404,6 +413,7 @@ model ArtistTier {
   artist       User             @relation(fields: [artistId], references: [id], onDelete: Cascade)
   subscriptions TierSubscription[]
   contents     TierContent[]
+  gatedArtworks Artwork[]       @relation("ArtworkRequiredTier")
 
   @@index([artistId])
   @@map("artist_tiers")

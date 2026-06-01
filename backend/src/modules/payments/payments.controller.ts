@@ -162,6 +162,12 @@ export class PaymentsController {
     return this.payments.getMyTierSubscriptions(user.id);
   }
 
+  @Get('tiers/artist/:artistId')
+  @ApiOperation({ summary: 'Get active public tiers for an artist' })
+  getArtistPublicTiers(@Param('artistId') artistId: string) {
+    return this.payments.getPublicArtistTiers(artistId);
+  }
+
   @Post('tiers/:tierId/subscribe')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Subscribe to a tier' })
