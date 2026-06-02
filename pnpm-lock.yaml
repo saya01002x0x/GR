@@ -442,9 +442,6 @@ importers:
 
   packages/shared:
     dependencies:
-      '@gr/shared':
-        specifier: workspace:*
-        version: 'link:'
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1

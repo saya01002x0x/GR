@@ -7,7 +7,9 @@
   "scripts": {
     "dev:spotlight": "npx @spotlightjs/spotlight",
     "dev:next": "next dev -p 5146",
+    "predev": "pnpm -w --filter @gr/shared build",
     "dev": "npm-run-all --parallel dev:*",
+    "prebuild": "pnpm -w --filter @gr/shared build",
     "build": "next build",
     "start": "next start",
     "build-stats": "cross-env ANALYZE=true npm run build",
