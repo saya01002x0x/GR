@@ -30,6 +30,9 @@ export const E = {
   users: {
     me: () => '/users/me',
     artists: () => '/users/artists',
+    artistDetail: (identifier: string) => `/users/artists/${identifier}`,
+    artistArtworks: (identifier: string, limit: number, offset: number, filter?: string) =>
+      `/users/artists/${identifier}/artworks?limit=${limit}&offset=${offset}${filter ? `&filter=${filter}` : ''}`,
   },
 
   notifications: {

@@ -31,3 +31,25 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
   });
   ```
 - **Ứng dụng:** Dùng trong `useMyArtworks` hook để tự động poll mỗi 5s khi có artwork đang được queue xử lý (PROCESSING). Khi tất cả artwork đã PUBLISHED, polling tự dừng.
+
+---
+
+#### Server Components Data Fetching với auth() (Clerk)
+- **Là gì:** Pattern fetch dữ liệu an toàn trên Server trong Next.js (App Router), kết hợp với `@clerk/nextjs/server` để lấy token của người dùng hiện tại (nếu có đăng nhập).
+- **Cách dùng:**
+  ```tsx
+  import { auth } from '@clerk/nextjs/server';
+  
+  export default async function Page() {
+    const { getToken } = await auth();
+    const token = await getToken();
+    
+    const res = await fetch('api_url', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      cache: 'no-store', // Không cache kết quả nếu dữ liệu thay đổi thường xuyên
+    });
+    const data = await res.json();
+    return <div>{data.name}</div>;
+  }
+  ```
+- **Ứng dụng:** Dùng ở trang `ArtistProfilePage` để fetch chi tiết của Artist ngay trên server, tối ưu SEO và bảo mật do không lộ logic fetch API ở client. Kết hợp `Authorization` header để backend biết ai đang xem profile (phục vụ hiển thị private artwork nếu đã subscribe).

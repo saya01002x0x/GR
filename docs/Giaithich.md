@@ -105,3 +105,18 @@ Sau khi upload thành công, artist được redirect đến `/dashboard/works` 
 - **Tại sao trả full Prisma object thay vì sửa frontend đọc flat field?** → Giữ response shape nhất quán với các endpoint khác (`findAll`, `findById`) đều trả `images[]`. Frontend components có thể tái sử dụng cùng type definition.
 - **Tại sao dùng `refetchInterval` function thay vì fixed interval?** → Chỉ poll khi cần (có artwork PROCESSING). Khi tất cả artwork đã PUBLISHED, tự động dừng poll → tiết kiệm bandwidth và server load.
 - **Tại sao 5 giây?** → Cân bằng giữa UX (không chờ quá lâu) và server load. Queue processing thường mất 10-30s cho NSFW AI check + image resize + upload.
+
+---
+
+### [02/06] - Thay thế Mock Data bằng Real Data cho Artist Detail Page
+
+**Logic:**
+Trang Artist Detail (`/artists/[username]`) được cập nhật để sử dụng dữ liệu thật từ Backend thay cho Mock Data:
+1. **Server Component Fetching:** Lấy thông tin chung của Artist (tên, avatar, bio, stats) trực tiếp trên Server thông qua `fetch` và `auth()` của Clerk.
+2. **Client-side Fetching (Infinite Query):** Danh sách các Artworks của Artist được chuyển xuống Client Component (`ArtworkGallery`) sử dụng `useInfiniteQuery` để hỗ trợ tính năng "Load more" và lọc theo Tier/Visibility.
+3. Cập nhật Backend để hỗ trợ tìm kiếm Artist theo cả `id` hoặc `username` (sử dụng parameter `identifier`).
+
+**Decision:**
+- **Tại sao lại dùng Identifier trên Backend?** → Thay vì tạo thêm endpoint mới cho Username hoặc ép Frontend gọi theo ID, việc cho phép Backend lookup theo cả hai (`OR: [{ id }, { username }]`) giúp tối giản số lượng endpoint mà vẫn đáp ứng được nhu cầu routing của Frontend (`/[username]`).
+- **Tại sao kết hợp Server & Client Fetching?** → Server fetching cho profile giúp SEO tốt hơn và giảm thời gian hiển thị nội dung chính. Tuy nhiên, Artwork gallery cần tính tương tác cao (chuyển tab, phân trang) nên bắt buộc phải xử lý ở Client. Đây là mô hình Hybrid lý tưởng trong Next.js.
+- **Xử lý các trường Mock chưa có ở Backend (Badges, Socials):** Tạm thời comment/ẩn các tính năng này để tránh rườm rà trong database, đợi khi có schema chính thức sẽ mở lại.

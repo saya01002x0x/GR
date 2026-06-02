@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { MantineColorSchemeScript } from '@/libs/MantineProvider';
+import Script from 'next/script';
 import { AppConfig } from '@/utils/AppConfig';
 import '@/styles/global.css';
 
@@ -33,8 +33,19 @@ export default function RootLayout(props: {
 }) {
   return (
     <html lang={AppConfig.defaultLocale} suppressHydrationWarning>
-      <head>
-        <MantineColorSchemeScript />
+      <head suppressHydrationWarning>
+        <Script
+          id="mantine-color-scheme"
+          data-mantine-script
+          strategy="beforeInteractive"
+        >
+          {`try {
+  var _colorScheme = window.localStorage.getItem("mantine-color-scheme-value");
+  var colorScheme = _colorScheme === "light" || _colorScheme === "dark" || _colorScheme === "auto" ? _colorScheme : "auto";
+  var computedColorScheme = colorScheme !== "auto" ? colorScheme : window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.setAttribute("data-mantine-color-scheme", computedColorScheme);
+} catch (e) {}`}
+        </Script>
       </head>
       <body suppressHydrationWarning>
         {props.children}

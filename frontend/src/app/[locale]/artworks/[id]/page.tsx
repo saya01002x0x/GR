@@ -31,6 +31,7 @@ function transformArtworkForSidebar(artwork: APIArtworkDetail) {
     artist: {
       id: artwork.author.id,
       name: artwork.author.displayName || artwork.author.username,
+      username: artwork.author.username,
       avatar: artwork.author.avatar || '',
       role: 'Artist',
     },

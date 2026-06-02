@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Users Controller
  * Handle user-related endpoints
  * Reference: https://docs.nestjs.com/controllers
@@ -103,12 +103,12 @@ export class UsersController {
     };
   }
 
-  @Get('artists/:artistId')
+  @Get('artists/:identifier')
   @ApiOperation({ summary: 'Get public artist detail' })
   @ApiResponse({ status: 200, description: 'Artist detail retrieved' })
-  async findArtistDetail(@Param('artistId') artistId: string, @Req() req: Request) {
+  async findArtistDetail(@Param('identifier') identifier: string, @Req() req: Request) {
     const viewer = await this.authService.getOptionalUser(req);
-    const artist = await this.usersService.findPublicArtistDetail(artistId, viewer?.id);
+    const artist = await this.usersService.findPublicArtistDetail(identifier, viewer?.id);
 
     return {
       message: 'Artist detail retrieved successfully',
@@ -116,11 +116,11 @@ export class UsersController {
     };
   }
 
-  @Get('artists/:artistId/artworks')
+  @Get('artists/:identifier/artworks')
   @ApiOperation({ summary: 'Get artist artworks for public detail page' })
   @ApiResponse({ status: 200, description: 'Artist artworks retrieved' })
   async findArtistArtworks(
-    @Param('artistId') artistId: string,
+    @Param('identifier') identifier: string,
     @Query('filter') filter: string | undefined,
     @Query('limit') limit: string | undefined,
     @Query('offset') offset: string | undefined,
@@ -134,7 +134,7 @@ export class UsersController {
       : { visibility: 'all' as const };
 
     const result = await this.usersService.findArtistArtworks(
-      artistId,
+      identifier,
       {
         ...parsedFilter,
         limit: limit ? Number.parseInt(limit, 10) : 24,

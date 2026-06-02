@@ -1,7 +1,8 @@
-import { Box, Flex } from '@mantine/core';
+import { auth } from '@clerk/nextjs/server';
+import { Box, Flex, Text } from '@mantine/core';
 import { setRequestLocale } from 'next-intl/server';
+import { notFound } from 'next/navigation';
 import { ArtworkGallery, ProfileSidebar } from '@/components/artist';
-import { mockArtist } from '@/mocks/artistData';
 
 // Cover Image Component
 function CoverImage({ src }: { src: string }) {
@@ -22,7 +23,7 @@ function CoverImage({ src }: { src: string }) {
         right={0}
         bottom={0}
         style={{
-          backgroundImage: `url(${src})`,
+          backgroundImage: src ? `url(${src})` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -48,14 +49,28 @@ export default async function ArtistProfilePage(props: {
   const { locale, username: _username } = await props.params;
   setRequestLocale(locale);
 
-  // In real app, fetch artist data by username
-  // For now, use mock data
-  const artist = mockArtist;
+  const { getToken } = await auth();
+  const token = await getToken();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+
+  const res = await fetch(`${apiUrl}/users/artists/${_username}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    cache: 'no-store', // Always fetch latest profile data
+  });
+
+  if (!res.ok) {
+    if (res.status === 404) {
+      return notFound();
+    }
+    return <Text c="red" p="xl">Failed to load artist profile</Text>;
+  }
+
+  const { data: artist } = await res.json();
 
   return (
     <>
       {/* Cover Image */}
-      <CoverImage src={artist.coverImage} />
+      <CoverImage src={artist.banner} />
 
       {/* Main Content */}
       <Box px={{ base: 'md', md: 'xl' }}>

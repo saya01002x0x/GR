@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Users Service
  * Handle user operations including Lazy Sync with Clerk
  * Reference: https://docs.nestjs.com/providers
@@ -113,9 +113,12 @@ export class UsersService {
     });
   }
 
-  async findPublicArtistDetail(artistId: string, viewerId?: string | null) {
+  async findPublicArtistDetail(identifier: string, viewerId?: string | null) {
     const artist = await this.prisma.user.findFirst({
-      where: { id: artistId, isArtist: true },
+      where: { 
+        OR: [{ id: identifier }, { username: identifier }],
+        isArtist: true 
+      },
       select: {
         id: true,
         username: true,
@@ -138,7 +141,7 @@ export class UsersService {
     }
 
     const activeTiers = await this.prisma.artistTier.findMany({
-      where: { artistId, isActive: true },
+      where: { artistId: artist.id, isActive: true },
       orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
       include: {
         _count: {
@@ -151,7 +154,7 @@ export class UsersService {
       ? await this.prisma.tierSubscription.findMany({
           where: {
             subscriberId: viewerId,
-            artistId,
+            artistId: artist.id,
             status: 'ACTIVE',
           },
           select: { tierId: true },
@@ -159,12 +162,12 @@ export class UsersService {
       : [];
 
     const accessibleTierIds = new Set(activeSubscriptions.map(subscription => subscription.tierId));
-    const isOwner = viewerId === artistId;
+    const isOwner = viewerId === artist.id;
 
     const counts = await Promise.all([
       this.prisma.artwork.count({
         where: {
-          authorId: artistId,
+          authorId: artist.id,
           status: 'PUBLISHED',
           OR: isOwner
             ? undefined
@@ -178,7 +181,7 @@ export class UsersService {
       }),
       this.prisma.artwork.count({
         where: {
-          authorId: artistId,
+          authorId: artist.id,
           status: 'PUBLISHED',
           visibility: ArtworkVisibility.PUBLIC,
         },
@@ -186,7 +189,7 @@ export class UsersService {
       ...activeTiers.map(tier =>
         this.prisma.artwork.count({
           where: {
-            authorId: artistId,
+            authorId: artist.id,
             status: 'PUBLISHED',
             requiredTierId: tier.id,
             ...(isOwner ? {} : accessibleTierIds.has(tier.id) ? {} : { id: { equals: '__hidden__' } }),
@@ -215,12 +218,15 @@ export class UsersService {
   }
 
   async findArtistArtworks(
-    artistId: string,
+    identifier: string,
     filter: { visibility?: 'all' | 'free'; tierId?: string | null; limit?: number; offset?: number },
     viewerId?: string | null,
   ) {
     const artist = await this.prisma.user.findFirst({
-      where: { id: artistId, isArtist: true },
+      where: { 
+        OR: [{ id: identifier }, { username: identifier }],
+        isArtist: true 
+      },
       select: { id: true },
     });
 
@@ -228,12 +234,12 @@ export class UsersService {
       throw new NotFoundException('Artist not found');
     }
 
-    const isOwner = viewerId === artistId;
+    const isOwner = viewerId === artist.id;
     const activeSubscriptions = !isOwner && viewerId
       ? await this.prisma.tierSubscription.findMany({
           where: {
             subscriberId: viewerId,
-            artistId,
+            artistId: artist.id,
             status: 'ACTIVE',
           },
           select: { tierId: true },
@@ -257,7 +263,7 @@ export class UsersService {
         : {};
 
     const where = {
-      authorId: artistId,
+      authorId: artist.id,
       status: 'PUBLISHED' as const,
       ...accessWhere,
       ...visibilityWhere,

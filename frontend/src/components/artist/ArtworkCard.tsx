@@ -1,8 +1,7 @@
 'use client';
 
-import type { Artwork } from '@/mocks/artistData';
+import type { ArtworkListItem } from '@/types/artwork';
 import {
-  Badge,
   Box,
   Group,
   Image,
@@ -13,7 +12,7 @@ import { IconHeart } from '@tabler/icons-react';
 import { formatNumber } from '@/mocks/artistData';
 
 type ArtworkCardProps = {
-  artwork: Artwork;
+  artwork: ArtworkListItem;
 };
 
 export function ArtworkCard({ artwork }: ArtworkCardProps) {
@@ -32,12 +31,13 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
     >
       {/* Artwork Image */}
       <Image
-        src={artwork.image}
+        src={artwork.images?.[0]?.thumbnailUrl || artwork.images?.[0]?.url}
         alt={artwork.title}
         radius="md"
       />
 
       {/* WIP Badge */}
+      {/*
       {artwork.isWip && (
         <Badge
           pos="absolute"
@@ -56,6 +56,7 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
           WIP
         </Badge>
       )}
+      */}
 
       {/* Hover Overlay */}
       <Box
@@ -79,12 +80,12 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
         </Text>
         <Group gap={4} mt={4}>
           <Text size="xs" c="gray.4">
-            {artwork.timeAgo}
+            {new Date(artwork.createdAt).toLocaleDateString()}
           </Text>
           <Box flex={1} />
           <IconHeart size={12} color="white" />
           <Text size="xs" c="white" fw={700}>
-            {formatNumber(artwork.likes)}
+            {formatNumber(0 /* artwork.likeCount */)}
           </Text>
         </Group>
       </Box>
