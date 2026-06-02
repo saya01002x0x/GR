@@ -143,18 +143,9 @@ export class ArtworksController {
   async getMyArtworks(@CurrentUser() user: User) {
     const artworks = await this.artworksService.findByUserId(user.id);
 
-    // Transform artworks to include thumbnailUrl for frontend
-    const transformedArtworks = artworks.map((artwork) => ({
-      id: artwork.id,
-      title: artwork.title,
-      status: artwork.status,
-      createdAt: artwork.createdAt,
-      thumbnailUrl: artwork.thumbnailUrl || null,
-    }));
-
     return {
       message: 'My artworks',
-      data: transformedArtworks,
+      data: artworks,
     };
   }
 
@@ -209,12 +200,16 @@ export class ArtworksController {
           'image/png',
           'image/gif',
           'image/webp',
+          'image/avif',
+          'image/heic',
+          'image/heif',
+          'image/svg+xml',
         ];
         if (allowedMimes.includes(file.mimetype)) {
           cb(null, true);
         } else {
           cb(
-            new Error('Invalid file type. Only JPG, PNG, GIF, WebP allowed.'),
+            new Error('Invalid file type. Only JPG, PNG, GIF, WebP, AVIF, HEIC, HEIF, SVG allowed.'),
             false,
           );
         }

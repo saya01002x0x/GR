@@ -1,9 +1,11 @@
 'use client';
 
 import {
+  Badge,
   Box,
   Container,
   Group,
+  Loader,
   Paper,
   SimpleGrid,
   Skeleton,
@@ -11,7 +13,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { IconPhoto, IconPlus } from '@tabler/icons-react';
+import { IconAlertTriangle, IconClock, IconPhoto, IconPlus } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useMyArtworks } from '@/api/hooks';
 
@@ -83,19 +85,9 @@ export default function DashboardWorksPage() {
                 {list.map(artwork => (
                   <Paper key={artwork.id} withBorder radius="md" p="md">
                     <Stack gap="sm">
-                      {artwork.images?.[0]?.thumbnailUrl
+                      {/* Image thumbnail or status placeholder */}
+                      {artwork.status === 'PROCESSING'
                         ? (
-                            <Box
-                              h={150}
-                              style={{
-                                backgroundImage: `url(${artwork.images[0].thumbnailUrl})`,
-                                backgroundSize: 'cover',
-                                backgroundPosition: 'center',
-                                borderRadius: 'var(--mantine-radius-md)',
-                              }}
-                            />
-                          )
-                        : (
                             <Box
                               h={150}
                               bg="gray.1"
@@ -104,14 +96,96 @@ export default function DashboardWorksPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
+                                flexDirection: 'column',
+                                gap: 8,
                               }}
                             >
-                              <IconPhoto size={32} color="var(--mantine-color-dimmed)" />
+                              <Loader size="sm" />
+                              <Text size="xs" c="dimmed" fw={500}>
+                                Processing...
+                              </Text>
                             </Box>
-                          )}
-                      <Text fw={600} lineClamp={1}>
-                        {artwork.title}
-                      </Text>
+                          )
+                        : artwork.status === 'FAILED'
+                          ? (
+                              <Box
+                                h={150}
+                                bg="red.0"
+                                style={{
+                                  borderRadius: 'var(--mantine-radius-md)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexDirection: 'column',
+                                  gap: 8,
+                                }}
+                              >
+                                <IconAlertTriangle size={28} color="var(--mantine-color-red-6)" />
+                                <Text size="xs" c="red" fw={500}>
+                                  Processing failed
+                                </Text>
+                              </Box>
+                            )
+                          : artwork.images?.[0]?.thumbnailUrl
+                            ? (
+                                <Link href={`/artworks/${artwork.id}`}>
+                                  <Box
+                                    h={150}
+                                    style={{
+                                      backgroundImage: `url(${artwork.images[0].thumbnailUrl})`,
+                                      backgroundSize: 'cover',
+                                      backgroundPosition: 'center',
+                                      borderRadius: 'var(--mantine-radius-md)',
+                                      cursor: 'pointer',
+                                    }}
+                                  />
+                                </Link>
+                              )
+                            : (
+                                <Link href={`/artworks/${artwork.id}`}>
+                                  <Box
+                                    h={150}
+                                    bg="gray.1"
+                                    style={{
+                                      borderRadius: 'var(--mantine-radius-md)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    <IconPhoto size={32} color="var(--mantine-color-dimmed)" />
+                                  </Box>
+                                </Link>
+                              )}
+
+                      {/* Title + status badge */}
+                      <Group gap="xs" justify="space-between" wrap="nowrap">
+                        <Text fw={600} lineClamp={1} style={{ flex: 1 }}>
+                          {artwork.title}
+                        </Text>
+                        {artwork.status === 'PROCESSING' && (
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            color="yellow"
+                            leftSection={<IconClock size={10} />}
+                          >
+                            Processing
+                          </Badge>
+                        )}
+                        {artwork.status === 'FAILED' && (
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            color="red"
+                            leftSection={<IconAlertTriangle size={10} />}
+                          >
+                            Failed
+                          </Badge>
+                        )}
+                      </Group>
+
                       <Text size="xs" c="dimmed">
                         {new Date(artwork.createdAt).toLocaleDateString()}
                       </Text>

@@ -47,3 +47,61 @@ Nâng cấp hạ tầng để hệ thống ready cho production test với load 
 - **Tại sao dùng Interceptor cho Audit Log?** → Tách biệt Business Logic và Audit Logic(AOP - Aspect Oriented Programming). Controller không cần biết nó đang bị log. Code dễ đọc và sạch sẽ hơn.
 - **Tại sao gõ SentryFilter tự tuỳ biến thay vì setupNestErrorHandler của Sentry?** → Vấn đề khác biệt phiên bản Sentry v8/v9 với NestJS adapter làm code dễ hỏng. Wrapper tùy chỉnh mỏng và ổn định.
 - **Tại sao quy hoạch Lefthook ở Root?** → Trong kiểu dự án Monorepo/Workspace, kỉ luật code (lint, commit rule, hook) phải được áp dụng đồng bộ ở thư mục root chứ không nên phân mảnh mỗi sub-folder một cấu hình riêng.
+
+---
+
+### [02/06] - Fix Artist Tiers API Response Format
+
+**Logic:**
+Backend controller trả kết quả Prisma trực tiếp (raw array/object) cho các endpoint Artist Tier (`GET/POST/PATCH/DELETE /payments/tiers/me`). Frontend (React Query + apiClient) kỳ vọng response có dạng `{ message: string, data: T }`. Khi frontend truy cập `tiersData.data`, nó nhận được raw array thay vì wrapper object → `.data` trên array = `undefined` → tiers luôn rỗng.
+
+**Decision:**
+- **Tại sao wrap response ở Controller thay vì Service?** → Service nên trả raw data (SRP - Single Responsibility). Controller là lớp chịu trách nhiệm format HTTP response. Giữ cho Service có thể tái sử dụng bởi các consumer khác (webhook, cron, ...) mà không bị ràng buộc format.
+- **Tại sao không dùng global interceptor wrap response?** → Dự án đã có nhiều endpoint trả response trực tiếp (không wrap). Dùng interceptor global sẽ double-wrap. Fix từng controller method an toàn hơn.
+
+---
+
+### [02/06] - Artwork Tier Visibility UI
+
+**Logic:**
+Bổ sung tính năng cho phép Artist chọn Tier khi upload Artwork. 
+- Mặc định ảnh được thiết lập ở chế độ `PUBLIC`.
+- Khi chọn `TIER_GATED`, một danh sách xổ xuống (`Select` component) sẽ hiện ra chứa các Tier hiện có của Artist, bắt buộc phải chọn 1 Tier (`requiredTierId`).
+- Các trường này được nối thêm vào `FormData` trong quá trình submit và được xử lý lưu vào Database bởi backend controller (`artworks.controller.ts`).
+
+**Decision:**
+- **Tại sao dùng Collapse thay vì render Select trực tiếp bên cạnh Radio?** → Để giữ giao diện Upload được gọn gàng. Chỉ khi người dùng bấm vào "Tier Gated" thì form mới mở rộng để chọn tier, làm UI trở nên sạch sẽ và tránh làm rối mắt các Artist chỉ đăng ảnh miễn phí.
+- **Tại sao Fetch Tiers trong Component Upload?** → Sử dụng custom hook `useMyTiers` đã có sẵn (dựa trên React Query) giúp tự động quản lý cache, deduplicate requests và fetch danh sách tier mới nhất cho form mà không tốn công setup lại API call.
+
+---
+
+### [02/06] - Fix Upload 500: MIME Type Mismatch giữa Frontend và Backend
+
+**Logic:**
+Frontend sử dụng `IMAGE_MIME_TYPE` của Mantine Dropzone cho phép 8 loại ảnh: `jpeg, png, gif, webp, avif, heic, heif, svg+xml`. Tuy nhiên, backend Multer `fileFilter` chỉ chấp nhận 4 loại: `jpeg, png, gif, webp`. Khi người dùng upload file AVIF/HEIC (đặc biệt phổ biến trên iPhone) hoặc SVG, frontend chấp nhận nhưng backend reject → trả 500 Internal Server Error.
+
+**Decision:**
+- **Tại sao sửa ở backend thay vì giới hạn frontend?** → AVIF và HEIC là format ảnh hiện đại, tiết kiệm dung lượng, và là format mặc định của iPhone/macOS. Chặn chúng ở frontend sẽ làm UX tệ đi cho người dùng Apple. Mở rộng whitelist backend là cách tiếp cận bao trùm hơn.
+- **Tại sao luôn giữ frontend và backend filter đồng bộ?** → Nếu 2 danh sách lệch nhau, người dùng sẽ thấy Dropzone chấp nhận file (không báo lỗi) nhưng khi submit thì server trả lỗi → trải nghiệm rất khó hiểu và frustrating.
+
+---
+
+### [02/06] - Fix Images Not Displaying on Dashboard Works (Data Shape Mismatch + Queue Race Condition)
+
+**Logic:**
+Sau khi upload thành công, artist được redirect đến `/dashboard/works` nhưng ảnh không hiển thị. Có 2 nguyên nhân:
+
+1. **Data Shape Mismatch:** Frontend (`works/page.tsx`) truy cập `artwork.images?.[0]?.thumbnailUrl` — mong đợi mảng `images` lồng bên trong artwork. Nhưng backend `findByUserId()` trả về flat object `{ id, title, thumbnailUrl }` (không có mảng `images`). Kết quả: `artwork.images` luôn `undefined` → luôn hiện placeholder.
+
+2. **Queue Race Condition:** Backend tạo artwork với `status: 'PROCESSING'` và trả response ngay. Queue (BullMQ) xử lý ảnh bất đồng bộ (NSFW check, watermark, thumbnail generation). Khi frontend fetch ngay lập tức, artwork chưa có `ArtworkImage` records trong DB → ảnh trống.
+
+**Fix:**
+- Backend `findByUserId()`: Bỏ flatten, trả full Prisma object kèm `images[]` array.
+- Backend Controller: Bỏ transform layer, pass through data trực tiếp.
+- Frontend `useMyArtworks()`: Thêm `refetchInterval` dạng function — tự động poll mỗi 5s nếu có artwork đang `PROCESSING`.
+- Frontend `works/page.tsx`: Thêm UI trạng thái cho `PROCESSING` (Loader + badge) và `FAILED` (icon cảnh báo + badge đỏ).
+
+**Decision:**
+- **Tại sao trả full Prisma object thay vì sửa frontend đọc flat field?** → Giữ response shape nhất quán với các endpoint khác (`findAll`, `findById`) đều trả `images[]`. Frontend components có thể tái sử dụng cùng type definition.
+- **Tại sao dùng `refetchInterval` function thay vì fixed interval?** → Chỉ poll khi cần (có artwork PROCESSING). Khi tất cả artwork đã PUBLISHED, tự động dừng poll → tiết kiệm bandwidth và server load.
+- **Tại sao 5 giây?** → Cân bằng giữa UX (không chờ quá lâu) và server load. Queue processing thường mất 10-30s cho NSFW AI check + image resize + upload.

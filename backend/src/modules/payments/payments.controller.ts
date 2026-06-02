@@ -109,25 +109,27 @@ export class PaymentsController {
 
   @Get('tiers/me')
   @ApiOperation({ summary: 'Get my (artist) tiers' })
-  getMyTiers(@CurrentUser() user: User) {
-    return this.payments.getMyTiers(user.id);
+  async getMyTiers(@CurrentUser() user: User) {
+    const data = await this.payments.getMyTiers(user.id);
+    return { message: 'OK', data };
   }
 
   @Post('tiers/me')
   @ApiOperation({ summary: 'Create a new tier' })
-  createTier(
+  async createTier(
     @CurrentUser() user: User,
     @Body() body: { name: string; description?: string; price: number; currency?: string; benefits?: string[]; maxMembers?: number },
   ) {
     if (!user.isArtist) {
       return { message: 'Only artists can create tiers', data: null };
     }
-    return this.payments.createTier(user.id, body);
+    const data = await this.payments.createTier(user.id, body);
+    return { message: 'Tier created', data };
   }
 
   @Patch('tiers/me/:tierId')
   @ApiOperation({ summary: 'Update my tier' })
-  updateTier(
+  async updateTier(
     @CurrentUser() user: User,
     @Param('tierId') tierId: string,
     @Body() body: { name?: string; description?: string; price?: number; benefits?: string[]; maxMembers?: number; isActive?: boolean },
@@ -135,25 +137,28 @@ export class PaymentsController {
     if (!user.isArtist) {
       return { message: 'Only artists can update tiers', data: null };
     }
-    return this.payments.updateTier(tierId, user.id, body);
+    const data = await this.payments.updateTier(tierId, user.id, body);
+    return { message: 'Tier updated', data };
   }
 
   @Delete('tiers/me/:tierId')
   @ApiOperation({ summary: 'Delete (deactivate) my tier' })
-  deleteTier(@CurrentUser() user: User, @Param('tierId') tierId: string) {
+  async deleteTier(@CurrentUser() user: User, @Param('tierId') tierId: string) {
     if (!user.isArtist) {
       return { message: 'Only artists can delete tiers', data: null };
     }
-    return this.payments.deleteTier(tierId, user.id);
+    await this.payments.deleteTier(tierId, user.id);
+    return { message: 'Tier deleted' };
   }
 
   @Get('tiers/me/subscribers')
   @ApiOperation({ summary: 'Get my tier subscribers' })
-  getArtistSubscribers(@CurrentUser() user: User) {
+  async getArtistSubscribers(@CurrentUser() user: User) {
     if (!user.isArtist) {
       return { message: 'Only artists can view subscribers', data: null };
     }
-    return this.payments.getArtistTierSubscribers(user.id);
+    const data = await this.payments.getArtistTierSubscribers(user.id);
+    return { message: 'OK', data };
   }
 
   @Get('tiers/subscribed')

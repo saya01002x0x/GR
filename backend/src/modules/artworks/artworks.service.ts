@@ -412,7 +412,7 @@ export class ArtworksService {
    * Get artworks by user ID
    */
   async findByUserId(userId: string) {
-    const artworks = await this.prisma.artwork.findMany({
+    return this.prisma.artwork.findMany({
       where: { authorId: userId },
       include: {
         images: {
@@ -420,15 +420,8 @@ export class ArtworksService {
           orderBy: { order: 'asc' },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
-
-    return artworks.map(artwork => ({
-      id: artwork.id,
-      title: artwork.title,
-      status: artwork.status,
-      createdAt: artwork.createdAt,
-      thumbnailUrl: artwork.images[0]?.thumbnailUrl || null,
-    }));
   }
 
   /**

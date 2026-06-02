@@ -105,5 +105,13 @@ export function useMyArtworks() {
     queryFn: () => apiClient.get<ArtworksListResponse>(E.artworks.byUser()),
     enabled: !!isSignedIn,
     select: res => res.data,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      // Auto-poll every 5s if any artwork is still being processed by the queue
+      if (Array.isArray(data) && data.some((a: any) => a.status === 'PROCESSING')) {
+        return 5000;
+      }
+      return false;
+    },
   });
 }
