@@ -60,6 +60,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
       const processedImages: {
         url: string;
         thumbnailUrl: string;
+        blurredUrl: string;
         width: number;
         height: number;
         aspectRatio: number;
@@ -132,12 +133,13 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         }
 
         // Sharp Processing
-        const [processed, thumbnail] = await Promise.all([
+        const [processed, thumbnail, blurred] = await Promise.all([
           this.storageService.processImage(imageBuffer, {
             maxWidth: 1920,
             quality: 85,
           }),
           this.storageService.createThumbnail(imageBuffer, 400),
+          this.storageService.createBlurredImage(imageBuffer, 400, 30),
         ]);
 
         // Generate paths
@@ -151,11 +153,17 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
           artworkId,
           `thumb_${i}`,
         );
+        const blurPath = this.storageService.generateArtworkPath(
+          userId,
+          artworkId,
+          `blur_${i}`,
+        );
 
         // Upload Optimized
-        const [previewUrl, thumbUrl] = await Promise.all([
+        const [previewUrl, thumbUrl, blurUrl] = await Promise.all([
           this.storageService.uploadFile(processed.buffer, previewPath),
           this.storageService.uploadFile(thumbnail, thumbPath),
+          this.storageService.uploadFile(blurred, blurPath),
         ]);
 
         // Delete Raw File (Cleanup)
@@ -164,6 +172,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         processedImages.push({
           url: previewUrl,
           thumbnailUrl: thumbUrl,
+          blurredUrl: blurUrl,
           width: processed.metadata.width,
           height: processed.metadata.height,
           aspectRatio: processed.metadata.aspectRatio,
@@ -180,6 +189,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
             artworkId,
             url: img.url,
             thumbnailUrl: img.thumbnailUrl,
+            blurredUrl: img.blurredUrl,
             width: img.width,
             height: img.height,
             aspectRatio: img.aspectRatio,

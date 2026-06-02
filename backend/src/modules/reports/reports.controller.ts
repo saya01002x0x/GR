@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Reports Controller
  * API endpoints for report management
  */
@@ -16,7 +16,7 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 import { CreateReportDto, ResolveReportDto } from './dto/create-report.dto';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';

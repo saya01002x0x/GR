@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import {
   Button,
   Group,
@@ -11,6 +12,8 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useState } from 'react';
+import { apiClient } from '@/api/client';
+import { E } from '@/api/endpoints';
 
 const REPORT_REASONS = [
   { value: 'SPAM', label: 'Spam' },
@@ -27,6 +30,7 @@ type ReportModalProps = {
 };
 
 export function ReportModal({ artworkId, opened, onClose }: ReportModalProps) {
+  const { getToken } = useAuth();
   const [reason, setReason] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -38,36 +42,20 @@ export function ReportModal({ artworkId, opened, onClose }: ReportModalProps) {
 
     setSubmitting(true);
     try {
-      const token = await window.Clerk?.session?.getToken();
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ reason, description, artworkId }),
+      apiClient.setTokenGetter(getToken);
+      await apiClient.post(E.reports.create(), { reason, description, artworkId });
+      notifications.show({
+        title: 'Report submitted',
+        message: 'Thank you for helping keep the community safe.',
+        color: 'green',
       });
-
-      if (res.ok) {
-        notifications.show({
-          title: 'Report submitted',
-          message: 'Thank you for helping keep the community safe.',
-          color: 'green',
-        });
-        onClose();
-        setReason('');
-        setDescription('');
-      } else {
-        notifications.show({
-          title: 'Failed to submit report',
-          message: 'Please try again later.',
-          color: 'red',
-        });
-      }
+      onClose();
+      setReason('');
+      setDescription('');
     } catch {
       notifications.show({
-        title: 'Error',
-        message: 'Something went wrong.',
+        title: 'Failed to submit report',
+        message: 'Please try again later.',
         color: 'red',
       });
     } finally {

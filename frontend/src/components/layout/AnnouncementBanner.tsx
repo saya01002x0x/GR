@@ -2,16 +2,7 @@
 
 import { Alert, CloseButton, Group, Stack, Text } from '@mantine/core';
 import { IconAlertTriangle, IconInfoCircle, IconTool } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type Announcement = {
-  id: string;
-  title: string;
-  content: string;
-  type: 'INFO' | 'WARNING' | 'MAINTENANCE';
-};
+import { useAnnouncements } from '@/api/hooks';
 
 const TYPE_CONFIG: Record<string, { color: string; icon: React.ElementType }> = {
   INFO: { color: 'blue', icon: IconInfoCircle },
@@ -19,43 +10,8 @@ const TYPE_CONFIG: Record<string, { color: string; icon: React.ElementType }> = 
   MAINTENANCE: { color: 'red', icon: IconTool },
 };
 
-const DISMISSED_KEY = 'dismissed_announcements';
-
-function getDismissedIds(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
-
 export function AnnouncementBanner() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await fetch(`${API_URL}/announcements/active`);
-        if (res.ok && !cancelled) {
-          const data: Announcement[] = await res.json();
-          const dismissed = getDismissedIds();
-          setAnnouncements(data.filter(a => !dismissed.includes(a.id)));
-        }
-      } catch { /* ignore */ }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const dismiss = (id: string) => {
-    const dismissed = getDismissedIds();
-    dismissed.push(id);
-    localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissed));
-    setAnnouncements(prev => prev.filter(a => a.id !== id));
-  };
+  const { announcements, dismiss } = useAnnouncements();
 
   if (announcements.length === 0) {
     return null;

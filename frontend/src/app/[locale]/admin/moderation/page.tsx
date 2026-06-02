@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   ActionIcon,
   Avatar,
@@ -34,9 +33,13 @@ import {
   IconUser,
   IconX,
 } from '@tabler/icons-react';
-import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+import { useState } from 'react';
+import {
+  useAdminArtworkReports,
+  useAdminFlaggedArtworks,
+  useAdminMyHistory,
+  useAdminResolvedReports,
+} from '@/api/hooks';
 
 const REASON_CONFIG: Record<string, { label: string; color: string }> = {
   SPAM: { label: 'Spam', color: 'orange' },
@@ -44,40 +47,6 @@ const REASON_CONFIG: Record<string, { label: string; color: string }> = {
   COPYRIGHT: { label: 'Bản quyền', color: 'violet' },
   HARASSMENT: { label: 'Quấy rối', color: 'pink' },
   OTHER: { label: 'Khác', color: 'gray' },
-};
-
-type PendingReport = {
-  id: string;
-  reason: string;
-  description: string | null;
-  createdAt: string;
-};
-
-type FlaggedArtwork = {
-  id: string;
-  title: string;
-  author: {
-    id: string;
-    username: string;
-    displayName: string | null;
-    warningCount: number;
-    isBanned: boolean;
-  };
-  images: { thumbnailUrl: string | null; url: string }[];
-  _count: { reports: number };
-  reports: PendingReport[];
-};
-
-type DetailedReport = PendingReport & {
-  reporter: { username: string; displayName: string | null };
-};
-
-type DetailedArtwork = Omit<FlaggedArtwork, 'author' | 'reports'> & {
-  author: FlaggedArtwork['author'] & {
-    createdAt: string;
-    warnings: { id: string; reason: string; expiresAt: string; createdAt: string }[];
-  };
-  reports: DetailedReport[];
 };
 
 type ResolvedReport = {
@@ -98,78 +67,120 @@ type ResolvedReport = {
   resolvedBy?: { id: string; username: string; displayName: string | null } | null;
 };
 
-// ── Pending Tab ──
+function ResolvedReportCard({ report, showResolver }: { report: ResolvedReport; showResolver: boolean }) {
+  const cfg = REASON_CONFIG[report.reason] ?? REASON_CONFIG.OTHER;
+  const isApproved = report.status === 'DISMISSED';
+
+  return (
+    <Paper p="sm" radius="md" withBorder>
+      <Group gap="md" align="flex-start" wrap="nowrap">
+        {report.artwork && (
+          <Image
+            src={report.artwork.images[0]?.thumbnailUrl || report.artwork.images[0]?.url}
+            w={60}
+            h={60}
+            radius="sm"
+            fit="cover"
+            alt={report.artwork.title}
+            fallbackSrc="https://placehold.co/60x60?text=?"
+          />
+        )}
+        <Stack gap={4} flex={1} miw={0}>
+          <Group justify="space-between" wrap="nowrap">
+            <Text size="sm" fw={600} lineClamp={1}>
+              {report.artwork?.title ?? '(Image deleted)'}
+            </Text>
+            <Group gap={4}>
+              <Badge color={cfg!.color} variant="light" size="xs">{cfg!.label}</Badge>
+              <Badge
+                color={isApproved ? 'green' : 'red'}
+                variant="filled"
+                size="xs"
+              >
+                {isApproved ? 'Approve' : 'Reject'}
+              </Badge>
+            </Group>
+          </Group>
+
+          <Group gap="xs">
+            <Text size="xs" c="dimmed">
+              Reporter:
+              {' '}
+              {report.reporter.displayName || report.reporter.username}
+            </Text>
+            {report.artwork && (
+              <Text size="xs" c="dimmed">
+                • Author:
+                {' '}
+                {report.artwork.author.displayName || report.artwork.author.username}
+              </Text>
+            )}
+          </Group>
+
+          {report.description && (
+            <Text size="xs" c="dimmed" lineClamp={1}>
+              &quot;
+              {report.description}
+              &quot;
+            </Text>
+          )}
+
+          <Group gap="xs">
+            {report.resolvedAt && (
+              <Text size="xs" c="dimmed">
+                Resolved at:
+                {' '}
+                {new Date(report.resolvedAt).toLocaleString('vi-VN')}
+              </Text>
+            )}
+            {showResolver && report.resolvedBy && (
+              <Text size="xs" c="dimmed">
+                • By:
+                {' '}
+                {report.resolvedBy.displayName || report.resolvedBy.username}
+              </Text>
+            )}
+          </Group>
+        </Stack>
+      </Group>
+    </Paper>
+  );
+}
 
 function PendingTab() {
-  const { getToken } = useAuth();
-  const [artworks, setArtworks] = useState<FlaggedArtwork[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedArtwork, setSelectedArtwork] = useState<DetailedArtwork | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const { artworks, isLoading, takeAction } = useAdminFlaggedArtworks();
+  const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
 
-  const fetchFlagged = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/artworks/flagged`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setArtworks(data.artworks);
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
+  const { data: detailData, isLoading: detailLoading } = useAdminArtworkReports(selectedArtworkId);
 
-  useEffect(() => {
-    fetchFlagged();
-  }, [fetchFlagged]);
-
-  const openDetail = async (artworkId: string) => {
-    setDetailLoading(true);
+  const openDetail = (artworkId: string) => {
+    setSelectedArtworkId(artworkId);
     open();
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/artworks/${artworkId}/reports`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedArtwork(data);
-      }
-    } catch { /* ignore */ } finally {
-      setDetailLoading(false);
-    }
   };
 
   const handleAction = async (id: string, action: 'approve' | 'reject') => {
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/admin/artworks/${id}/${action}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setArtworks(prev => prev.filter(a => a.id !== id));
+    try {
+      const data = await takeAction({ id, action });
       close();
 
       if (action === 'approve') {
         notifications.show({ message: 'Image approved - reports dismissed', color: 'green' });
       } else {
-        const msg = data.tempBanned
-          ? `Đã ẩn ảnh. Tác giả bị cảnh cáo lần ${data.warningCount} → TẠM KHÓA 7 ngày!`
-          : `Đã ẩn ảnh. Tác giả bị cảnh cáo lần ${data.warningCount}/3`;
+        const msg = (data as any)?.tempBanned
+          ? `Đã ẩn ảnh. Tác giả bị cảnh cáo lần ${(data as any).warningCount} → TẠM KHÓA 7 ngày!`
+          : `Đã ẩn ảnh. Tác giả bị cảnh cáo lần ${(data as any)?.warningCount ?? '?'}/3`;
         notifications.show({
           message: msg,
-          color: data.tempBanned ? 'red' : 'orange',
+          color: (data as any)?.tempBanned ? 'red' : 'orange',
         });
       }
+    } catch {
+      notifications.show({ message: 'Action failed', color: 'red' });
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Stack align="center" pt="xl">
         <Loader />
@@ -274,7 +285,6 @@ function PendingTab() {
             </SimpleGrid>
           )}
 
-      {/* Detail Modal */}
       <Modal
         opened={opened}
         onClose={close}
@@ -282,7 +292,7 @@ function PendingTab() {
         size="lg"
         scrollAreaComponent={ScrollArea.Autosize}
       >
-        {detailLoading || !selectedArtwork
+        {detailLoading || !detailData
           ? (
               <Stack align="center" py="xl">
                 <Loader />
@@ -292,46 +302,46 @@ function PendingTab() {
               <Stack gap="md">
                 <Group align="flex-start" gap="md">
                   <Image
-                    src={selectedArtwork.images[0]?.thumbnailUrl || selectedArtwork.images[0]?.url}
+                    src={detailData.images[0]?.thumbnailUrl || detailData.images[0]?.url}
                     w={120}
                     h={120}
                     radius="md"
                     fit="cover"
-                    alt={selectedArtwork.title}
+                    alt={detailData.title}
                     fallbackSrc="https://placehold.co/120x120?text=No+Image"
                   />
                   <Stack gap={4} flex={1}>
-                    <Text fw={700} size="lg">{selectedArtwork.title}</Text>
+                    <Text fw={700} size="lg">{detailData.title}</Text>
                     <Group gap="xs">
                       <Avatar src={null} size="sm" />
                       <Text size="sm">
-                        {selectedArtwork.author.displayName || selectedArtwork.author.username}
+                        {detailData.author.displayName || detailData.author.username}
                       </Text>
                     </Group>
                     <Group gap="xs">
-                      {selectedArtwork.author.isBanned && (
+                      {detailData.author.isBanned && (
                         <Badge color="red" variant="filled" size="sm" leftSection={<IconShieldOff size={10} />}>
                           Banned
                         </Badge>
                       )}
                       <Badge
-                        color={selectedArtwork.author.warningCount >= 3 ? 'red' : selectedArtwork.author.warningCount > 0 ? 'orange' : 'green'}
+                        color={detailData.author.warningCount >= 3 ? 'red' : detailData.author.warningCount > 0 ? 'orange' : 'green'}
                         variant="light"
                         size="sm"
                         leftSection={<IconAlertTriangle size={10} />}
                       >
-                        {selectedArtwork.author.warningCount}
+                        {detailData.author.warningCount}
                         /3 warnings
                       </Badge>
                     </Group>
                   </Stack>
                 </Group>
 
-                {selectedArtwork.author.warnings && selectedArtwork.author.warnings.length > 0 && (
+                {detailData.author.warnings && detailData.author.warnings.length > 0 && (
                   <>
                     <Divider label="Active warnings" labelPosition="left" />
                     <Stack gap="xs">
-                      {selectedArtwork.author.warnings.map(w => (
+                      {detailData.author.warnings.map(w => (
                         <Paper key={w.id} p="xs" radius="sm" withBorder bg="orange.0">
                           <Group justify="space-between">
                             <Group gap="xs">
@@ -350,10 +360,10 @@ function PendingTab() {
                   </>
                 )}
 
-                <Divider label={`${selectedArtwork.reports.length} reports pending moderation`} labelPosition="left" />
+                <Divider label={`${detailData.reports.length} reports pending moderation`} labelPosition="left" />
 
                 <Stack gap="sm">
-                  {selectedArtwork.reports.map((report) => {
+                  {detailData.reports.map((report) => {
                     const cfg = REASON_CONFIG[report.reason] ?? REASON_CONFIG.OTHER;
                     return (
                       <Paper key={report.id} p="sm" radius="md" withBorder>
@@ -401,14 +411,14 @@ function PendingTab() {
                   <Button
                     color="green"
                     leftSection={<IconCheck size={16} />}
-                    onClick={() => handleAction(selectedArtwork.id, 'approve')}
+                    onClick={() => handleAction(detailData.id, 'approve')}
                   >
                     Approve image
                   </Button>
                   <Button
                     color="red"
                     leftSection={<IconX size={16} />}
-                    onClick={() => handleAction(selectedArtwork.id, 'reject')}
+                    onClick={() => handleAction(detailData.id, 'reject')}
                   >
                     Reject + Warn
                   </Button>
@@ -420,37 +430,13 @@ function PendingTab() {
   );
 }
 
-// ── Resolved Tab ──
-
 function ResolvedTab() {
-  const { getToken } = useAuth();
-  const [reports, setReports] = useState<ResolvedReport[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const { data, isLoading } = useAdminResolvedReports(page);
+  const reports = data?.reports ?? [];
+  const total = data?.total ?? 0;
 
-  const fetchResolved = useCallback(async () => {
-    setLoading(true);
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/reports/resolved?page=${page}&limit=20`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setReports(data.reports);
-        setTotal(data.total);
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [getToken, page]);
-
-  useEffect(() => {
-    fetchResolved();
-  }, [fetchResolved]);
-
-  if (loading) {
+  if (isLoading) {
     return <Stack align="center" pt="xl"><Loader /></Stack>;
   }
 
@@ -498,37 +484,13 @@ function ResolvedTab() {
   );
 }
 
-// ── My History Tab ──
-
 function MyHistoryTab() {
-  const { getToken } = useAuth();
-  const [reports, setReports] = useState<ResolvedReport[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const { data, isLoading } = useAdminMyHistory(page);
+  const reports = data?.reports ?? [];
+  const total = data?.total ?? 0;
 
-  const fetchHistory = useCallback(async () => {
-    setLoading(true);
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/reports/my-history?page=${page}&limit=20`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setReports(data.reports);
-        setTotal(data.total);
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [getToken, page]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
-
-  if (loading) {
+  if (isLoading) {
     return <Stack align="center" pt="xl"><Loader /></Stack>;
   }
 
@@ -575,90 +537,6 @@ function MyHistoryTab() {
     </Stack>
   );
 }
-
-// ── Shared Card Component ──
-
-function ResolvedReportCard({ report, showResolver }: { report: ResolvedReport; showResolver: boolean }) {
-  const cfg = REASON_CONFIG[report.reason] ?? REASON_CONFIG.OTHER;
-  const isApproved = report.status === 'DISMISSED';
-
-  return (
-    <Paper p="sm" radius="md" withBorder>
-      <Group gap="md" align="flex-start" wrap="nowrap">
-        {report.artwork && (
-          <Image
-            src={report.artwork.images[0]?.thumbnailUrl || report.artwork.images[0]?.url}
-            w={60}
-            h={60}
-            radius="sm"
-            fit="cover"
-            alt={report.artwork.title}
-            fallbackSrc="https://placehold.co/60x60?text=?"
-          />
-        )}
-        <Stack gap={4} flex={1} miw={0}>
-          <Group justify="space-between" wrap="nowrap">
-            <Text size="sm" fw={600} lineClamp={1}>
-              {report.artwork?.title ?? '(Image deleted)'}
-            </Text>
-            <Group gap={4}>
-              <Badge color={cfg!.color} variant="light" size="xs">{cfg!.label}</Badge>
-              <Badge
-                color={isApproved ? 'green' : 'red'}
-                variant="filled"
-                size="xs"
-              >
-                {isApproved ? 'Approve' : 'Reject'}
-              </Badge>
-            </Group>
-          </Group>
-
-          <Group gap="xs">
-            <Text size="xs" c="dimmed">
-              Reporter:
-              {' '}
-              {report.reporter.displayName || report.reporter.username}
-            </Text>
-            {report.artwork && (
-              <Text size="xs" c="dimmed">
-                • Author:
-                {' '}
-                {report.artwork.author.displayName || report.artwork.author.username}
-              </Text>
-            )}
-          </Group>
-
-          {report.description && (
-            <Text size="xs" c="dimmed" lineClamp={1}>
-              &quot;
-              {report.description}
-              &quot;
-            </Text>
-          )}
-
-          <Group gap="xs">
-            {report.resolvedAt && (
-              <Text size="xs" c="dimmed">
-                Resolved at:
-                {' '}
-                {new Date(report.resolvedAt).toLocaleString('vi-VN')}
-              </Text>
-            )}
-            {showResolver && report.resolvedBy && (
-              <Text size="xs" c="dimmed">
-                • By:
-                {' '}
-                {report.resolvedBy.displayName || report.resolvedBy.username}
-              </Text>
-            )}
-          </Group>
-        </Stack>
-      </Group>
-    </Paper>
-  );
-}
-
-// ── Main Page ──
 
 export default function ModerationPage() {
   return (

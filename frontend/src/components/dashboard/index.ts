@@ -1,3 +1,5 @@
+export { ArtistPayouts } from './ArtistPayouts';
+export { ArtistTiers } from './ArtistTiers';
 export { ContentPreferences } from './ContentPreferences';
 export { DashboardSidebar } from './DashboardSidebar';
 export { GeneralSettings } from './GeneralSettings';

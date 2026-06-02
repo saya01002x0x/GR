@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Collections Controller
  * Handle collection endpoints
  */
@@ -25,7 +25,7 @@ import type {
   CreateCollectionDto,
   UpdateCollectionDto,
 } from './collections.service';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 

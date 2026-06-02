@@ -11,6 +11,7 @@ export type ArtworkDetail = {
   artist: {
     id: string;
     name: string;
+    username?: string;
     avatar: string;
     role: string;
   };
@@ -48,6 +49,7 @@ export const mockArtworkDetail: ArtworkDetail = {
   artist: {
     id: 'artist-1',
     name: 'SakuraArt_99',
+    username: 'sakuraart_99',
     avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAxQOVJSpSRDA2gRFg73dmTYjzmsw-gcDjw05jBwxfW_cgLVCPjga0IWp_PE6LFz0J03kKF-xp4J4B5uXIpaBsStpzJPVDrWTrIXr0sIIW5kiaBt9aWierKp88u1S9n3gziovOBzUrCi2zvq7v2ab-Wn7AzUaAQUJ3NoK1qIFQvn8DFdSFE51WNJWW-TQbz0j93cCJ_tbGs2n7T0EVEtbsdJpH2qrbFk0qSI0spBw-rx1Wq_-R0AjyFwGpcUqjE5EsPL4_tMwIgyDU',
     role: 'Digital Illustrator | Fantasy',
   },

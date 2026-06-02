@@ -1,7 +1,7 @@
 'use client';
 
 import type { MantineColorsTuple } from '@mantine/core';
-import { MantineProvider as BaseMantineProvider, ColorSchemeScript, createTheme } from '@mantine/core';
+import { MantineProvider as BaseMantineProvider, createTheme } from '@mantine/core';
 
 // Import Mantine core styles
 import '@mantine/core/styles.css';
@@ -55,10 +55,6 @@ const theme = createTheme({
   // Respect user's reduced motion preference
   respectReducedMotion: true,
 });
-
-export function MantineColorSchemeScript() {
-  return <ColorSchemeScript defaultColorScheme="auto" />;
-}
 
 export function MantineProvider({ children }: { children: React.ReactNode }) {
   return (

@@ -1,5 +1,8 @@
 scrape_configs:
   - job_name: 'lumina-backend'
     scrape_interval: 5s
+    basic_auth:
+      username: admin
+      password: admin123
     static_configs:
-      - targets: ['host.docker.internal:3847'] # Trỏ về Backend NestJS đang chạy local (theo main.ts là 3847)
+      - targets: ['host.docker.internal:5145'] # Trỏ về Backend NestJS đang chạy local (theo main.ts là 3847)

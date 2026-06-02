@@ -122,3 +122,44 @@ Tổng hợp các khái niệm NestJS đã sử dụng trong dự án.
   export class AdminController {}
   ```
 - **Ứng dụng:** `AuditLogInterceptor` tự động ghi nhận lại mọi request POST/PUT/PATCH/DELETE từ Admin/Moderator vào Database mà không cần nhúng rườm rà `auditLogService` ở từng route method một.
+
+---
+
+#### Guards (Bảo vệ Route)
+- **Là gì:** Lớp (class) dùng để kiểm tra quyền truy cập của request trước khi vào Controller.
+- **Cách dùng:**
+  ```typescript
+  @UseGuards(ClerkGuard)
+  @Get('me')
+  getMe() {}
+  ```
+- **Ứng dụng:** `ClerkGuard` xác thực Clerk JWT token và cho phép truy cập nếu hợp lệ.
+
+---
+
+#### Custom Decorators (Param Decorators)
+- **Là gì:** Tạo decorator riêng để trích xuất dữ liệu từ request object gọn gàng hơn.
+- **Cách dùng:**
+  ```typescript
+  export const CurrentUser = createParamDecorator((data, ctx) => {
+    return ctx.switchToHttp().getRequest().user;
+  });
+  ```
+- **Ứng dụng:** `@CurrentUser()` lấy nhanh thông tin user hiện tại từ request.
+
+---
+
+#### Sharp (Server-side Image Processing)
+- **Là gì:** Thư viện xử lý ảnh siêu tốc độ cho Node.js (dựa trên libvips).
+- **Cách dùng:**
+  ```typescript
+  import * as sharp from 'sharp';
+
+  // Resize và làm mờ ảnh (Blur)
+  const blurredBuffer = await sharp(imageBuffer)
+    .resize(400, 400, { fit: 'inside' })
+    .blur(30)
+    .jpeg({ quality: 50 })
+    .toBuffer();
+  ```
+- **Ứng dụng:** Dùng trong `StorageService` và `ArtworkProcessor` để tự động tạo bản preview bị làm mờ (blurred preview) cho các ảnh thuộc Tier trả phí (Tier-gated artworks), giúp bảo vệ nội dung gốc khỏi việc bị trích xuất thông qua Client-side DevTools.

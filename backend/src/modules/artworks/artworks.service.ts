@@ -4,10 +4,10 @@
  * Reference: https://docs.nestjs.com/providers
  */
 
-import { Injectable, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { Artwork, ContentRating, ArtworkStatus } from '@prisma/client';
+import { Artwork, ArtworkVisibility, ContentRating, ArtworkStatus } from '@prisma/client';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_NAME, JOB_PROCESS_IMAGES } from '../queue/queue.constants';
@@ -19,6 +19,8 @@ export interface CreateArtworkDto {
   tags: string[]; // Normalized: lowercase, trimmed
   rating: ContentRating;
   isAI: boolean;
+  visibility: ArtworkVisibility;
+  requiredTierId?: string;
 }
 
 export interface CreateArtworkResult {
@@ -30,9 +32,66 @@ export interface CreateArtworkResult {
   };
 }
 
+type ArtworkAccessSubject = {
+  authorId: string;
+  visibility: ArtworkVisibility;
+  requiredTierId: string | null;
+};
+
+type ArtworkAccessState = {
+  isOwner: boolean;
+  isSubscribed: boolean;
+  canViewFull: boolean;
+};
+
 @Injectable()
 export class ArtworksService {
   private readonly logger = new Logger(ArtworksService.name);
+  private readonly artworkDetailInclude = {
+    author: {
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatar: true,
+      },
+    },
+    images: true,
+    tags: {
+      include: { tag: true },
+    },
+    requiredTier: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        currency: true,
+      },
+    },
+  };
+
+  private readonly artworkListInclude = {
+    author: {
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatar: true,
+      },
+    },
+    images: {
+      take: 1,
+      orderBy: { order: 'asc' as const },
+    },
+    requiredTier: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        currency: true,
+      },
+    },
+  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -76,6 +135,20 @@ export class ArtworksService {
       throw new ForbiddenException('At least 1 image is required');
     }
 
+    let requiredTierId: string | null = null;
+    if (dto.visibility === ArtworkVisibility.TIER_GATED) {
+      if (!dto.requiredTierId) {
+        throw new ForbiddenException('Tier-gated artwork must have a required tier');
+      }
+
+      const tier = await this.prisma.artistTier.findUnique({ where: { id: dto.requiredTierId } });
+      if (!tier || !tier.isActive || tier.artistId !== userId) {
+        throw new ForbiddenException('Invalid tier selected for gated artwork');
+      }
+
+      requiredTierId = tier.id;
+    }
+
     // Step 1: Create artwork with PROCESSING status
     const artwork = await this.prisma.artwork.create({
       data: {
@@ -83,6 +156,8 @@ export class ArtworksService {
         description: dto.description,
         rating: dto.rating,
         isAI: dto.isAI,
+        visibility: dto.visibility,
+        requiredTierId,
         status: 'PROCESSING' as ArtworkStatus,
         authorId: userId,
       },
@@ -196,61 +271,73 @@ export class ArtworksService {
   /**
    * Get artwork by ID with author and images
    */
-  async findById(id: string) {
-    return this.prisma.artwork.findUnique({
+  async findById(id: string, viewerId?: string | null) {
+    const artwork = await this.prisma.artwork.findUnique({
       where: { id },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
-          },
-        },
-        images: true,
-        tags: {
-          include: { tag: true },
-        },
-      },
+      include: this.artworkDetailInclude,
     });
+
+    if (!artwork) {
+      return null;
+    }
+
+    const access = await this.getArtworkAccess(this.toArtworkAccessSubject(artwork), viewerId);
+    if (!access.canViewFull) {
+      throw new NotFoundException('Artwork not found');
+    }
+
+    return {
+      ...artwork,
+      access,
+    };
   }
 
   /**
    * Get all published artworks with pagination
    * Default: 25 items per page
    */
-  async findAll(options: { limit?: number; offset?: number } = {}) {
-    const { limit = 25, offset = 0 } = options;
+  async findAll(options: { limit?: number; offset?: number; viewerId?: string | null } = {}) {
+    const { limit = 25, offset = 0, viewerId } = options;
+
+    const accessibleTierIds = viewerId
+      ? (await this.prisma.tierSubscription.findMany({
+          where: { subscriberId: viewerId, status: 'ACTIVE' },
+          select: { tierId: true },
+        })).map(subscription => subscription.tierId)
+      : [];
 
     const [artworks, total] = await Promise.all([
       this.prisma.artwork.findMany({
-        where: { status: 'PUBLISHED' },
-        include: {
-          author: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              avatar: true,
-            },
-          },
-          images: {
-            take: 1,
-            orderBy: { order: 'asc' },
-          },
+        where: {
+          status: 'PUBLISHED',
+          OR: [
+            { visibility: ArtworkVisibility.PUBLIC },
+            ...(viewerId ? [{ authorId: viewerId }] : []),
+            ...(accessibleTierIds.length > 0 ? [{ requiredTierId: { in: accessibleTierIds } }] : []),
+          ],
         },
+        include: this.artworkListInclude,
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
       }),
       this.prisma.artwork.count({
-        where: { status: 'PUBLISHED' },
+        where: {
+          status: 'PUBLISHED',
+          OR: [
+            { visibility: ArtworkVisibility.PUBLIC },
+            ...(viewerId ? [{ authorId: viewerId }] : []),
+            ...(accessibleTierIds.length > 0 ? [{ requiredTierId: { in: accessibleTierIds } }] : []),
+          ],
+        },
       }),
     ]);
 
     return {
-      artworks,
+      artworks: await Promise.all(artworks.map(async artwork => ({
+        ...artwork,
+        access: await this.getArtworkAccess(this.toArtworkAccessSubject(artwork), viewerId),
+      }))),
       total,
       hasMore: offset + artworks.length < total,
     };
@@ -260,7 +347,7 @@ export class ArtworksService {
    * Get related artworks by tags (OR logic)
    * Fallback: same author or latest artworks
    */
-  async findRelated(artworkId: string, limit = 10) {
+  async findRelated(artworkId: string, limit = 10, viewerId?: string | null) {
     // Get current artwork with tags
     const artwork = await this.prisma.artwork.findUnique({
       where: { id: artworkId },
@@ -276,7 +363,7 @@ export class ArtworksService {
     const tagNames = artwork.tags.map((t) => t.tag.name);
 
     // Try to find by matching tags (OR logic)
-    let relatedArtworks = await this.prisma.artwork.findMany({
+    const matchingArtworks = await this.prisma.artwork.findMany({
       where: {
         id: { not: artworkId },
         status: 'PUBLISHED',
@@ -288,28 +375,17 @@ export class ArtworksService {
           },
         },
       },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatar: true,
-          },
-        },
-        images: {
-          take: 1,
-          orderBy: { order: 'asc' },
-        },
-      },
+      include: this.artworkListInclude,
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
 
+    let relatedArtworks = await this.filterAccessibleArtworks(matchingArtworks, viewerId);
+
     // Fallback: same author or latest
     if (relatedArtworks.length < limit) {
       const remaining = limit - relatedArtworks.length;
-      const existingIds = [artworkId, ...relatedArtworks.map((a) => a.id)];
+      const existingIds = [artworkId, ...relatedArtworks.map((a) => String(a.id))];
 
       const fallbackArtworks = await this.prisma.artwork.findMany({
         where: {
@@ -320,25 +396,13 @@ export class ArtworksService {
             {}, // Any artwork as last resort
           ],
         },
-        include: {
-          author: {
-            select: {
-              id: true,
-              username: true,
-              displayName: true,
-              avatar: true,
-            },
-          },
-          images: {
-            take: 1,
-            orderBy: { order: 'asc' },
-          },
-        },
+        include: this.artworkListInclude,
         orderBy: { createdAt: 'desc' },
         take: remaining,
       });
 
-      relatedArtworks = [...relatedArtworks, ...fallbackArtworks];
+      const accessibleFallbackArtworks = await this.filterAccessibleArtworks(fallbackArtworks, viewerId);
+      relatedArtworks = [...relatedArtworks, ...accessibleFallbackArtworks].slice(0, limit);
     }
 
     return relatedArtworks;
@@ -358,5 +422,74 @@ export class ArtworksService {
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * Get trending artworks (by viewCount)
+   */
+  async findTrending(limit = 10) {
+    return this.prisma.artwork.findMany({
+      where: { status: 'PUBLISHED', visibility: ArtworkVisibility.PUBLIC },
+      include: this.artworkListInclude,
+      orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+    });
+  }
+
+  private async filterAccessibleArtworks(
+    artworks: Array<Record<string, unknown>>,
+    viewerId?: string | null,
+  ): Promise<Array<Record<string, unknown> & { access: ArtworkAccessState }>> {
+    const filtered = await Promise.all(artworks.map(async artwork => {
+      const access = await this.getArtworkAccess(this.toArtworkAccessSubject(artwork), viewerId);
+      return access.canViewFull ? { ...artwork, access } : null;
+    }));
+
+    return filtered.filter(Boolean) as Array<Record<string, unknown> & { access: ArtworkAccessState }>;
+  }
+
+  private toArtworkAccessSubject(artwork: Record<string, unknown>): ArtworkAccessSubject {
+    return {
+      authorId: String(artwork.authorId || ''),
+      visibility: artwork.visibility as ArtworkVisibility,
+      requiredTierId: (artwork.requiredTierId as string | null | undefined) ?? null,
+    };
+  }
+
+  private async getArtworkAccess(
+    artwork: ArtworkAccessSubject,
+    viewerId?: string | null,
+  ): Promise<ArtworkAccessState> {
+    const isOwner = Boolean(viewerId && artwork.authorId === viewerId);
+    if (artwork.visibility === ArtworkVisibility.PUBLIC || isOwner) {
+      return {
+        isOwner,
+        isSubscribed: false,
+        canViewFull: true,
+      };
+    }
+
+    if (!viewerId || !artwork.requiredTierId) {
+      return {
+        isOwner,
+        isSubscribed: false,
+        canViewFull: false,
+      };
+    }
+
+    const subscription = await this.prisma.tierSubscription.findFirst({
+      where: {
+        subscriberId: viewerId,
+        tierId: artwork.requiredTierId,
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    });
+
+    return {
+      isOwner,
+      isSubscribed: Boolean(subscription),
+      canViewFull: Boolean(subscription),
+    };
   }
 }

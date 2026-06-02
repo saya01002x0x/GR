@@ -19,10 +19,19 @@ import {
   IconSparkles,
 } from '@tabler/icons-react';
 import Link from 'next/link';
+import { useTrendingArtworks } from '@/api/hooks';
 import classes from './HeroSection.module.css';
 
 export function HeroSection() {
   const [motionActive, { toggle: toggleMotion }] = useDisclosure(true);
+  const { data: artworks = [] } = useTrendingArtworks();
+
+  const heroArtwork = artworks.find((a) => {
+    const img = a.images?.[0];
+    return img && (img.width || 0) > (img.height || 0);
+  }) || artworks[0];
+
+  const backgroundImage = heroArtwork?.images?.[0]?.url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuC6unHvvOy7941Yx76tMVBrIkeXpdpD0vxXw6BYPpVTNxWwvRKqrUU0ikxwZiTfsEFovvQtbUBbkv6LaJgne946-3RiTkpe2bHmldufzKjDdecE-RT4ttoVUJ0HbuCa2bYzmiwC82xTx5vEkml2uMzb3xGL053kvm24_ztz6_P3XzTdT92KCCEIbMP2D2qvilHbncdAz2rYpOz1YFJ_9DeJh8UGxgUHWKEjpOjaEHueu5jXgwQUUr8LGZrnWTBBGEnGe3ChSHGn5WU';
 
   return (
     <Box component="section" className={classes.hero}>
@@ -30,7 +39,7 @@ export function HeroSection() {
         <Box
           className={classes.parallaxBg}
           style={{
-            backgroundImage: 'url(\'https://lh3.googleusercontent.com/aida-public/AB6AXuC6unHvvOy7941Yx76tMVBrIkeXpdpD0vxXw6BYPpVTNxWwvRKqrUU0ikxwZiTfsEFovvQtbUBbkv6LaJgne946-3RiTkpe2bHmldufzKjDdecE-RT4ttoVUJ0HbuCa2bYzmiwC82xTx5vEkml2uMzb3xGL053kvm24_ztz6_P3XzTdT92KCCEIbMP2D2qvilHbncdAz2rYpOz1YFJ_9DeJh8UGxgUHWKEjpOjaEHueu5jXgwQUUr8LGZrnWTBBGEnGe3ChSHGn5WU\')',
+            backgroundImage: `url('${backgroundImage}')`,
             animationPlayState: motionActive ? 'running' : 'paused',
           }}
         />

@@ -1,0 +1,26 @@
+# File .env.test (Copy vào file thực tế tên là .env.test trong folder backend)
+
+NODE_ENV=test
+PORT=5147
+DATABASE_URL="postgresql://postgres:postgres@localhost:5434/gr_test?schema=public"
+
+# Redis (Mapping theo env.validation.ts và configuration.ts)
+REDIS_URL=redis://localhost:6380
+REDIS_HOST=localhost
+REDIS_PORT=6380
+
+# Clerk 
+CLERK_SECRET_KEY="test_secret_key"
+CLERK_PUBLISHABLE_KEY="test_publishable_key"
+
+# Storage (Mapping theo env.validation.ts: AWS_ prefix)
+AWS_ENDPOINT=http://localhost:9000
+AWS_ACCESS_KEY_ID=minioadmin
+AWS_SECRET_ACCESS_KEY=minioadmin123
+AWS_REGION=us-east-1
+AWS_BUCKET_NAME=gr-test-bucket
+AWS_FORCE_PATH_STYLE=true
+
+# Meilisearch (Mapping theo env.validation.ts: MEILISEARCH_ prefix)
+MEILISEARCH_HOST=http://localhost:7700
+MEILISEARCH_API_KEY=masterKey_change_in_production

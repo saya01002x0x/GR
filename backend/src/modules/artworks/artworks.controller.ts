@@ -26,11 +26,12 @@ import {
   ApiQuery,
   ApiConsumes,
 } from '@nestjs/swagger';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
+import { AuthService } from '../auth/auth.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ArtworksService, CreateArtworkDto } from './artworks.service';
 import { ViewService } from '../stats/view.service';
-import type { User, ContentRating } from '@prisma/client';
+import type { User, ContentRating, ArtworkVisibility } from '@prisma/client';
 import type { Request } from 'express';
 
 @ApiTags('artworks')
@@ -39,7 +40,8 @@ export class ArtworksController {
   constructor(
     private readonly artworksService: ArtworksService,
     private readonly viewService: ViewService,
-  ) {}
+    private readonly authService: AuthService,
+  ) { }
 
   /**
    * Get all published artworks
@@ -61,10 +63,13 @@ export class ArtworksController {
   async findAll(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Req() req?: Request,
   ) {
+    const viewer = req ? await this.authService.getOptionalUser(req) : null;
     const result = await this.artworksService.findAll({
       limit: limit ? parseInt(limit, 10) : 25,
       offset: offset ? parseInt(offset, 10) : 0,
+      viewerId: viewer?.id,
     });
 
     return {
@@ -74,6 +79,27 @@ export class ArtworksController {
         total: result.total,
         hasMore: result.hasMore,
       },
+    };
+  }
+
+  /**
+ * Get trending/popular artworks
+ * GET /artworks/popular?limit=10
+ * @description This get all of the artworks, timerannge is not implemented yet
+ * @todo implement timerannge
+ */
+  @Get('popular')
+  @ApiOperation({ summary: 'Get trending artworks' })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiResponse({ status: 200, description: 'Trending artworks retrieved' })
+  async findTrending(@Query('limit') limit?: string) {
+    const artworks = await this.artworksService.findTrending(
+      limit ? parseInt(limit, 10) : 10,
+    );
+
+    return {
+      message: 'Trending artworks retrieved successfully',
+      data: artworks,
     };
   }
 
@@ -90,10 +116,12 @@ export class ArtworksController {
     description: 'Number of related artworks',
   })
   @ApiResponse({ status: 200, description: 'Related artworks retrieved' })
-  async findRelated(@Param('id') id: string, @Query('limit') limit?: string) {
+  async findRelated(@Param('id') id: string, @Query('limit') limit?: string, @Req() req?: Request) {
+    const viewer = req ? await this.authService.getOptionalUser(req) : null;
     const relatedArtworks = await this.artworksService.findRelated(
       id,
       limit ? parseInt(limit, 10) : 10,
+      viewer?.id,
     );
 
     return {
@@ -115,18 +143,9 @@ export class ArtworksController {
   async getMyArtworks(@CurrentUser() user: User) {
     const artworks = await this.artworksService.findByUserId(user.id);
 
-    // Transform artworks to include thumbnailUrl for frontend
-    const transformedArtworks = artworks.map((artwork) => ({
-      id: artwork.id,
-      title: artwork.title,
-      status: artwork.status,
-      createdAt: artwork.createdAt,
-      thumbnailUrl: artwork.images[0]?.thumbnailUrl || null,
-    }));
-
     return {
       message: 'My artworks',
-      data: transformedArtworks,
+      data: artworks,
     };
   }
 
@@ -140,7 +159,8 @@ export class ArtworksController {
   @ApiResponse({ status: 200, description: 'Artwork retrieved' })
   @ApiResponse({ status: 404, description: 'Artwork not found' })
   async findById(@Param('id') id: string, @Req() req: Request) {
-    const artwork = await this.artworksService.findById(id);
+    const viewer = await this.authService.getOptionalUser(req);
+    const artwork = await this.artworksService.findById(id, viewer?.id);
 
     if (!artwork) {
       return {
@@ -154,7 +174,7 @@ export class ArtworksController {
       ?.userId;
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     // Fire-and-forget: don't block response for view tracking
-    void this.viewService.recordView(id, userId, ip).catch(() => {});
+    void this.viewService.recordView(id, userId, ip).catch(() => { });
 
     return {
       message: 'Artwork retrieved successfully',
@@ -180,12 +200,16 @@ export class ArtworksController {
           'image/png',
           'image/gif',
           'image/webp',
+          'image/avif',
+          'image/heic',
+          'image/heif',
+          'image/svg+xml',
         ];
         if (allowedMimes.includes(file.mimetype)) {
           cb(null, true);
         } else {
           cb(
-            new Error('Invalid file type. Only JPG, PNG, GIF, WebP allowed.'),
+            new Error('Invalid file type. Only JPG, PNG, GIF, WebP, AVIF, HEIC, HEIF, SVG allowed.'),
             false,
           );
         }
@@ -202,6 +226,8 @@ export class ArtworksController {
       tags: string;
       rating: ContentRating;
       isAI: string;
+      visibility?: ArtworkVisibility;
+      requiredTierId?: string;
       metadata?: string; // JSON string: [{ order: 0, caption: '' }, ...]
     },
   ) {
@@ -244,6 +270,8 @@ export class ArtworksController {
       tags,
       rating: body.rating || 'SAFE',
       isAI: body.isAI === 'true',
+      visibility: body.visibility || 'PUBLIC',
+      requiredTierId: body.requiredTierId,
     };
 
     const result = await this.artworksService.create(
@@ -259,4 +287,5 @@ export class ArtworksController {
       data: result,
     };
   }
+
 }

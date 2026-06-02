@@ -28,7 +28,7 @@ async function bootstrap() {
       debug: false,
     });
   }
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // Global Validation
   app.useGlobalPipes(
@@ -91,7 +91,7 @@ async function bootstrap() {
 
   // Basic Auth for Bull Board
   app.use(
-    ['/admin/queues', '/admin/queues/*', '/metrics', '/metrics/*'],
+    ['/admin/queues', '/metrics'],
     basicAuth({
       users: { admin: process.env.ADMIN_PASSWORD || 'admin123' },
       challenge: true,
@@ -121,7 +121,7 @@ async function bootstrap() {
 
   app.use('/admin/queues', serverAdapter.getRouter());
 
-  const port = process.env.PORT ?? 3847;
+  const port = process.env.PORT ?? 5145;
   await app.listen(port);
   const logger = new Logger('Bootstrap');
   logger.log(`🚀 Backend running on http://localhost:${port}`);
