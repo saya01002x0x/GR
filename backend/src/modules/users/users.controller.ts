@@ -116,6 +116,21 @@ export class UsersController {
     };
   }
 
+  @Get('artists/:identifier/tier-previews')
+  @ApiOperation({ summary: 'Get tier previews for membership tab' })
+  @ApiResponse({ status: 200, description: 'Tier previews retrieved' })
+  async findArtistTierPreviews(@Param('identifier') identifier: string, @Req() req: Request) {
+    const viewer = await this.authService.getOptionalUser(req);
+    const previews = await this.usersService.findArtistTierPreviews(identifier, viewer?.id);
+
+    return {
+      message: 'Tier previews retrieved successfully',
+      data: previews,
+    };
+  }
+
+
+
   @Get('artists/:identifier/artworks')
   @ApiOperation({ summary: 'Get artist artworks for public detail page' })
   @ApiResponse({ status: 200, description: 'Artist artworks retrieved' })
@@ -130,7 +145,9 @@ export class UsersController {
     const parsedFilter = filter && filter !== 'all'
       ? filter === 'free'
         ? { visibility: 'free' as const }
-        : { tierId: filter }
+        : filter === 'premium'
+          ? { visibility: 'premium' as const }
+          : { tierId: filter }
       : { visibility: 'all' as const };
 
     const result = await this.usersService.findArtistArtworks(

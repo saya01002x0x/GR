@@ -117,7 +117,7 @@ export class PaymentsService {
     const plan = await this.getPlanById(planId);
     const customerId = await this.ensureStripeCustomer(user);
 
-    const successUrl = `${this.appUrl}/checkout/success`;
+    const successUrl = `${this.appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${this.appUrl}/checkout/cancel`;
 
     return this.stripe.createCheckoutSession({
@@ -301,7 +301,7 @@ export class PaymentsService {
     if (!tier) throw new NotFoundException('Tier not found');
     if (!tier.isActive) throw new BadRequestException('Tier is not active');
 
-    const successUrl = `${this.appUrl}/checkout/success?tier=true`;
+    const successUrl = `${this.appUrl}/checkout/success?tier=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${this.appUrl}/checkout/cancel?tier=true`;
     const customerId = await this.ensureStripeCustomer(subscriber);
 
@@ -329,15 +329,13 @@ export class PaymentsService {
     cancelAtPeriodEnd?: boolean;
   }) {
     const existing = await this.prisma.tierSubscription.findFirst({
-      where: { tierId: params.tierId, subscriberId: params.subscriberId, status: 'ACTIVE' },
+      where: { providerSubId: params.providerSubId },
     });
 
     if (existing) {
       return this.prisma.tierSubscription.update({
         where: { id: existing.id },
         data: {
-          provider: 'STRIPE',
-          providerSubId: params.providerSubId,
           status: params.status,
           currentPeriodEnd: params.currentPeriodEnd,
           cancelAtPeriodEnd: params.cancelAtPeriodEnd ?? false,
@@ -596,6 +594,60 @@ export class PaymentsService {
     }
 
     return this.syncPlatformSubscriptionFromStripe(subscription);
+  }
+
+  async syncCheckoutSessionFromStripe(sessionId: string, userId: string) {
+    const session = await this.stripe.retrieveCheckoutSession(sessionId);
+    const subscription =
+      typeof session.subscription === 'string'
+        ? await this.stripe.retrieveSubscription(session.subscription)
+        : (session.subscription as
+            | ({
+                id: string;
+                status?: string;
+                cancel_at_period_end?: boolean;
+                current_period_end?: number;
+                metadata?: Record<string, string>;
+              })
+            | null);
+
+    if (!subscription) {
+      throw new BadRequestException('Checkout session has no subscription');
+    }
+
+    const metadata = subscription.metadata || session.metadata || {};
+    const subscriberId = metadata.subscriberId || metadata.userId;
+
+    if (subscriberId !== userId) {
+      throw new BadRequestException('Checkout session does not belong to current user');
+    }
+
+    const syncedSubscription = await this.handleStripeSubscriptionUpdate({
+      id: subscription.id,
+      status: subscription.status,
+      cancel_at_period_end: subscription.cancel_at_period_end,
+      current_period_end: subscription.current_period_end,
+      metadata,
+    });
+
+    const invoice =
+      typeof session.invoice === 'string' ? session.invoice : session.invoice?.id;
+    if (invoice) {
+      const stripeInvoice = await this.stripe.retrieveInvoice(invoice);
+      if (stripeInvoice.id) {
+        await this.handleStripeInvoicePaid({
+          id: stripeInvoice.id,
+          subscription:
+            typeof stripeInvoice.subscription === 'string'
+              ? stripeInvoice.subscription
+              : stripeInvoice.subscription?.id,
+          amount_paid: stripeInvoice.amount_paid,
+          currency: stripeInvoice.currency,
+        });
+      }
+    }
+
+    return syncedSubscription;
   }
 
   async handleStripeInvoicePaid(invoice: {

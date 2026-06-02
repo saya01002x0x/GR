@@ -23,11 +23,12 @@ import {
   IconDownload,
   IconFileDescription,
 } from '@tabler/icons-react';
-import { useCreateSubscriptionCheckout, useMyPayments, useMySubscription, usePlans, useSubscriptionPortal } from '@/api/hooks/use-payments';
+import { useCreateSubscriptionCheckout, useMyPayments, useMySubscription, usePlans, useSubscribedTiers, useSubscriptionPortal } from '@/api/hooks/use-payments';
 
 export function MembershipPlan() {
   const { data: plansData, isLoading: plansLoading } = usePlans();
   const { data: subData, isLoading: subLoading } = useMySubscription();
+  const { data: subscribedTiersData, isLoading: tiersLoading } = useSubscribedTiers();
   const { data: paymentsData, isLoading: paymentsLoading } = useMyPayments();
 
   const createCheckout = useCreateSubscriptionCheckout();
@@ -35,6 +36,7 @@ export function MembershipPlan() {
 
   const plans = plansData?.data || [];
   const subscription = subData?.data;
+  const subscribedTiers = subscribedTiersData?.data || [];
   const payments = (paymentsData?.data as Array<{ id: string; amount: number; status: string; createdAt: string }>) || [];
 
   const currentPlan = subscription?.plan;
@@ -65,7 +67,7 @@ export function MembershipPlan() {
     });
   };
 
-  if (plansLoading || subLoading) {
+  if (plansLoading || subLoading || tiersLoading) {
     return (
       <Stack align="center" py="xl">
         <Loader size="lg" />
@@ -96,6 +98,90 @@ export function MembershipPlan() {
           Manage your subscription, billing details, and payment history.
         </Text>
       </Box>
+
+      <Card withBorder radius="lg" p="lg">
+        <Group justify="space-between" mb="lg" align="flex-start">
+          <Box>
+            <Title order={4}>Artist Memberships</Title>
+            <Text c="dimmed" size="sm">
+              Tiers you subscribed to from artists.
+            </Text>
+          </Box>
+          {subscribedTiers.length > 0 && (
+            <Badge color="green" variant="light">
+              {subscribedTiers.length}
+              {' '}
+              active
+            </Badge>
+          )}
+        </Group>
+
+        {subscribedTiers.length === 0
+          ? (
+              <Text c="dimmed" ta="center" py="lg">
+                No artist memberships yet.
+              </Text>
+            )
+          : (
+              <Stack gap="sm">
+                {subscribedTiers.map((tierSubscription) => {
+                  const tier = tierSubscription.tier;
+                  const artist = tier && 'artist' in tier
+                    ? tier.artist as { username?: string; displayName?: string | null } | undefined
+                    : undefined;
+
+                  return (
+                    <Card key={tierSubscription.id} withBorder radius="md" p="md">
+                      <Group justify="space-between" align="flex-start" wrap="wrap">
+                        <Box>
+                          <Group gap="xs" mb={4}>
+                            <ThemeIcon color="primary" variant="light" size="sm">
+                              <IconCrown size={14} />
+                            </ThemeIcon>
+                            <Text fw={700}>
+                              {tier?.name || 'Artist tier'}
+                            </Text>
+                            <Badge color="green" variant="light" size="sm">
+                              {tierSubscription.status}
+                            </Badge>
+                          </Group>
+                          <Text size="sm" c="dimmed">
+                            {artist?.displayName || artist?.username || 'Artist'}
+                          </Text>
+                        </Box>
+
+                        <Box ta={{ base: 'left', sm: 'right' }}>
+                          {tier && (
+                            <Text fw={600}>
+                              {formatCurrency(tier.price, tier.currency)}
+                              {' '}
+                              / month
+                            </Text>
+                          )}
+                          {/* <Text size="xs" c="dimmed">
+                            Renews
+                            {' '}
+                            {tierSubscription.currentPeriodEnd
+                              ? formatDate(tierSubscription.currentPeriodEnd)
+                              : 'N/A'}
+                          </Text> */}
+                          <Button
+                            variant="default"
+                            size="xs"
+                            mt="xs"
+                            onClick={handleCancel}
+                            loading={subscriptionPortal.isPending}
+                          >
+                            Manage / Cancel
+                          </Button>
+                        </Box>
+                      </Group>
+                    </Card>
+                  );
+                })}
+              </Stack>
+            )}
+      </Card>
 
       {subscription && (
         <Card

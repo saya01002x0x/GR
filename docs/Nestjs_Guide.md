@@ -146,3 +146,20 @@ Tổng hợp các khái niệm NestJS đã sử dụng trong dự án.
   });
   ```
 - **Ứng dụng:** `@CurrentUser()` lấy nhanh thông tin user hiện tại từ request.
+
+---
+
+#### Sharp (Server-side Image Processing)
+- **Là gì:** Thư viện xử lý ảnh siêu tốc độ cho Node.js (dựa trên libvips).
+- **Cách dùng:**
+  ```typescript
+  import * as sharp from 'sharp';
+
+  // Resize và làm mờ ảnh (Blur)
+  const blurredBuffer = await sharp(imageBuffer)
+    .resize(400, 400, { fit: 'inside' })
+    .blur(30)
+    .jpeg({ quality: 50 })
+    .toBuffer();
+  ```
+- **Ứng dụng:** Dùng trong `StorageService` và `ArtworkProcessor` để tự động tạo bản preview bị làm mờ (blurred preview) cho các ảnh thuộc Tier trả phí (Tier-gated artworks), giúp bảo vệ nội dung gốc khỏi việc bị trích xuất thông qua Client-side DevTools.

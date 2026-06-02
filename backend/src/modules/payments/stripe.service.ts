@@ -32,7 +32,7 @@ export class StripeService {
       line_items: [
         {
           price_data: {
-            currency: params.currency.toLowerCase(),
+            currency: 'usd',
             product_data: {
               name: params.planName,
             },
@@ -84,7 +84,7 @@ export class StripeService {
       line_items: [
         {
           price_data: {
-            currency: params.currency.toLowerCase(),
+            currency: 'usd',
             product_data: {
               name: `Artist Tier: ${params.tierName}`,
             },
@@ -127,7 +127,7 @@ export class StripeService {
 
   async retrieveCheckoutSession(sessionId: string) {
     return this.stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription'],
+      expand: ['subscription', 'invoice'],
     });
   }
 

@@ -29,32 +29,35 @@ export class PaymentsController {
   @Get('plans')
   @ApiOperation({ summary: 'Get all active plans' })
   @ApiResponse({ status: 200, description: 'List of plans' })
-  getPlans() {
-    return this.payments.getPlans();
+  async getPlans() {
+    const data = await this.payments.getPlans();
+    return { message: 'OK', data };
   }
 
   @Get('plans/:planId')
   @ApiOperation({ summary: 'Get plan by ID' })
-  getPlan(@Param('planId') planId: string) {
-    return this.payments.getPlanById(planId);
+  async getPlan(@Param('planId') planId: string) {
+    const data = await this.payments.getPlanById(planId);
+    return { message: 'OK', data };
   }
 
   @Post('plans')
   @UseGuards(ClerkGuard)
   @ApiOperation({ summary: 'Create a new plan (admin)' })
-  createPlan(
+  async createPlan(
     @CurrentUser() user: User,
     @Body() body: { name: string; description?: string; price: number; currency?: string; features?: string[] },
   ) {
     if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
       return { message: 'Forbidden', data: null };
     }
-    return this.payments.createPlan(body);
+    const data = await this.payments.createPlan(body);
+    return { message: 'Plan created', data };
   }
 
   @Patch('plans/:planId')
   @ApiOperation({ summary: 'Update a plan (admin)' })
-  updatePlan(
+  async updatePlan(
     @CurrentUser() user: User,
     @Param('planId') planId: string,
     @Body() body: { name?: string; description?: string; price?: number; features?: string[]; isActive?: boolean },
@@ -62,47 +65,67 @@ export class PaymentsController {
     if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
       return { message: 'Forbidden', data: null };
     }
-    return this.payments.updatePlan(planId, body);
+    const data = await this.payments.updatePlan(planId, body);
+    return { message: 'Plan updated', data };
   }
 
   // ==================== MY SUBSCRIPTION ====================
 
   @Get('subscription/me')
   @ApiOperation({ summary: 'Get my current subscription' })
-  getMySubscription(@CurrentUser() user: User) {
-    return this.payments.getMySubscription(user.id);
+  async getMySubscription(@CurrentUser() user: User) {
+    const data = await this.payments.getMySubscription(user.id);
+    return { message: 'OK', data };
   }
 
   @Post('subscription/checkout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create checkout session for subscription' })
-  createSubscriptionCheckout(
+  async createSubscriptionCheckout(
     @CurrentUser() user: User,
     @Body() body: { planId: string },
   ) {
-    return this.payments.createCheckoutSession(user.id, body.planId);
+    const data = await this.payments.createCheckoutSession(user.id, body.planId);
+    return { message: 'OK', data };
   }
 
   @Post('subscription/cancel')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Cancel my subscription' })
-  cancelMySubscription(@CurrentUser() user: User) {
-    return this.payments.cancelMySubscription(user.id);
+  async cancelMySubscription(@CurrentUser() user: User) {
+    const data = await this.payments.cancelMySubscription(user.id);
+    return { message: 'Subscription canceled', data };
   }
 
   @Post('subscription/portal')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create Stripe customer portal session' })
-  createSubscriptionPortal(@CurrentUser() user: User) {
-    return this.payments.createCustomerPortal(user.id);
+  async createSubscriptionPortal(@CurrentUser() user: User) {
+    const data = await this.payments.createCustomerPortal(user.id);
+    return { message: 'OK', data };
+  }
+
+  @Post('checkout/sync')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sync a completed Stripe checkout session' })
+  async syncCheckoutSession(
+    @CurrentUser() user: User,
+    @Body() body: { sessionId: string },
+  ) {
+    const data = await this.payments.syncCheckoutSessionFromStripe(
+      body.sessionId,
+      user.id,
+    );
+    return { message: 'Checkout synced', data };
   }
 
   // ==================== MY PAYMENTS ====================
 
   @Get('history/me')
   @ApiOperation({ summary: 'Get my payment history' })
-  getMyPayments(@CurrentUser() user: User) {
-    return this.payments.getMyPayments(user.id);
+  async getMyPayments(@CurrentUser() user: User) {
+    const data = await this.payments.getMyPayments(user.id);
+    return { message: 'OK', data };
   }
 
   // ==================== ARTIST TIERS ====================
@@ -163,31 +186,35 @@ export class PaymentsController {
 
   @Get('tiers/subscribed')
   @ApiOperation({ summary: 'Get tiers I am subscribed to' })
-  getMySubscribedTiers(@CurrentUser() user: User) {
-    return this.payments.getMyTierSubscriptions(user.id);
+  async getMySubscribedTiers(@CurrentUser() user: User) {
+    const data = await this.payments.getMyTierSubscriptions(user.id);
+    return { message: 'OK', data };
   }
 
   @Get('tiers/artist/:artistId')
   @ApiOperation({ summary: 'Get active public tiers for an artist' })
-  getArtistPublicTiers(@Param('artistId') artistId: string) {
-    return this.payments.getPublicArtistTiers(artistId);
+  async getArtistPublicTiers(@Param('artistId') artistId: string) {
+    const data = await this.payments.getPublicArtistTiers(artistId);
+    return { message: 'OK', data };
   }
 
   @Post('tiers/:tierId/subscribe')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Subscribe to a tier' })
-  subscribeToTier(
+  async subscribeToTier(
     @CurrentUser() user: User,
     @Param('tierId') tierId: string,
   ) {
-    return this.payments.createTierCheckout(user.id, tierId);
+    const data = await this.payments.createTierCheckout(user.id, tierId);
+    return { message: 'OK', data };
   }
 
   @Delete('tiers/:tierId/subscribe')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unsubscribe from a tier' })
-  unsubscribeFromTier(@CurrentUser() user: User, @Param('tierId') tierId: string) {
-    return this.payments.cancelMyTierSubscription(user.id, tierId);
+  async unsubscribeFromTier(@CurrentUser() user: User, @Param('tierId') tierId: string) {
+    const data = await this.payments.cancelMyTierSubscription(user.id, tierId);
+    return { message: 'Unsubscribed', data };
   }
 
   // ==================== PAYOUTS ====================
@@ -195,31 +222,34 @@ export class PaymentsController {
   @Post('payouts/me')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request a payout' })
-  requestPayout(
+  async requestPayout(
     @CurrentUser() user: User,
     @Body() body: { amount: number; note?: string },
   ) {
     if (!user.isArtist) {
       return { message: 'Only artists can request payouts', data: null };
     }
-    return this.payments.requestPayout(user.id, body.amount, body.note);
+    const data = await this.payments.requestPayout(user.id, body.amount, body.note);
+    return { message: 'Payout requested', data };
   }
 
   @Get('payouts/me')
   @ApiOperation({ summary: 'Get my payout history' })
-  getMyPayouts(@CurrentUser() user: User) {
+  async getMyPayouts(@CurrentUser() user: User) {
     if (!user.isArtist) {
       return { message: 'Only artists can view payouts', data: null };
     }
-    return this.payments.getMyPayouts(user.id);
+    const data = await this.payments.getMyPayouts(user.id);
+    return { message: 'OK', data };
   }
 
   @Get('revenue/me')
   @ApiOperation({ summary: 'Get my revenue stats' })
-  getMyRevenue(@CurrentUser() user: User) {
+  async getMyRevenue(@CurrentUser() user: User) {
     if (!user.isArtist) {
       return { message: 'Only artists can view revenue', data: null };
     }
-    return this.payments.getArtistRevenue(user.id);
+    const data = await this.payments.getArtistRevenue(user.id);
+    return { message: 'OK', data };
   }
 }

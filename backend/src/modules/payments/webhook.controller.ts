@@ -5,6 +5,8 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -14,8 +16,10 @@ import { StripeService } from './stripe.service';
 import Stripe from 'stripe';
 
 @ApiTags('webhooks')
-@Controller('webhook')
+@Controller(['webhook', 'api/webhook'])
 export class WebhookController {
+  private readonly logger = new Logger(WebhookController.name);
+
   constructor(
     private readonly payments: PaymentsService,
     private readonly stripe: StripeService,
@@ -30,6 +34,10 @@ export class WebhookController {
     @Headers('stripe-signature') signature: string,
   ) {
     try {
+      if (!signature) {
+        throw new BadRequestException('Missing Stripe signature');
+      }
+
       const payload = req.rawBody || Buffer.from('');
       const event = await this.stripe.constructWebhookEvent(payload, signature);
 
@@ -100,13 +108,13 @@ export class WebhookController {
         }
 
         default:
-          console.log(`Unhandled Stripe event type: ${event.type}`);
+          this.logger.log(`Unhandled Stripe event type: ${event.type}`);
       }
 
       return { received: true };
     } catch (error) {
-      console.error('Stripe webhook error:', error);
-      return { received: true, error: 'Processing error' };
+      this.logger.error('Stripe webhook error', error);
+      throw error;
     }
   }
 }

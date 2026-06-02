@@ -33,6 +33,8 @@ export const E = {
     artistDetail: (identifier: string) => `/users/artists/${identifier}`,
     artistArtworks: (identifier: string, limit: number, offset: number, filter?: string) =>
       `/users/artists/${identifier}/artworks?limit=${limit}&offset=${offset}${filter ? `&filter=${filter}` : ''}`,
+    artistTierPreviews: (identifier: string) =>
+      `/users/artists/${identifier}/tier-previews`,
   },
 
   notifications: {
@@ -129,6 +131,9 @@ export const E = {
       checkout: () => '/payments/subscription/checkout',
       cancel: () => '/payments/subscription/cancel',
       portal: () => '/payments/subscription/portal',
+    },
+    checkout: {
+      sync: () => '/payments/checkout/sync',
     },
     history: () => '/payments/history/me',
     tiers: {

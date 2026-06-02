@@ -219,7 +219,7 @@ export class UsersService {
 
   async findArtistArtworks(
     identifier: string,
-    filter: { visibility?: 'all' | 'free'; tierId?: string | null; limit?: number; offset?: number },
+    filter: { visibility?: 'all' | 'free' | 'premium'; tierId?: string | null; limit?: number; offset?: number },
     viewerId?: string | null,
   ) {
     const artist = await this.prisma.user.findFirst({
@@ -260,7 +260,9 @@ export class UsersService {
       ? { requiredTierId: filter.tierId }
       : filter.visibility === 'free'
         ? { visibility: ArtworkVisibility.PUBLIC }
-        : {};
+        : filter.visibility === 'premium'
+          ? { visibility: ArtworkVisibility.TIER_GATED }
+          : {};
 
     const where = {
       authorId: artist.id,
@@ -288,5 +290,87 @@ export class UsersService {
       total,
       hasMore: offset + artworks.length < total,
     };
+  }
+
+  /**
+   * Get tier preview data for the Membership tab
+   * Returns all tiers with blurred artwork previews for non-subscribers
+   */
+  async findArtistTierPreviews(identifier: string, viewerId?: string | null) {
+    const artist = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ id: identifier }, { username: identifier }],
+        isArtist: true,
+      },
+      select: { id: true },
+    });
+
+    if (!artist) {
+      throw new NotFoundException('Artist not found');
+    }
+
+    // Get all active tiers
+    const tiers = await this.prisma.artistTier.findMany({
+      where: { artistId: artist.id, isActive: true },
+      orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    // Get viewer's subscribed tier IDs
+    const subscribedTierIds = viewerId
+      ? (await this.prisma.tierSubscription.findMany({
+          where: { subscriberId: viewerId, artistId: artist.id, status: 'ACTIVE' },
+          select: { tierId: true },
+        })).map(s => s.tierId)
+      : [];
+
+    // For each tier, get preview artworks and counts
+    const result = await Promise.all(tiers.map(async (tier) => {
+      const isSubscribed = subscribedTierIds.includes(tier.id);
+
+      const totalArtworks = await this.prisma.artwork.count({
+        where: { requiredTierId: tier.id, status: 'PUBLISHED' },
+      });
+
+      // Only get blurred previews for unsubscribed tiers
+      const previewArtworks = !isSubscribed
+        ? await this.prisma.artwork.findMany({
+            where: { requiredTierId: tier.id, status: 'PUBLISHED' },
+            take: 6,
+            orderBy: { createdAt: 'desc' },
+            include: {
+              images: {
+                take: 1,
+                orderBy: { order: 'asc' },
+                select: { blurredUrl: true, thumbnailUrl: true, aspectRatio: true },
+              },
+            },
+          })
+        : [];
+
+      const memberCount = await this.prisma.tierSubscription.count({
+        where: { tierId: tier.id, status: 'ACTIVE' },
+      });
+
+      return {
+        tier: {
+          id: tier.id,
+          name: tier.name,
+          description: tier.description,
+          price: tier.price,
+          currency: tier.currency,
+          benefits: tier.benefits,
+          memberCount,
+        },
+        isSubscribed,
+        totalArtworks,
+        previewArtworks: previewArtworks.map(a => ({
+          id: a.id,
+          blurredUrl: a.images[0]?.blurredUrl || a.images[0]?.thumbnailUrl || null,
+          aspectRatio: a.images[0]?.aspectRatio || 1,
+        })),
+      };
+    }));
+
+    return result;
   }
 }

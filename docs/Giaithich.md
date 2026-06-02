@@ -120,3 +120,40 @@ Trang Artist Detail (`/artists/[username]`) được cập nhật để sử d�
 - **Tại sao lại dùng Identifier trên Backend?** → Thay vì tạo thêm endpoint mới cho Username hoặc ép Frontend gọi theo ID, việc cho phép Backend lookup theo cả hai (`OR: [{ id }, { username }]`) giúp tối giản số lượng endpoint mà vẫn đáp ứng được nhu cầu routing của Frontend (`/[username]`).
 - **Tại sao kết hợp Server & Client Fetching?** → Server fetching cho profile giúp SEO tốt hơn và giảm thời gian hiển thị nội dung chính. Tuy nhiên, Artwork gallery cần tính tương tác cao (chuyển tab, phân trang) nên bắt buộc phải xử lý ở Client. Đây là mô hình Hybrid lý tưởng trong Next.js.
 - **Xử lý các trường Mock chưa có ở Backend (Badges, Socials):** Tạm thời comment/ẩn các tính năng này để tránh rườm rà trong database, đợi khi có schema chính thức sẽ mở lại.
+
+---
+
+### [02/06] - Membership Tier Feature & Server-side Image Blurring
+
+**Logic:**
+Xây dựng tính năng "Membership" cho phép Artist hiển thị các gói Đăng ký (Tier) của mình kèm theo ảnh preview của các Artwork độc quyền.
+- **Backend:** Mở rộng quá trình xử lý ảnh trên hàng đợi (BullMQ `artwork.processor.ts`) để tạo thêm một bản sao bị làm mờ (blur radius 30) bên cạnh bản gốc và bản thumbnail. Lưu đường dẫn vào trường `blurredUrl` mới.
+- **Frontend:** Thiết kế lại Component `ArtworkGallery`, chia thành 4 Tab (All Artworks, Free, 💎 Premium, ⭐ Membership). Tab Membership sẽ hiển thị các Card giới thiệu Tier kèm theo lưới ảnh preview bị làm mờ và nút "Subscribe".
+
+**Decision:**
+- **Tại sao lại làm mờ ảnh (Blur) ở Server thay vì Client (CSS `filter: blur()`)?** → Nếu dùng CSS blur, trình duyệt vẫn tải bức ảnh gốc rõ nét về máy tính người dùng. Bất kỳ ai biết dùng DevTools đều có thể tải được ảnh gốc mà không cần mua Tier. Server-side blurring bằng thư viện `sharp` tạo ra một file ảnh thực sự bị mờ (không thể khôi phục), đảm bảo bảo mật tuyệt đối cho nội dung trả phí.
+- **Tại sao tách riêng `Premium` tab và `Membership` tab?** → Tab `Membership` đóng vai trò như một trang "Landing page" để sale các Tier (phô diễn lợi ích, số lượng member, preview ảnh mờ). Tab `Premium` đóng vai trò là nơi tiêu thụ nội dung (cho những người ĐÃ mua Tier), với một Dropdown lọc theo từng Tier cụ thể. Sự tách biệt này giúp luồng UX rõ ràng hơn giữa việc "mua sắm" và "thưởng thức".
+
+---
+
+### [02/06] - Fix Payment API Response Wrapper
+
+**Logic:**
+Phát hiện lỗi không thể redirect sang trang thanh toán Stripe giả lập. Nguyên nhân là do các endpoint trong `payments.controller.ts` (như `subscribeToTier`, `createSubscriptionCheckout`) trả về trực tiếp `{ checkoutUrl, sessionId }` mà không bọc trong wrapper `{ message: 'OK', data: ... }`. Tuy nhiên Frontend (`ApiClient.post`) và các component (`MembershipTab.tsx`) đều kỳ vọng `response.data.checkoutUrl`. Vì thiếu wrapper `data`, property này bị `undefined`.
+
+**Decision:**
+- **Giải pháp:** Sửa lại toàn bộ các phương thức trong `payments.controller.ts` để đồng bộ trả về `{ message, data }`.
+- **Tại sao lại sửa Backend thay vì Frontend?** → Giữ tính nhất quán trên toàn bộ hệ thống API. Các endpoint khác đều đang tuân thủ quy tắc bọc response này, nên Backend cần được sửa để chuẩn hóa interface thay vì để Frontend phải xử lý ngoại lệ bằng `data?.data?.checkoutUrl || data?.checkoutUrl`.
+
+---
+
+### [02/06] - Fix Subscription Webhook Race Condition & Frontend Query Caching
+
+**Logic:**
+Sau khi thanh toán thành công trong chế độ Sandbox, tiền đã lên dashboard nhưng người dùng vẫn thấy trạng thái "Subscribe". Hai nguyên nhân chính được phát hiện:
+1. **Lỗi DB Lookup trên Webhook:** Khi Stripe gửi webhook `checkout.session.completed`, Backend tìm TierSubscription bằng cách tra cứu `status: 'ACTIVE'`. Điều này tạo ra bug lớn: Nếu webhook đến không theo thứ tự hoặc subscription lúc mới tạo là `'incomplete'`, việc tìm theo `'ACTIVE'` sẽ thất bại và Backend sẽ tạo thêm một bản ghi rác mới thay vì update bản ghi có sẵn.
+2. **Race condition ở Frontend (React Query + Clerk Auth):** Các hook `useArtistTierPreviews` và `useArtistArtworks` gán hàm lấy token cho `apiClient` bên trong khối `useEffect`. Nhưng `useQuery` của React Query luôn trigger gọi API **ngay lập tức** ở lần render đầu tiên (trước khi `useEffect` kịp chạy). Kết quả: API call bay đi mà không mang theo Access Token, khiến Backend tưởng đó là user ẩn danh (Guest) → trả về trạng thái "chưa subscribe".
+
+**Decision:**
+- **Sửa Backend:** Cập nhật hàm `handleTierSubscriptionCreated` trong `payments.service.ts` để luôn tra cứu duy nhất qua trường `providerSubId` (ID subscription của Stripe) nhằm đảm bảo tính nguyên tử (Atomicity), không phụ thuộc vào `status` cũ.
+- **Sửa Frontend:** Dời lệnh `apiClient.setTokenGetter(getToken)` ra khỏi `useEffect` để chạy đồng bộ ngay lúc render. Đồng thời thêm điều kiện `enabled: isLoaded && !!identifier` vào `useQuery` để đảm bảo lệnh fetch chỉ chạy sau khi Clerk Auth đã tải xong dữ liệu tài khoản.

@@ -1,7 +1,6 @@
 import type { ArtistTier, Payout, Plan, RevenueStats, Subscription, TierSubscription } from '@gr/shared';
 import { useAuth } from '@clerk/nextjs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
 import { apiClient } from '../client';
 import { E } from '../endpoints';
 
@@ -15,9 +14,7 @@ type PortalResponse = { message: string; data: { url: string } };
 
 export function usePlans() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['payments', 'plans'],
@@ -27,9 +24,7 @@ export function usePlans() {
 
 export function useMySubscription() {
   const { getToken, isSignedIn } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['payments', 'subscription', 'me'],
@@ -40,9 +35,7 @@ export function useMySubscription() {
 
 export function useCreateSubscriptionCheckout() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -55,11 +48,29 @@ export function useCreateSubscriptionCheckout() {
   });
 }
 
+export function useSyncCheckoutSession() {
+  const { getToken } = useAuth();
+  apiClient.setTokenGetter(getToken);
+
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ sessionId }: { sessionId: string }) =>
+      apiClient.post<{ message: string; data: Subscription | TierSubscription | null }>(
+        E.payments.checkout.sync(),
+        { sessionId },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['artist-tier-previews'] });
+      queryClient.invalidateQueries({ queryKey: ['artist-artworks'] });
+    },
+  });
+}
+
 export function useSubscriptionPortal() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useMutation({
     mutationFn: () => apiClient.post<PortalResponse>(E.payments.subscription.portal()),
@@ -68,9 +79,7 @@ export function useSubscriptionPortal() {
 
 export function useCancelSubscription() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -84,9 +93,7 @@ export function useCancelSubscription() {
 
 export function useMyPayments() {
   const { getToken, isSignedIn } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['payments', 'history'],
@@ -98,9 +105,7 @@ export function useMyPayments() {
 // Artist Tiers
 export function useMyTiers() {
   const { getToken, isSignedIn } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['payments', 'tiers', 'me'],
@@ -111,9 +116,7 @@ export function useMyTiers() {
 
 export function useCreateTier() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -128,9 +131,7 @@ export function useCreateTier() {
 
 export function useUpdateTier() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -145,9 +146,7 @@ export function useUpdateTier() {
 
 export function useDeleteTier() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -162,9 +161,7 @@ export function useDeleteTier() {
 
 export function useTierSubscribers() {
   const { getToken, isSignedIn } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['payments', 'tiers', 'subscribers'],
@@ -175,9 +172,7 @@ export function useTierSubscribers() {
 
 export function useSubscribedTiers() {
   const { getToken, isSignedIn } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['payments', 'tiers', 'subscribed'],
@@ -188,9 +183,7 @@ export function useSubscribedTiers() {
 
 export function useSubscribeToTier() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -205,9 +198,7 @@ export function useSubscribeToTier() {
 
 export function useUnsubscribeFromTier() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -223,9 +214,7 @@ export function useUnsubscribeFromTier() {
 // Payouts
 export function useMyPayouts() {
   const { getToken, isSignedIn } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['payments', 'payouts'],
@@ -236,9 +225,7 @@ export function useMyPayouts() {
 
 export function useRequestPayout() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -254,9 +241,7 @@ export function useRequestPayout() {
 
 export function useMyRevenue() {
   const { getToken, isSignedIn } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['payments', 'revenue'],
@@ -268,9 +253,7 @@ export function useMyRevenue() {
 // Admin Payouts
 export function useAllPayouts(status?: string) {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   return useQuery({
     queryKey: ['admin', 'payouts', status],
@@ -280,9 +263,7 @@ export function useAllPayouts(status?: string) {
 
 export function useApprovePayout() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -297,9 +278,7 @@ export function useApprovePayout() {
 
 export function useRejectPayout() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 
@@ -314,9 +293,7 @@ export function useRejectPayout() {
 
 export function useMarkPayoutPaid() {
   const { getToken } = useAuth();
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  apiClient.setTokenGetter(getToken);
 
   const queryClient = useQueryClient();
 

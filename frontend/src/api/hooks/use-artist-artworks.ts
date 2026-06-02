@@ -1,7 +1,7 @@
 import type { ArtworkListItem } from '@/types/artwork';
 import { useAuth } from '@clerk/nextjs';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { apiClient } from '../client';
 import { E } from '../endpoints';
 
@@ -19,11 +19,8 @@ export function useArtistArtworks(
   filter?: string,
   { limit = 24 }: { limit?: number } = {},
 ) {
-  const { getToken } = useAuth();
-
-  useEffect(() => {
-    apiClient.setTokenGetter(getToken);
-  }, [getToken]);
+  const { getToken, isLoaded } = useAuth();
+  apiClient.setTokenGetter(getToken);
 
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['artist-artworks', identifier, filter, limit],
@@ -39,7 +36,7 @@ export function useArtistArtworks(
       const totalLoaded = allPages.reduce((sum, page) => sum + page.data.length, 0);
       return totalLoaded;
     },
-    enabled: !!identifier,
+    enabled: isLoaded && !!identifier,
   });
 
   const allArtworks = data?.pages.flatMap(page => page.data) ?? [];
