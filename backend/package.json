@@ -18,7 +18,14 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "search:sync": "ts-node scripts/sync-search.ts"
+    "search:sync": "ts-node scripts/sync-search.ts",
+    "db:seed": "ts-node prisma/seed/seed.ts",
+    "db:reset": "ts-node prisma/seed/seed-reset.ts",
+    "db:reseed": "ts-node prisma/seed/seed-reset.ts && ts-node prisma/seed/seed.ts && pnpm run search:sync",
+    "db:reset:full": "ts-node prisma/seed/seed-reset.ts --clean-minio && ts-node prisma/seed/seed.ts && pnpm run search:sync"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.957.0",
@@ -68,6 +75,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.39.2",
+    "@faker-js/faker": "^10.4.0",
     "@nestjs/cli": "^11.0.14",
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.10",

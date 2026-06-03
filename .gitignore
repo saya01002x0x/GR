@@ -269,3 +269,5 @@ repomix-output.xml
 .agent/
 .shared/
 docs/howto/
+
+/backend/prisma/seed-data

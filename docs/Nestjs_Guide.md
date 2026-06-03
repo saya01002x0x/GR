@@ -288,3 +288,9 @@ Tá»•ng há»£p cÃ¡c khÃ¡i niá»‡m NestJS Ä‘Ã£ sá»­ dá»¥ng trong dá»± Ã¡n.
   ```
 - **á»¨ng dá»¥ng:** DÃ¹ng trong `DuplicateDetectionService` Ä‘á»ƒ phÃ¡t hiá»‡n áº£nh trÃ¹ng láº·p khi upload. Táº¡o phash cho áº£nh má»›i, so sÃ¡nh vá»›i táº¥t cáº£ phash Ä‘Ã£ lÆ°u trong DB (`artwork_images.phash`), náº¿u Hamming distance â‰¤ 5 thÃ¬ reject upload.
 
+
+ # # # #   [ D e t e r m i n i s t i c   D a t a b a s e   S e e d i n g ] 
+ -   * * L à   g ì : * *   K ù  t h u ­t   t ¡o   d ï  l i Çu   m «u   n g «u   n h i ê n   n h °n g   k ¿t   q u £  l u ô n   c Ñ  Ën h   ß  m Íi   l §n   c h ¡y   n h Ý  g á n   c h u n g   1   ' k h ó a '   ( s e e d ) . 
+ -   * * C á c h   d ù n g : * *   S í  d ån g   t h °  v i Çn   ' @ f a k e r - j s / f a k e r '   k ¿t   h ãp   g Íi   ' f a k e r . s e e d ( n u m b e r ) ' . 
+ -   * * èn g   d ån g : * *   G i ú p   t ¡o   r a   b Ù  T e s t c a s e   v Ûi   B X H   t r e n d i n g ,   h Ç  t h Ñn g   c o m m e n t ,   l °ãt   l i k e   c Ñ  Ën h   q u a   h à n g   t r m   l §n   t e s t   m à   k h ô n g   c §n   h a r d c o d e   b ±n g   t a y .  
+ 
