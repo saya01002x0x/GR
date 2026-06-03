@@ -1,11 +1,7 @@
 'use client';
 
-import type { Artist } from '@/mocks/artistData';
 import {
-  ActionIcon,
-  Anchor,
   Avatar,
-  Badge,
   Button,
   Card,
   Divider,
@@ -17,17 +13,28 @@ import {
   Title,
 } from '@mantine/core';
 import {
-  IconBrandInstagram,
-  IconBrandX,
-  IconLink,
   IconMail,
-  IconMapPin,
   IconPlus,
 } from '@tabler/icons-react';
 import { formatNumber } from '@/mocks/artistData';
 
+export type PublicArtistDetail = {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatar: string | null;
+  banner: string | null;
+  bio: string | null;
+  createdAt: string;
+  _count: { artworks: number; followers: number };
+  isOwner: boolean;
+  tiers: any[];
+  accessibleTierIds: string[];
+  artworkCounts: { all: number; free: number; tiers: Record<string, number> };
+};
+
 type ProfileSidebarProps = {
-  artist: Artist;
+  artist: PublicArtistDetail;
 };
 
 export function ProfileSidebar({ artist }: ProfileSidebarProps) {
@@ -39,7 +46,7 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
           {/* Avatar */}
           <Avatar
             src={artist.avatar}
-            alt={artist.displayName}
+            alt={artist.displayName || artist.username}
             size={128}
             radius="50%"
             style={{
@@ -51,7 +58,7 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
 
           {/* Name & Username */}
           <Title order={2} fw={700}>
-            {artist.displayName}
+            {artist.displayName || artist.username}
           </Title>
           <Text c="dimmed" size="sm" fw={500} mt={-8}>
             @
@@ -59,6 +66,7 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
           </Text>
 
           {/* Badges */}
+          {/*
           <Group gap="xs" justify="center" my="xs">
             {artist.badges.map(badge => (
               <Badge
@@ -73,6 +81,7 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
               </Badge>
             ))}
           </Group>
+          */}
 
           {/* Action Buttons */}
           <Group w="100%" gap="sm" mt="sm">
@@ -102,6 +111,7 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
             {artist.bio}
           </Text>
 
+          {/*
           <Group gap="xs" c="dimmed">
             <IconLink size={18} />
             <Anchor href={`https://${artist.website}`} size="sm" c="dimmed">
@@ -113,9 +123,11 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
             <IconMapPin size={18} />
             <Text size="sm">{artist.location}</Text>
           </Group>
+          */}
         </Stack>
 
         {/* Social Links */}
+        {/*
         <Group gap="sm" mt="lg" justify="center">
           {artist.socials.twitter && (
             <ActionIcon
@@ -140,13 +152,14 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
             </ActionIcon>
           )}
         </Group>
+        */}
       </Card>
 
       {/* Stats */}
-      <SimpleGrid cols={3} spacing="xs">
+      <SimpleGrid cols={2} spacing="xs">
         <Paper withBorder p="sm" radius="md" ta="center">
           <Text fw={700} fz="lg">
-            {formatNumber(artist.stats.followers)}
+            {formatNumber(artist._count.followers)}
           </Text>
           <Text size="xs" c="dimmed">
             Followers
@@ -154,18 +167,10 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
         </Paper>
         <Paper withBorder p="sm" radius="md" ta="center">
           <Text fw={700} fz="lg">
-            {formatNumber(artist.stats.following)}
+            {formatNumber(artist._count.artworks)}
           </Text>
           <Text size="xs" c="dimmed">
-            Following
-          </Text>
-        </Paper>
-        <Paper withBorder p="sm" radius="md" ta="center">
-          <Text fw={700} fz="lg">
-            {formatNumber(artist.stats.views)}
-          </Text>
-          <Text size="xs" c="dimmed">
-            Views
+            Artworks
           </Text>
         </Paper>
       </SimpleGrid>

@@ -12,14 +12,14 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { LikesService } from './likes.service';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
 
 @ApiTags('likes')
 @Controller('artworks')
 export class LikesController {
-  constructor(private readonly likesService: LikesService) {}
+  constructor(private readonly likesService: LikesService) { }
 
   /**
    * Toggle like on artwork

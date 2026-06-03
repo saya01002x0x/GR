@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  postgres_test:
+    image: pgvector/pgvector:pg17
+    container_name: gr-postgres-test
+    restart: unless-stopped
+    ports:
+      - "5434:5432"  # Port 5434 for testing DB
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gr_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis_test:
+    image: redis:7-alpine
+    container_name: gr-redis-test
+    restart: unless-stopped
+    ports:
+      - "6380:6379" # Port 6380 for test redis
+    command: redis-server
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

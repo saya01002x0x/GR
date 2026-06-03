@@ -46,16 +46,35 @@ export class PrismaService
       throw new Error('Cannot clean database in production!');
     }
 
-    // Delete in order to respect foreign key constraints
-    await this.bookmark.deleteMany();
-    await this.collection.deleteMany();
-    await this.follow.deleteMany();
-    await this.like.deleteMany();
-    await this.comment.deleteMany();
-    await this.artworkTag.deleteMany();
-    await this.artworkImage.deleteMany();
-    await this.artwork.deleteMany();
-    await this.tag.deleteMany();
-    await this.user.deleteMany();
+    await this.$transaction([
+      // Layer 1: Leaf tables
+      this.invoice.deleteMany(),
+      this.payment.deleteMany(),
+      this.tierContent.deleteMany(),
+      this.tierSubscription.deleteMany(),
+      this.payout.deleteMany(),
+      this.userInteraction.deleteMany(),
+      this.notification.deleteMany(),
+      this.userWarning.deleteMany(),
+      this.auditLog.deleteMany(),
+      this.announcement.deleteMany(),
+      this.systemSetting.deleteMany(),
+      this.report.deleteMany(),
+      this.bookmark.deleteMany(),
+      this.collection.deleteMany(),
+      this.follow.deleteMany(),
+      this.like.deleteMany(),
+      this.comment.deleteMany(),
+      this.artworkTag.deleteMany(),
+      this.artworkImage.deleteMany(),
+      
+      // Layer 2: Parent tables
+      this.artistTier.deleteMany(),
+      this.subscription.deleteMany(),
+      this.plan.deleteMany(),
+      this.artwork.deleteMany(),
+      this.tag.deleteMany(),
+      this.user.deleteMany(),
+    ]);
   }
 }

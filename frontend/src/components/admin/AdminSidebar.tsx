@@ -3,6 +3,7 @@
 import { Box, Loader, NavLink, Stack, Text } from '@mantine/core';
 import {
   IconChartBar,
+  IconCurrencyDollar,
   IconDashboard,
   IconGavel,
   IconReport,
@@ -37,6 +38,7 @@ const menuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', href: '/admin', icon: IconDashboard, minRole: 1 },
   { id: 'moderation', label: 'Content Moderation', href: '/admin/moderation', icon: IconGavel, minRole: 1 },
   { id: 'users', label: 'User Management', href: '/admin/users', icon: IconUsers, minRole: 1 },
+  { id: 'payouts', label: 'Payout Requests', href: '/admin/payouts', icon: IconCurrencyDollar, minRole: 2 },
   { id: 'analytics', label: 'Analytics', href: '/admin/analytics', icon: IconChartBar, minRole: 2 },
   { id: 'ranking', label: 'Dynamic Ranking', href: '/admin/ranking', icon: IconScale, minRole: 2 },
   { id: 'announcements', label: 'Announcements', href: '/admin/announcements', icon: IconSpeakerphone, minRole: 2 },

@@ -16,6 +16,7 @@ export type ArtworkImage = {
   id: string;
   url: string;
   thumbnailUrl: string;
+  blurredUrl?: string;
   width: number;
   height: number;
   aspectRatio: number;

@@ -15,6 +15,7 @@ const baseConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForDev: true,
   },
+  transpilePackages: ['@gr/shared'],
 };
 
 // Initialize the Next-Intl plugin

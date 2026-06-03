@@ -13,9 +13,17 @@ type SearchBarProps = {
   size?: MantineSize;
   radius?: MantineSize;
   leftSectionSize?: number;
+  resetModeOnSearch?: boolean;
 };
 
-export function SearchBar({ placeholder = 'Search artworks...', onSearch, size = 'lg', radius = 'xl', leftSectionSize = 20 }: SearchBarProps) {
+export function SearchBar({
+  placeholder = 'Search artworks...',
+  onSearch,
+  size = 'lg',
+  radius = 'xl',
+  leftSectionSize = 20,
+  resetModeOnSearch = true,
+}: SearchBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -52,8 +60,12 @@ export function SearchBar({ placeholder = 'Search artworks...', onSearch, size =
 
     if (debounced) {
       params.set('q', debounced);
+      if (resetModeOnSearch) {
+        params.set('mode', 'standard');
+      }
     } else {
       params.delete('q');
+      params.delete('mode');
     }
 
     // Update URL without scroll
@@ -77,12 +89,17 @@ export function SearchBar({ placeholder = 'Search artworks...', onSearch, size =
 
       if (value) {
         params.set('q', value);
+        if (resetModeOnSearch) {
+          params.set('mode', 'standard');
+        }
       } else {
         params.delete('q');
+        params.delete('mode');
       }
 
       isNavigating.current = true;
-      router.push(`/search?${params.toString()}`, { scroll: false });
+      const newUrl = params.toString() ? `/search?${params}` : '/search';
+      router.push(newUrl, { scroll: false });
       onSearch?.(value);
     }
   };

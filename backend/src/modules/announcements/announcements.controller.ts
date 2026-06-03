@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AnnouncementsService } from './announcements.service';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -31,7 +31,7 @@ export class AnnouncementsController {
   constructor(
     private readonly announcementsService: AnnouncementsService,
     private readonly auditLogsService: AuditLogsService,
-  ) {}
+  ) { }
 
   @Get('announcements/active')
   @ApiOperation({ summary: 'Get active announcements (public)' })

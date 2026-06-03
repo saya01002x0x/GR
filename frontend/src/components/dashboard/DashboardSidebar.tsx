@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   Badge,
   Box,
@@ -25,6 +24,7 @@ import {
   IconChevronDown,
   IconChevronRight,
   IconCrown,
+  IconCurrencyDollar,
   IconEye,
   IconPalette,
   IconPhoto,
@@ -36,16 +36,9 @@ import {
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useUserProfile } from '@/api/hooks';
 import { BecomeArtistModal } from './BecomeArtistModal';
-
-type UserInfo = {
-  id: string;
-  isArtist: boolean;
-  warningCount?: number;
-  isBanned?: boolean;
-  bannedUntil?: string | null;
-};
 
 const iconMap: Record<string, React.ElementType> = {
   'general': IconSettings,
@@ -58,6 +51,7 @@ const iconMap: Record<string, React.ElementType> = {
   'upload': IconUpload,
   'analytics': IconChartBar,
   'commissions': IconPalette,
+  'payouts': IconCurrencyDollar,
 };
 
 const settingsMenuItems = [
@@ -74,50 +68,22 @@ const creatorMenuItems = [
   { id: 'upload', label: 'Upload New', href: '/upload' },
   { id: 'analytics', label: 'Analytics', href: '/dashboard/analytics' },
   { id: 'commissions', label: 'Commissions', href: '/dashboard/commissions' },
+  { id: 'payouts', label: 'Payouts', href: '/dashboard/payouts' },
 ];
 
 export function DashboardSidebar() {
   const pathname = usePathname();
-  const { getToken } = useAuth();
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchUserInfo = useCallback(async () => {
-    try {
-      const token = await getToken();
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setUserInfo(data);
-      }
-    } catch {
-      // Ignore error
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
-
-  useEffect(() => {
-    fetchUserInfo();
-  }, [fetchUserInfo]);
+  const { data: userInfo, isLoading: loading, refetch: refetchProfile } = useUserProfile();
 
   const isActive = (href: string) => {
     const cleanPath = pathname.replace(/^\/[a-z]{2}/, '');
     return cleanPath === href || cleanPath.startsWith(`${href}/`);
   };
 
-  const handleBecomeArtistSuccess = () => {
-    setUserInfo(prev => (prev ? { ...prev, isArtist: true } : prev));
+  const handleBecomeArtistSuccess = async () => {
+    await refetchProfile();
   };
 
   return (

@@ -1,16 +1,19 @@
 'use client';
 
 import type { WatermarkSettings } from '@/types/watermark';
+import { useAuth } from '@clerk/nextjs';
 import {
   ActionIcon,
   Box,
   Button,
+  Collapse,
   Container,
   Group,
   Image,
   LoadingOverlay,
   Paper,
   Radio,
+  Select,
   Stack,
   Switch,
   TagsInput,
@@ -33,8 +36,12 @@ import {
   IconShieldCheck,
   IconX,
 } from '@tabler/icons-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { apiClient } from '@/api/client';
+import { useUserProfile } from '@/api/hooks';
+import { useMyTiers } from '@/api/hooks/use-payments';
 import { WatermarkOptions } from '@/components/upload/WatermarkOptions';
 import { DEFAULT_WATERMARK_SETTINGS } from '@/types/watermark';
 
@@ -44,15 +51,23 @@ type UploadForm = {
   tags: string[];
   rating: 'SAFE' | 'R18' | 'R18G';
   isAI: boolean;
+  visibility: 'PUBLIC' | 'TIER_GATED';
+  requiredTierId: string;
 };
 
 export default function UploadPage() {
   const router = useRouter();
+  const { getToken } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isArtist, setIsArtist] = useState<boolean | null>(null);
   const [watermarkSettings, setWatermarkSettings] = useState<WatermarkSettings>(DEFAULT_WATERMARK_SETTINGS);
-  const [wmOverrides, setWmOverrides] = useState<Map<number, boolean>>(new Map());
+  const [wmOverrides, setWmOverrides] = useState<Map<number, boolean>>(() => new Map());
+
+  const { data: userProfile } = useUserProfile();
+  const isArtist = userProfile?.isArtist;
+
+  const { data: tiersData } = useMyTiers();
+  const tiers = tiersData?.data || [];
 
   const form = useForm<UploadForm>({
     initialValues: {
@@ -61,36 +76,15 @@ export default function UploadPage() {
       tags: [],
       rating: 'SAFE',
       isAI: false,
+      visibility: 'PUBLIC',
+      requiredTierId: '',
     },
     validate: {
       title: value => (!value.trim() ? 'Tiêu đề là bắt buộc' : null),
       tags: value => (value.length === 0 ? 'Cần ít nhất 1 tag' : null),
+      requiredTierId: (value, values) => (values.visibility === 'TIER_GATED' && !value ? 'Vui lòng chọn Tier' : null),
     },
   });
-
-  // Check if user is artist
-  useEffect(() => {
-    async function checkArtist() {
-      try {
-        const token = await window.Clerk?.session?.getToken();
-        if (!token) {
-          return;
-        }
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setIsArtist(data.isArtist);
-        }
-      } catch {
-        // Ignore
-      }
-    }
-    checkArtist();
-  }, []);
 
   // Create previews - cleanup on unmount to prevent memory leak
   const previews = useMemo(() => {
@@ -152,10 +146,12 @@ export default function UploadPage() {
 
     setLoading(true);
     try {
-      const token = await window.Clerk?.session?.getToken();
+      const token = await getToken();
       if (!token) {
         throw new Error('Not authenticated');
       }
+
+      apiClient.setTokenGetter(getToken);
 
       const formData = new FormData();
       formData.append('title', values.title);
@@ -163,8 +159,11 @@ export default function UploadPage() {
       formData.append('tags', JSON.stringify(values.tags.map(t => t.trim().toLowerCase())));
       formData.append('rating', values.rating);
       formData.append('isAI', String(values.isAI));
+      formData.append('visibility', values.visibility);
+      if (values.visibility === 'TIER_GATED' && values.requiredTierId) {
+        formData.append('requiredTierId', values.requiredTierId);
+      }
 
-      // Append images in order
       files.forEach(file => formData.append('images', file));
 
       const metadata = files.map((_, index) => ({
@@ -425,6 +424,47 @@ export default function UploadPage() {
               {...form.getInputProps('isAI', { type: 'checkbox' })}
               thumbIcon={<IconRobot size={12} />}
             />
+          </Paper>
+
+          {/* Visibility Options */}
+          <Paper p="xl" radius="lg" withBorder>
+            <Title order={4} mb="md">
+              Visibility & Access
+            </Title>
+
+            <Radio.Group
+              {...form.getInputProps('visibility')}
+            >
+              <Stack gap="sm">
+                <Radio value="PUBLIC" label="Public - Anyone can view" disabled={loading} />
+                <Radio value="TIER_GATED" label="Tier Gated - Only subscribers can view" disabled={loading} />
+              </Stack>
+            </Radio.Group>
+
+            <Collapse in={form.values.visibility === 'TIER_GATED'}>
+              <Box mt="md" p="md" bg="var(--mantine-color-gray-0)" style={{ borderRadius: 'var(--mantine-radius-md)' }}>
+                {tiers.length === 0
+                  ? (
+                      <Text size="sm" c="dimmed">
+                        You haven't created any tiers yet.
+                        {' '}
+                        <Link href="/dashboard/commissions" style={{ color: 'var(--mantine-color-primary-6)' }}>Create a tier</Link>
+                        {' '}
+                        first.
+                      </Text>
+                    )
+                  : (
+                      <Select
+                        label="Select Required Tier"
+                        placeholder="Choose a tier..."
+                        data={tiers.map((tier: any) => ({ value: tier.id, label: tier.name }))}
+                        disabled={loading}
+                        {...form.getInputProps('requiredTierId')}
+                        required={form.values.visibility === 'TIER_GATED'}
+                      />
+                    )}
+              </Box>
+            </Collapse>
           </Paper>
 
           {/* Action Buttons */}

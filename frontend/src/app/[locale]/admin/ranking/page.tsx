@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   Button,
   Card,
@@ -13,19 +12,10 @@ import {
   Title,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useAdminRanking } from '@/api/hooks';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type RankingWeights = {
-  likeWeight: number;
-  viewWeight: number;
-  commentWeight: number;
-  bookmarkWeight: number;
-  timeDecayFactor: number;
-};
-
-const DEFAULT_WEIGHTS: RankingWeights = {
+const DEFAULT_WEIGHTS = {
   likeWeight: 3,
   viewWeight: 1,
   commentWeight: 5,
@@ -34,52 +24,32 @@ const DEFAULT_WEIGHTS: RankingWeights = {
 };
 
 export default function RankingPage() {
-  const { getToken } = useAuth();
-  const [weights, setWeights] = useState<RankingWeights>(DEFAULT_WEIGHTS);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { weights, isLoading, saveWeights } = useAdminRanking();
+  const [pending, setPending] = useState<Partial<typeof DEFAULT_WEIGHTS>>({});
 
-  const fetchWeights = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/ranking/weights`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setWeights({ ...DEFAULT_WEIGHTS, ...data });
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
-
-  useEffect(() => {
-    fetchWeights();
-  }, [fetchWeights]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/ranking/weights`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(weights),
-      });
-      if (res.ok) {
-        notifications.show({ message: 'Ranking weights saved', color: 'green' });
-      }
-    } catch {
-      notifications.show({ message: 'Failed to save', color: 'red' });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
+
+  const localWeights = {
+    ...DEFAULT_WEIGHTS,
+    ...weights,
+    ...pending,
+  };
+
+  const updateField = <K extends keyof typeof DEFAULT_WEIGHTS>(key: K, value: (typeof DEFAULT_WEIGHTS)[K]) => {
+    setPending(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    try {
+      await saveWeights(localWeights);
+      setPending({});
+      notifications.show({ message: 'Ranking weights saved', color: 'green' });
+    } catch {
+      notifications.show({ message: 'Failed to save', color: 'red' });
+    }
+  };
 
   return (
     <Stack gap="lg">
@@ -97,48 +67,48 @@ export default function RankingPage() {
           <div>
             <Group justify="space-between" mb={4}>
               <Text size="sm" fw={500}>Like Weight (wL)</Text>
-              <Text size="sm" c="dimmed">{weights.likeWeight}</Text>
+              <Text size="sm" c="dimmed">{localWeights.likeWeight}</Text>
             </Group>
-            <Slider min={1} max={10} value={weights.likeWeight} onChange={v => setWeights(w => ({ ...w, likeWeight: v }))} />
+            <Slider min={1} max={10} value={localWeights.likeWeight} onChange={v => updateField('likeWeight', v)} />
           </div>
 
           <div>
             <Group justify="space-between" mb={4}>
               <Text size="sm" fw={500}>View Weight (wV)</Text>
-              <Text size="sm" c="dimmed">{weights.viewWeight}</Text>
+              <Text size="sm" c="dimmed">{localWeights.viewWeight}</Text>
             </Group>
-            <Slider min={1} max={10} value={weights.viewWeight} onChange={v => setWeights(w => ({ ...w, viewWeight: v }))} />
+            <Slider min={1} max={10} value={localWeights.viewWeight} onChange={v => updateField('viewWeight', v)} />
           </div>
 
           <div>
             <Group justify="space-between" mb={4}>
               <Text size="sm" fw={500}>Comment Weight (wC)</Text>
-              <Text size="sm" c="dimmed">{weights.commentWeight}</Text>
+              <Text size="sm" c="dimmed">{localWeights.commentWeight}</Text>
             </Group>
-            <Slider min={1} max={10} value={weights.commentWeight} onChange={v => setWeights(w => ({ ...w, commentWeight: v }))} />
+            <Slider min={1} max={10} value={localWeights.commentWeight} onChange={v => updateField('commentWeight', v)} />
           </div>
 
           <div>
             <Group justify="space-between" mb={4}>
               <Text size="sm" fw={500}>Bookmark Weight (wB)</Text>
-              <Text size="sm" c="dimmed">{weights.bookmarkWeight}</Text>
+              <Text size="sm" c="dimmed">{localWeights.bookmarkWeight}</Text>
             </Group>
-            <Slider min={1} max={10} value={weights.bookmarkWeight} onChange={v => setWeights(w => ({ ...w, bookmarkWeight: v }))} />
+            <Slider min={1} max={10} value={localWeights.bookmarkWeight} onChange={v => updateField('bookmarkWeight', v)} />
           </div>
 
           <div>
             <Group justify="space-between" mb={4}>
               <Text size="sm" fw={500}>Time Decay Factor</Text>
-              <Text size="sm" c="dimmed">{weights.timeDecayFactor.toFixed(1)}</Text>
+              <Text size="sm" c="dimmed">{localWeights.timeDecayFactor.toFixed(1)}</Text>
             </Group>
-            <Slider min={0.5} max={2.0} step={0.1} value={weights.timeDecayFactor} onChange={v => setWeights(w => ({ ...w, timeDecayFactor: v }))} />
+            <Slider min={0.5} max={2.0} step={0.1} value={localWeights.timeDecayFactor} onChange={v => updateField('timeDecayFactor', v)} />
           </div>
         </Stack>
       </Card>
 
       <Group justify="flex-end">
-        <Button variant="default" onClick={() => setWeights(DEFAULT_WEIGHTS)}>Reset to Defaults</Button>
-        <Button onClick={handleSave} loading={saving}>Save Changes</Button>
+        <Button variant="default" onClick={() => setPending({})}>Reset to Defaults</Button>
+        <Button onClick={handleSave}>Save Changes</Button>
       </Group>
     </Stack>
   );

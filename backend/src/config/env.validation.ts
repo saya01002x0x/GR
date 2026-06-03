@@ -50,4 +50,9 @@ export const envValidationSchema = Joi.object({
 
   // CORS
   CORS_ORIGIN: Joi.string().default('http://localhost:3000'),
+
+  // Stripe
+  STRIPE_SECRET_KEY: Joi.string().required(),
+  STRIPE_PUBLISHABLE_KEY: Joi.string().optional(),
+  STRIPE_WEBHOOK_SECRET: Joi.string().required(),
 });

@@ -19,6 +19,8 @@ import {
   IconUserPlus,
 } from '@tabler/icons-react';
 
+import Link from 'next/link';
+
 type ArtworkSidebarProps = {
   artwork: ArtworkDetail;
 };
@@ -36,22 +38,27 @@ export function ArtworkSidebar({ artwork }: ArtworkSidebarProps) {
     >
       {/* Artist Profile Card */}
       <Card radius="lg" withBorder p="lg" mb="lg">
-        <Group gap="sm" mb="md" wrap="nowrap">
-          <Avatar
-            src={artwork.artist.avatar}
-            size={48}
-            radius="xl"
-            style={{ flexShrink: 0 }}
-          />
-          <Box flex={1} miw={0}>
-            <Text size="sm" fw={700} lineClamp={1}>
-              {artwork.artist.name}
-            </Text>
-            <Text size="xs" c="dimmed" lineClamp={1}>
-              {artwork.artist.role}
-            </Text>
-          </Box>
-        </Group>
+        <Link
+          href={`/artists/${artwork.artist.username || artwork.artist.name}`}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          <Group gap="sm" mb="md" wrap="nowrap" style={{ cursor: 'pointer' }}>
+            <Avatar
+              src={artwork.artist.avatar}
+              size={48}
+              radius="xl"
+              style={{ flexShrink: 0 }}
+            />
+            <Box flex={1} miw={0}>
+              <Text size="sm" fw={700} lineClamp={1}>
+                {artwork.artist.name}
+              </Text>
+              <Text size="xs" c="dimmed" lineClamp={1}>
+                {artwork.artist.role}
+              </Text>
+            </Box>
+          </Group>
+        </Link>
         <Button
           fullWidth
           radius="md"

@@ -17,6 +17,8 @@ import {
   SearchService,
   type ArtworkDocument,
 } from '../../search/search.service';
+import { DuplicateDetectionService } from '../../duplicate-detection/duplicate-detection.service';
+import { EmbeddingService } from '../../ai-search/embedding.service';
 import sharp from 'sharp';
 
 @Processor(QUEUE_NAME, {
@@ -31,6 +33,8 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
     private readonly storageService: StorageService,
     private readonly configService: ConfigService,
     private readonly searchService: SearchService,
+    private readonly duplicateDetection: DuplicateDetectionService,
+    private readonly embeddingService: EmbeddingService,
   ) {
     super();
   }
@@ -60,11 +64,13 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
       const processedImages: {
         url: string;
         thumbnailUrl: string;
+        blurredUrl: string;
         width: number;
         height: number;
         aspectRatio: number;
         order: number;
         caption?: string;
+        phash?: string;
       }[] = [];
       let isNSFW = false;
       let primaryRatioClass = 'square';
@@ -77,7 +83,24 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
 
         const rawBuffer = await this.storageService.download(fileMeta.key);
 
-        // Decode image for AI check using Sharp (since tf.node.decodeImage is missing)
+        // Duplicate Detection: Generate pHash and check for duplicates
+        let imagePhash: string | undefined;
+        try {
+          imagePhash = await this.duplicateDetection.checkAndReject(rawBuffer);
+          this.logger.log(`Image ${i} phash: ${imagePhash.substring(0, 16)}...`);
+        } catch (dupError) {
+          if (dupError.response?.message === 'Duplicate image detected. This image has already been uploaded.') {
+            this.logger.warn(`Skipping duplicate image ${i} in artwork ${artworkId}`);
+            // For multi-image artworks, skip the duplicate image instead of failing entire job
+            // For single image artworks, this will still throw
+            if (files.length === 1) throw dupError;
+            continue;
+          }
+          // Other errors - just log and continue without phash
+          this.logger.warn(`pHash generation failed for image ${i}, continuing without: ${dupError.message}`);
+        }
+
+        // Decode image for AI check using Sharp
         const { data, info } = await sharp(rawBuffer)
           .resize(224, 224) // nsfwjs usually works on 224x224
           .removeAlpha() // Remove alpha channel (RGBA -> RGB) to prevent tensor shape mismatch
@@ -132,12 +155,13 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         }
 
         // Sharp Processing
-        const [processed, thumbnail] = await Promise.all([
+        const [processed, thumbnail, blurred] = await Promise.all([
           this.storageService.processImage(imageBuffer, {
             maxWidth: 1920,
             quality: 85,
           }),
           this.storageService.createThumbnail(imageBuffer, 400),
+          this.storageService.createBlurredImage(imageBuffer, 400, 30),
         ]);
 
         // Generate paths
@@ -151,11 +175,17 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
           artworkId,
           `thumb_${i}`,
         );
+        const blurPath = this.storageService.generateArtworkPath(
+          userId,
+          artworkId,
+          `blur_${i}`,
+        );
 
         // Upload Optimized
-        const [previewUrl, thumbUrl] = await Promise.all([
+        const [previewUrl, thumbUrl, blurUrl] = await Promise.all([
           this.storageService.uploadFile(processed.buffer, previewPath),
           this.storageService.uploadFile(thumbnail, thumbPath),
+          this.storageService.uploadFile(blurred, blurPath),
         ]);
 
         // Delete Raw File (Cleanup)
@@ -164,11 +194,13 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         processedImages.push({
           url: previewUrl,
           thumbnailUrl: thumbUrl,
+          blurredUrl: blurUrl,
           width: processed.metadata.width,
           height: processed.metadata.height,
           aspectRatio: processed.metadata.aspectRatio,
           order: fileMeta.order,
           caption: fileMeta.caption,
+          phash: imagePhash,
         });
       }
 
@@ -180,10 +212,12 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
             artworkId,
             url: img.url,
             thumbnailUrl: img.thumbnailUrl,
+            blurredUrl: img.blurredUrl,
             width: img.width,
             height: img.height,
             aspectRatio: img.aspectRatio,
             order: img.order,
+            phash: img.phash,
           })),
         });
 
@@ -242,6 +276,14 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
       this.logger.log(
         `Job ${job.id}: Successfully processed artwork ${artworkId}`,
       );
+
+      // Step 4: Generate & store image embeddings (async, non-blocking)
+      if (this.embeddingService.isAvailable()) {
+        this.generateAndStoreEmbeddings(artworkId).catch((err) =>
+          this.logger.error(`Embedding generation failed for ${artworkId}: ${err.message}`),
+        );
+      }
+
       return { success: true, images: processedImages.length, nsfw: isNSFW };
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
@@ -255,6 +297,39 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
       });
 
       throw error;
+    }
+  }
+
+  /**
+   * Async helper to generate and store Gemini embeddings for artwork images
+   * Separated from main processing loop so it doesn't block job completion
+   */
+  private async generateAndStoreEmbeddings(artworkId: string) {
+    const images = await this.prisma.artworkImage.findMany({
+      where: { artworkId },
+      select: { id: true, url: true }
+    });
+
+    for (const img of images) {
+      try {
+        // We use the image URL to get a public stream/buffer, or fetch from storage
+        const objectKey = new URL(img.url).pathname.slice(1); // naive way to get key from s3 url
+        const rawBuffer = await this.storageService.download(objectKey);
+        const base64Data = rawBuffer.toString('base64');
+        
+        const embedding = await this.embeddingService.getImageEmbedding(base64Data);
+        
+        // Store embedding manually via raw query since it's pgvector
+        const vectorStr = `[${embedding.join(',')}]`;
+        await this.prisma.$queryRawUnsafe(
+          `UPDATE artwork_images SET embedding = $1::vector WHERE id = $2`,
+          vectorStr,
+          img.id,
+        );
+        this.logger.debug(`Stored vector embedding for image ${img.id}`);
+      } catch (err) {
+        this.logger.error(`Failed to generate embedding for image ${img.id}: ${err.message}`);
+      }
     }
   }
 }

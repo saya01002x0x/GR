@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   Badge,
   Button,
@@ -19,20 +18,8 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus } from '@tabler/icons-react';
-import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type Announcement = {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-  isActive: boolean;
-  expiresAt: string | null;
-  createdAt: string;
-  author: { id: string; username: string; displayName: string | null };
-};
+import { useState } from 'react';
+import { useAdminAnnouncements } from '@/api/hooks';
 
 const TYPE_COLORS: Record<string, string> = {
   INFO: 'blue',
@@ -41,70 +28,30 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function AnnouncementsPage() {
-  const { getToken } = useAuth();
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { announcements, isLoading, createAnnouncement, toggleAnnouncement, deleteAnnouncement } = useAdminAnnouncements();
   const [opened, { open, close }] = useDisclosure(false);
   const [form, setForm] = useState({ title: '', content: '', type: 'INFO' });
-
-  const fetchAnnouncements = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/admin/announcements`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAnnouncements(data.announcements);
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
-
-  useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements]);
 
   const handleCreate = async () => {
     if (!form.title || !form.content) {
       return;
     }
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/admin/announcements`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      notifications.show({ message: 'Announcement created', color: 'green' });
-      close();
-      setForm({ title: '', content: '', type: 'INFO' });
-      fetchAnnouncements();
-    }
+    await createAnnouncement(form);
+    notifications.show({ message: 'Announcement created', color: 'green' });
+    close();
+    setForm({ title: '', content: '', type: 'INFO' });
   };
 
   const toggleActive = async (id: string, isActive: boolean) => {
-    const token = await getToken();
-    await fetch(`${API_URL}/admin/announcements/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ isActive: !isActive }),
-    });
-    fetchAnnouncements();
+    await toggleAnnouncement({ id, isActive });
   };
 
   const handleDelete = async (id: string) => {
-    const token = await getToken();
-    await fetch(`${API_URL}/admin/announcements/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await deleteAnnouncement(id);
     notifications.show({ message: 'Announcement deleted', color: 'green' });
-    fetchAnnouncements();
   };
 
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 
@@ -151,19 +98,13 @@ export default function AnnouncementsPage() {
           <TextInput
             label="Title"
             value={form.title}
-            onChange={(e) => {
-              const val = e.currentTarget.value;
-              setForm(f => ({ ...f, title: val }));
-            }}
+            onChange={e => setForm(f => ({ ...f, title: e.currentTarget.value }))}
             required
           />
           <Textarea
             label="Content"
             value={form.content}
-            onChange={(e) => {
-              const val = e.currentTarget.value;
-              setForm(f => ({ ...f, content: val }));
-            }}
+            onChange={e => setForm(f => ({ ...f, content: e.currentTarget.value }))}
             rows={4}
             required
           />

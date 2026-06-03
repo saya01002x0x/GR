@@ -5,73 +5,90 @@ import {
   Center,
   Container,
   Grid,
+  Group,
   Loader,
+  SegmentedControl,
   Skeleton,
   Stack,
   Text,
   Title,
 } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { IconSearch, IconSparkles } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useState } from 'react';
+import { useSearchArtworks } from '@/api/hooks';
+import { useAiSearchSketch, useAiSearchText } from '@/api/hooks/use-search';
 import { ArtworkCard } from '@/components/artwork';
-import { AdvancedFilterPanel, SearchBar } from '@/components/search';
-
-// Types matching backend response
-type ArtworkHit = {
-  id: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  author: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatar: string;
-  };
-  tags: string[];
-  rating: string;
-  isAI: boolean;
-  createdAt: number;
-  likeCount: number;
-  viewCount: number;
-};
-
-type SearchResponse = {
-  hits: ArtworkHit[];
-  total: number;
-  page: number;
-  limit: number;
-  processingTimeMs: number;
-};
-
-// API fetch function
-async function searchArtworks(params: URLSearchParams): Promise<SearchResponse> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3847';
-  const response = await fetch(`${apiUrl}/search/artworks?${params.toString()}`);
-
-  if (!response.ok) {
-    throw new Error('Search failed');
-  }
-
-  return response.json();
-}
+import {
+  AdvancedFilterPanel,
+  SearchBar,
+  SketchSearchIndicator,
+  SketchSearchModal,
+  SketchSearchTrigger,
+} from '@/components/search';
 
 function SearchContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const query = searchParams.get('q') || '';
+  const searchMode = searchParams.get('mode') === 'ai' ? 'ai' : 'standard';
 
-  // Fetch search results
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['search', searchParams.toString()],
-    queryFn: () => searchArtworks(searchParams),
-    staleTime: 1000 * 60, // 1 minute
-  });
+  // State for Sketch Search
+  const [isSketchModalOpen, setIsSketchModalOpen] = useState(false);
+  const [sketchBase64, setSketchBase64] = useState<string | null>(null);
+
+  // Hooks
+  const { data: standardData, isLoading: isLoadingStandard, error: errorStandard } = useSearchArtworks(searchParams);
+  const { data: aiData, isLoading: isLoadingAi, error: errorAi } = useAiSearchText(query, 20, searchMode === 'ai');
+  const sketchMutation = useAiSearchSketch();
+  const activeSketchBase64 = query ? null : sketchBase64;
+
+  const handleSearchModeChange = useCallback((mode: 'standard' | 'ai') => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (mode === 'ai') {
+      params.set('mode', 'ai');
+    } else {
+      params.set('mode', 'standard');
+    }
+
+    const newUrl = params.toString() ? `/search?${params}` : '/search';
+    router.push(newUrl, { scroll: false });
+  }, [router, searchParams]);
+
+  const handleSketchSearch = (base64: string) => {
+    setSketchBase64(base64);
+    sketchMutation.mutate(base64);
+  };
+
+  const handleClearSketch = () => {
+    setSketchBase64(null);
+    sketchMutation.reset();
+  };
+
+  // Determine which data to show
+  let currentData = null;
+  let currentLoading = false;
+  let currentError = null;
+
+  if (activeSketchBase64) {
+    currentData = sketchMutation.data;
+    currentLoading = sketchMutation.isPending;
+    currentError = sketchMutation.error;
+  } else if (searchMode === 'ai' && query) {
+    currentData = aiData;
+    currentLoading = isLoadingAi;
+    currentError = errorAi;
+  } else {
+    currentData = standardData;
+    currentLoading = isLoadingStandard;
+    currentError = errorStandard;
+  }
 
   return (
     <Container size="xl" py="xl">
       <Stack gap="xl">
-        {/* Search Header */}
         <Box>
           <Title order={1} mb="md">
             Search Artworks
@@ -79,60 +96,89 @@ function SearchContent() {
           <SearchBar placeholder="Search by title, artist, tags..." />
         </Box>
 
-        {/* Main Content */}
         <Grid gutter="xl">
-          {/* Sidebar - Filters */}
           <Grid.Col span={{ base: 12, md: 3 }}>
+            <SketchSearchTrigger onClick={() => setIsSketchModalOpen(true)} />
             <AdvancedFilterPanel />
           </Grid.Col>
 
-          {/* Results */}
           <Grid.Col span={{ base: 12, md: 9 }}>
-            {/* Results Info */}
-            {data && (
+            {/* Visual Indicator for Sketch Search */}
+            {activeSketchBase64 && (
+              <SketchSearchIndicator base64Image={activeSketchBase64} onClear={handleClearSketch} />
+            )}
+
+            {/* Mode Toggle for Text Search */}
+            {!activeSketchBase64 && (
+              <Group mb="lg" align="center">
+                <Text size="sm" fw={500} c="dimmed">
+                  Search Mode:
+                </Text>
+                <SegmentedControl
+                  value={searchMode}
+                  onChange={val => handleSearchModeChange(val as 'standard' | 'ai')}
+                  data={[
+                    {
+                      value: 'standard',
+                      label: (
+                        <Group gap="xs" wrap="nowrap">
+                          <IconSearch size={16} />
+                          <Text size="sm">Standard</Text>
+                        </Group>
+                      ),
+                    },
+                    {
+                      value: 'ai',
+                      label: (
+                        <Group gap="xs" wrap="nowrap">
+                          <IconSparkles size={16} />
+                          <Text size="sm">AI Semantic</Text>
+                        </Group>
+                      ),
+                    },
+                  ]}
+                />
+              </Group>
+            )}
+
+            {currentData && (
               <Text size="sm" c="dimmed" mb="md">
                 Found
                 {' '}
-                {data.total}
+                {currentData.total}
                 {' '}
                 results (
-                {data.processingTimeMs}
+                {currentData.processingTimeMs || 0}
                 ms)
               </Text>
             )}
 
-            {/* Loading State */}
-            {isLoading && (
+            {currentLoading && (
               <Grid gutter="md">
-                {[...Array.from({ length: 8 })].map((_, i) => (
-                  <Grid.Col key={i} span={{ base: 6, sm: 4, lg: 3 }}>
+                {Array.from({ length: 8 }, (_, i) => i).map(idx => (
+                  <Grid.Col key={`skeleton-${idx}`} span={{ base: 6, sm: 4, lg: 3 }}>
                     <Skeleton height={200} radius="md" />
                   </Grid.Col>
                 ))}
               </Grid>
             )}
 
-            {/* Error State */}
-            {error && (
+            {currentError && (
               <Center py="xl">
                 <Text c="red">Failed to load search results. Please try again.</Text>
               </Center>
             )}
 
-            {/* Results Grid */}
-            {data && data.hits.length > 0 && (
+            {currentData && currentData.hits?.length > 0 && (
               <Grid gutter="md">
-                {data.hits.map(artwork => (
+                {currentData.hits.map((artwork: any) => (
                   <Grid.Col key={artwork.id} span={{ base: 6, sm: 4, lg: 3 }}>
-                    <Link
-                      href={`/artworks/${artwork.id}`}
-                      style={{ textDecoration: 'none' }}
-                    >
+                    <Link href={`/artworks/${artwork.id}`} style={{ textDecoration: 'none' }}>
                       <ArtworkCard
                         title={artwork.title}
                         image={artwork.thumbnail}
-                        artist={artwork.author.displayName || artwork.author.username}
-                        artistAvatar={artwork.author.avatar}
+                        artist={artwork.author?.displayName || artwork.author?.username || 'Unknown'}
+                        artistAvatar={artwork.author?.avatar}
                         size="sm"
                       />
                     </Link>
@@ -141,8 +187,7 @@ function SearchContent() {
               </Grid>
             )}
 
-            {/* Empty State */}
-            {data && data.hits.length === 0 && (
+            {currentData && currentData.hits?.length === 0 && (
               <Center py="xl">
                 <Stack align="center" gap="xs">
                   <Text size="lg" fw={500}>
@@ -157,11 +202,16 @@ function SearchContent() {
           </Grid.Col>
         </Grid>
       </Stack>
+
+      <SketchSearchModal
+        opened={isSketchModalOpen}
+        onClose={() => setIsSketchModalOpen(false)}
+        onSearch={handleSketchSearch}
+      />
     </Container>
   );
 }
 
-// Main Page Component with Suspense for useSearchParams
 export default function SearchPage() {
   return (
     <Suspense

@@ -18,7 +18,7 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import type { User } from '@prisma/client';
 import { AdminService } from './admin.service';
-import { ClerkGuard } from '../auth/clerk/clerk.guard';
+import { ClerkGuard } from '../auth/clerk.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -33,7 +33,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly auditLogsService: AuditLogsService,
-  ) {}
+  ) { }
 
   // ── Dashboard ──
 
@@ -251,5 +251,39 @@ export class AdminController {
       action,
       actorId,
     });
+  }
+
+  // ── Payouts ──
+
+  @Get('payouts')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'List all payouts (Admin+)' })
+  async getAllPayouts(@Query('status') status?: string) {
+    return this.adminService.getAllPayouts(status);
+  }
+
+  @Patch('payouts/:payoutId/approve')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Approve a payout (Admin+)' })
+  async approvePayout(@CurrentUser() actor: User, @Param('payoutId') payoutId: string) {
+    return this.adminService.approvePayout(payoutId, actor.id);
+  }
+
+  @Patch('payouts/:payoutId/reject')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Reject a payout (Admin+)' })
+  async rejectPayout(
+    @CurrentUser() actor: User,
+    @Param('payoutId') payoutId: string,
+    @Body() body: { reason: string },
+  ) {
+    return this.adminService.rejectPayout(payoutId, actor.id, body.reason);
+  }
+
+  @Patch('payouts/:payoutId/mark-paid')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Mark payout as paid (Admin+)' })
+  async markPayoutPaid(@CurrentUser() actor: User, @Param('payoutId') payoutId: string) {
+    return this.adminService.markPayoutAsPaid(payoutId, actor.id);
   }
 }

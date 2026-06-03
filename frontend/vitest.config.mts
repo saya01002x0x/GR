@@ -1,11 +1,14 @@
-import react from '@vitejs/plugin-react';
+import { fileURLToPath, URL } from 'node:url';
 import { playwright } from '@vitest/browser-playwright';
 import { loadEnv } from 'vite';
-import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [react(), tsconfigPaths()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   test: {
     coverage: {
       include: ['src/**/*'],

@@ -16,9 +16,9 @@ import { PrismaModule } from './database';
 import { RedisModule } from './database/redis.module';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
-import { UsersModule } from './modules/users/users/users.module';
-import { StorageModule } from './modules/storage/storage/storage.module';
-import { ArtworksModule } from './modules/artworks/artworks/artworks.module';
+import { UsersModule } from './modules/users/users.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { ArtworksModule } from './modules/artworks/artworks.module';
 import { LikesModule } from './modules/likes/likes.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { CollectionsModule } from './modules/collections/collections.module';
@@ -30,6 +30,10 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { DuplicateDetectionModule } from './modules/duplicate-detection/duplicate-detection.module';
+import { AiSearchModule } from './modules/ai-search/ai-search.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 
 @Module({
   imports: [
@@ -77,8 +81,12 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     AdminModule,
     AnnouncementsModule,
     NotificationsModule,
+    PaymentsModule,
+    DuplicateDetectionModule,
+    AiSearchModule,
+    RecommendationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

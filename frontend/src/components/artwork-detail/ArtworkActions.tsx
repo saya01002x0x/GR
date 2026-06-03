@@ -14,7 +14,7 @@ import {
   IconShare,
 } from '@tabler/icons-react';
 import { useState } from 'react';
-import { useLike } from '@/hooks';
+import { useLike } from '@/api/hooks';
 import { ReportModal } from './ReportModal';
 import { SaveToCollectionModal } from './SaveToCollectionModal';
 
@@ -49,7 +49,6 @@ export function ArtworkActions({
         url: window.location.href,
       });
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
     }
   };
@@ -57,7 +56,6 @@ export function ArtworkActions({
   return (
     <>
       <Group gap="sm" mb="xl">
-        {/* Like Button with Count */}
         <Button
           variant={liked ? 'filled' : 'default'}
           color={liked ? 'red' : 'gray'}
@@ -75,7 +73,6 @@ export function ArtworkActions({
           {formatNumber(likeCount || initialLikeCount)}
         </Button>
 
-        {/* Save Button */}
         <ActionIcon
           variant={isSaved ? 'filled' : 'default'}
           color={isSaved ? 'primary' : 'gray'}
@@ -86,7 +83,6 @@ export function ArtworkActions({
           {isSaved ? <IconBookmarkFilled size={20} /> : <IconBookmark size={20} />}
         </ActionIcon>
 
-        {/* Share Button */}
         <ActionIcon
           variant="default"
           size="lg"
@@ -96,7 +92,6 @@ export function ArtworkActions({
           <IconShare size={20} />
         </ActionIcon>
 
-        {/* Report */}
         <ActionIcon
           variant="default"
           size="lg"

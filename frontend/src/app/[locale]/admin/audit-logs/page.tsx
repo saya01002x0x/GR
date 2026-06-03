@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
 import {
   Avatar,
   Badge,
@@ -14,25 +13,8 @@ import {
 } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconSearch } from '@tabler/icons-react';
-import { useCallback, useEffect, useState } from 'react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-type AuditLogEntry = {
-  id: string;
-  action: string;
-  details: any;
-  targetId: string | null;
-  targetType: string | null;
-  createdAt: string;
-  actor: {
-    id: string;
-    username: string;
-    displayName: string | null;
-    avatar: string | null;
-    role: string;
-  };
-};
+import { useState } from 'react';
+import { useAdminAuditLogs } from '@/api/hooks';
 
 const ACTION_COLORS: Record<string, string> = {
   'user.ban': 'red',
@@ -49,36 +31,12 @@ const ACTION_COLORS: Record<string, string> = {
 };
 
 export default function AuditLogsPage() {
-  const { getToken } = useAuth();
-  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
+  const { data: logsData, isLoading } = useAdminAuditLogs(debouncedSearch || undefined);
+  const logs = logsData?.logs ?? [];
 
-  const fetchLogs = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const params = new URLSearchParams();
-      if (debouncedSearch) {
-        params.set('action', debouncedSearch);
-      }
-      const res = await fetch(`${API_URL}/admin/audit-logs?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.logs);
-      }
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [debouncedSearch, getToken]);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
-
-  if (loading) {
+  if (isLoading) {
     return <Loader />;
   }
 

@@ -152,6 +152,26 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
+   * Create blurred preview image for tier-gated content
+   * Heavy blur makes content unrecognizable while preserving colors/composition
+   */
+  async createBlurredImage(
+    buffer: Buffer,
+    size = 400,
+    blurRadius = 30,
+  ): Promise<Buffer> {
+    return await sharp(buffer)
+      .rotate()
+      .withMetadata()
+      .resize(size, size, { fit: 'inside', withoutEnlargement: true })
+      .blur(blurRadius)
+      .jpeg({ quality: 50, progressive: true })
+      .toBuffer();
+  }
+
+
+
+  /**
    * Upload file to MinIO
    */
   async uploadFile(
