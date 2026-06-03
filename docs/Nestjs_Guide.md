@@ -163,3 +163,128 @@ Tổng hợp các khái niệm NestJS đã sử dụng trong dự án.
     .toBuffer();
   ```
 - **Ứng dụng:** Dùng trong `StorageService` và `ArtworkProcessor` để tự động tạo bản preview bị làm mờ (blurred preview) cho các ảnh thuộc Tier trả phí (Tier-gated artworks), giúp bảo vệ nội dung gốc khỏi việc bị trích xuất thông qua Client-side DevTools.
+
+---
+
+#### OnModuleInit (Lifecycle Hook)
+- **Là gì:** Interface lifecycle của NestJS, cho phép chạy logic khởi tạo sau khi module đã được resolve xong tất cả dependencies.
+- **Cách dùng:**
+  ```typescript
+  @Injectable()
+  export class MyService implements OnModuleInit {
+    async onModuleInit() {
+      // Khởi tạo SDK, kết nối external service, v.v.
+      this.client = new ExternalSDK({ apiKey: this.config.get('API_KEY') });
+    }
+  }
+  ```
+- **Ứng dụng:** `EmbeddingService` dùng `onModuleInit` để khởi tạo Google Gemini SDK với API key từ ConfigService. Nếu key chưa set, service log warning và disable AI Search thay vì crash app.
+
+---
+
+#### Google Gemini Embedding API (@google/genai)
+- **Là gì:** SDK chính thức của Google để gọi Gemini AI API, hỗ trợ tạo vector embedding từ text và image (multimodal).
+- **Cách dùng:**
+  ```typescript
+  import { GoogleGenAI } from '@google/genai';
+
+  const genai = new GoogleGenAI({ apiKey: 'YOUR_KEY' });
+
+  // Text embedding
+  const res = await genai.models.embedContent({
+    model: 'gemini-embedding-001',
+    contents: 'search query',
+    config: { taskType: 'SEMANTIC_SIMILARITY' },
+  });
+  const vector = res.embeddings[0].values; // number[768]
+
+  // Image embedding (multimodal)
+  const res2 = await genai.models.embedContent({
+    model: 'gemini-embedding-001',
+    contents: { parts: [{ inlineData: { mimeType: 'image/png', data: base64 } }] },
+  });
+  ```
+- **Ứng dụng:** `EmbeddingService` dùng Gemini để tạo vector 768 chiều cho text search (người dùng nhập câu hỏi) và sketch search (người dùng vẽ phác thảo). Vector này được lưu vào pgvector để tìm kiếm ngữ nghĩa.
+
+---
+
+#### pgvector Raw SQL ($queryRawUnsafe)
+- **Là gì:** Cách thực thi raw SQL queries trong Prisma, cần thiết khi dùng extension pgvector vì Prisma ORM chưa hỗ trợ vector operations natively.
+- **Cách dùng:**
+  ```typescript
+  // Tìm kiếm vector gần nhất (cosine distance)
+  const results = await this.prisma.$queryRawUnsafe<Result[]>(
+    `SELECT id, 1 - (embedding <=> $1::vector) AS similarity
+     FROM artwork_images
+     WHERE embedding IS NOT NULL
+     ORDER BY embedding <=> $1::vector
+     LIMIT $2`,
+    `[0.1, 0.2, ...]`, // vector dạng string
+    20,                  // limit
+  );
+
+  // Lưu vector vào DB
+  await this.prisma.$queryRawUnsafe(
+    `UPDATE artwork_images SET embedding = $1::vector WHERE id = $2`,
+    vectorStr, imageId,
+  );
+  ```
+- **Ứng dụng:** `AiSearchService` dùng raw SQL với toán tử `<=>` (cosine distance) của pgvector để tìm artwork images có embedding gần nhất với query vector. Phải dùng `$queryRawUnsafe` vì Prisma không hỗ trợ cast `::vector` trong query builder.
+
+---
+
+#### Raw SQL with $queryRaw (CTE - Common Table Expressions)
+- **Là gì:** Prisma cho phép chạy raw SQL khi query builder không đủ biểu đạt. CTE (WITH clause) cho phép định nghĩa "bảng tạm" trong cùng 1 câu query.
+- **Cách dùng:**
+  ```typescript
+  const results = await this.prisma.$queryRaw<MyType[]>`
+    WITH similar_users AS (
+      SELECT DISTINCT user_id
+      FROM user_interactions
+      WHERE artwork_id = ${artworkId}
+    )
+    SELECT ui.artwork_id, SUM(ui.weight)::int AS match_score
+    FROM user_interactions ui
+    INNER JOIN similar_users su ON ui.user_id = su.user_id
+    WHERE ui.artwork_id != ${artworkId}
+    GROUP BY ui.artwork_id
+    ORDER BY match_score DESC
+    LIMIT ${limit}
+  `;
+  ```
+- **Ứng dụng:** Dùng trong `RecommendationsService` để chạy Collaborative Filtering query phức tạp (CTE + self-join + aggregation) mà Prisma query builder không hỗ trợ. Tagged template literal tự động parameterize để chống SQL injection.
+
+---
+
+#### Prisma Upsert Pattern
+- **Là gì:** Thao tác "tạo nếu chưa có, cập nhật nếu đã có" trong 1 lệnh duy nhất, tránh race condition giữa check-then-insert.
+- **Cách dùng:**
+  ```typescript
+  await this.prisma.userInteraction.upsert({
+    where: {
+      userId_artworkId_action: { userId, artworkId, action },
+    },
+    update: { weight, createdAt: new Date() },
+    create: { userId, artworkId, action, weight },
+  });
+  ```
+- **Ứng dụng:** Dùng trong `InteractionsService` để ghi nhận interaction. Nếu user đã VIEW artwork trước đó, upsert sẽ update timestamp thay vì tạo record mới → tránh duplicate và đảm bảo weight luôn đúng.
+
+---
+
+#### sharp-phash (Perceptual Hashing)
+- **Là gì:** Thư viện tạo "vân tay thị giác" (perceptual hash) cho ảnh. Hai ảnh giống nhau về mặt nội dung (dù resize, crop, nén khác) sẽ có hash gần giống nhau. Dùng kèm `sharp-phash/distance` để tính Hamming distance giữa 2 hash.
+- **Cách dùng:**
+  ```typescript
+  import phash from 'sharp-phash';
+  import dist from 'sharp-phash/distance';
+
+  // Tạo hash từ buffer ảnh
+  const hash = await phash(imageBuffer); // → chuỗi hex, ví dụ "a0b1c2d3..."
+
+  // So sánh 2 hash
+  const distance = dist(hash1, hash2); // → số nguyên, 0 = giống hệt
+  // distance ≤ 5: gần như trùng | ≤ 10: nghi ngờ | > 10: khác nhau
+  ```
+- **Ứng dụng:** Dùng trong `DuplicateDetectionService` để phát hiện ảnh trùng lặp khi upload. Tạo phash cho ảnh mới, so sánh với tất cả phash đã lưu trong DB (`artwork_images.phash`), nếu Hamming distance ≤ 5 thì reject upload.
+

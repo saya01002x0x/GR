@@ -31,6 +31,9 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AnnouncementsModule } from './modules/announcements/announcements.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { DuplicateDetectionModule } from './modules/duplicate-detection/duplicate-detection.module';
+import { AiSearchModule } from './modules/ai-search/ai-search.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
 
 @Module({
   imports: [
@@ -79,6 +82,9 @@ import { PaymentsModule } from './modules/payments/payments.module';
     AnnouncementsModule,
     NotificationsModule,
     PaymentsModule,
+    DuplicateDetectionModule,
+    AiSearchModule,
+    RecommendationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

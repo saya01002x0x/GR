@@ -53,3 +53,29 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
   }
   ```
 - **Ứng dụng:** Dùng ở trang `ArtistProfilePage` để fetch chi tiết của Artist ngay trên server, tối ưu SEO và bảo mật do không lộ logic fetch API ở client. Kết hợp `Authorization` header để backend biết ai đang xem profile (phục vụ hiển thị private artwork nếu đã subscribe).
+
+---
+
+#### Tích hợp HTML5 Canvas trong React (Next.js Client Component)
+- **Là gì:** HTML5 `<canvas>` cho phép vẽ đồ hoạ 2D bằng Javascript. Khi dùng trong React, cần kết hợp `useRef` để truy xuất DOM Node và gắn các sự kiện chuột/chạm (mouse/touch events) để bắt nét vẽ.
+- **Cách dùng:**
+  ```tsx
+  'use client';
+  import { useRef, useEffect } from 'react';
+
+  export function DrawingCanvas() {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    // Có thể gắn event listener onMouseDown, onMouseMove lên thẻ <canvas>
+    // Khi muốn lấy ảnh:
+    const saveImage = () => {
+      if (canvasRef.current) {
+        const base64Data = canvasRef.current.toDataURL('image/png');
+        // Gửi base64Data lên API
+      }
+    };
+
+    return <canvas ref={canvasRef} width={600} height={400} />;
+  }
+  ```
+- **Ứng dụng:** Được dùng trong `SketchSearchModal` để cho phép người dùng vẽ phác thảo bức tranh. Base64 xuất ra từ canvas sẽ được gửi qua `useAiSearchSketch` (React Query) lên Backend để convert thành vector.

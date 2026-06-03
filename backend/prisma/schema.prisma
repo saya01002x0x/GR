@@ -1,86 +1,89 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres"]
+  previewFeatures = ["fullTextSearchPostgres", "postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 model User {
-  id           String       @id @default(uuid())
-  clerkId      String       @unique @map("clerk_id")
-  email        String       @unique
-  username     String       @unique
-  displayName  String?      @map("display_name")
-  avatar       String?
-  banner       String?
-  bio          String?
-  stripeCustomerId String?  @unique @map("stripe_customer_id")
-  role         UserRole     @default(USER)
-  isArtist     Boolean      @default(false) @map("is_artist")
-  isBanned     Boolean      @default(false) @map("is_banned")
-  bannedAt     DateTime?    @map("banned_at")
-  bannedUntil  DateTime?    @map("banned_until")
-  bannedById   String?      @map("banned_by_id")
-  warningCount Int          @default(0) @map("warning_count")
-  preferences  Json?
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  artworks     Artwork[]
-  bookmarks    Bookmark[]
-  collections  Collection[]
-  comments     Comment[]
-  following    Follow[]     @relation("following")
-  followers    Follow[]     @relation("followers")
-  likes        Like[]
-  reportsFiled    Report[]       @relation("reports_filed")
-  reportsResolved Report[]       @relation("reports_resolved")
-  announcements   Announcement[]
-  auditLogs       AuditLog[]
-  warnings        UserWarning[]
-  notifications   Notification[]
-  subscription      Subscription?
-  tierSubscriptions TierSubscription[] @relation("tier_subscriber")
+  id                      String             @id @default(uuid())
+  clerkId                 String             @unique @map("clerk_id")
+  email                   String             @unique
+  username                String             @unique
+  displayName             String?            @map("display_name")
+  avatar                  String?
+  banner                  String?
+  bio                     String?
+  stripeCustomerId        String?            @unique @map("stripe_customer_id")
+  role                    UserRole           @default(USER)
+  isArtist                Boolean            @default(false) @map("is_artist")
+  isBanned                Boolean            @default(false) @map("is_banned")
+  bannedAt                DateTime?          @map("banned_at")
+  bannedUntil             DateTime?          @map("banned_until")
+  bannedById              String?            @map("banned_by_id")
+  warningCount            Int                @default(0) @map("warning_count")
+  preferences             Json?
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
+  artworks                Artwork[]
+  bookmarks               Bookmark[]
+  collections             Collection[]
+  comments                Comment[]
+  following               Follow[]           @relation("following")
+  followers               Follow[]           @relation("followers")
+  likes                   Like[]
+  reportsFiled            Report[]           @relation("reports_filed")
+  reportsResolved         Report[]           @relation("reports_resolved")
+  announcements           Announcement[]
+  auditLogs               AuditLog[]
+  warnings                UserWarning[]
+  notifications           Notification[]
+  subscription            Subscription?
+  tierSubscriptions       TierSubscription[] @relation("tier_subscriber")
   tierSubscribersAsArtist TierSubscription[] @relation("tier_artist")
-  artistTiers       ArtistTier[]
-  payouts           Payout[]           @relation("payout_artist")
-  approvedPayouts   Payout[]           @relation("payout_approver")
-  payments          Payment[]
+  artistTiers             ArtistTier[]
+  payouts                 Payout[]           @relation("payout_artist")
+  approvedPayouts         Payout[]           @relation("payout_approver")
+  payments                Payment[]
+  interactions            UserInteraction[]
 
   @@map("users")
 }
 
 model Artwork {
-  id           String         @id @default(uuid())
-  title        String
-  description  String?
-  type         ArtworkType    @default(ILLUSTRATION)
-  status       ArtworkStatus  @default(PUBLISHED)
-  rating       ContentRating  @default(SAFE)
-  isAI         Boolean        @default(false) @map("is_ai")
-  viewCount    Int            @default(0) @map("view_count")
-  likeCount    Int            @default(0) @map("like_count")
-  commentCount  Int            @default(0) @map("comment_count")
-  ratioClass    String?        @map("ratio_class")
-  maxResolution Int?           @map("max_resolution")
-  isHighRes     Boolean        @default(false) @map("is_high_res")
-  visibility    ArtworkVisibility @default(PUBLIC) @map("visibility")
-  requiredTierId String?       @map("required_tier_id")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  authorId      String         @map("author_id")
-  images       ArtworkImage[]
-  tags         ArtworkTag[]
-  author       User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  requiredTier ArtistTier?    @relation("ArtworkRequiredTier", fields: [requiredTierId], references: [id], onDelete: SetNull)
-  bookmarks    Bookmark[]
-  comments     Comment[]
-  likes        Like[]
-  reports      Report[]
-  tierContents TierContent[]
-  warnings     UserWarning[]
+  id             String            @id @default(uuid())
+  title          String
+  description    String?
+  type           ArtworkType       @default(ILLUSTRATION)
+  status         ArtworkStatus     @default(PUBLISHED)
+  rating         ContentRating     @default(SAFE)
+  isAI           Boolean           @default(false) @map("is_ai")
+  viewCount      Int               @default(0) @map("view_count")
+  likeCount      Int               @default(0) @map("like_count")
+  commentCount   Int               @default(0) @map("comment_count")
+  ratioClass     String?           @map("ratio_class")
+  maxResolution  Int?              @map("max_resolution")
+  isHighRes      Boolean           @default(false) @map("is_high_res")
+  visibility     ArtworkVisibility @default(PUBLIC) @map("visibility")
+  requiredTierId String?           @map("required_tier_id")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  authorId       String            @map("author_id")
+  images         ArtworkImage[]
+  tags           ArtworkTag[]
+  author         User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  requiredTier   ArtistTier?       @relation("ArtworkRequiredTier", fields: [requiredTierId], references: [id], onDelete: SetNull)
+  bookmarks      Bookmark[]
+  comments       Comment[]
+  likes          Like[]
+  reports        Report[]
+  tierContents   TierContent[]
+  warnings       UserWarning[]
+  interactions   UserInteraction[]
 
   @@index([authorId])
   @@index([requiredTierId])
@@ -91,19 +94,22 @@ model Artwork {
 }
 
 model ArtworkImage {
-  id           String   @id @default(uuid())
+  id           String                      @id @default(uuid())
   url          String
-  order        Int      @default(0)
+  order        Int                         @default(0)
   width        Int?
   height       Int?
-  createdAt    DateTime @default(now()) @map("created_at")
-  artworkId    String   @map("artwork_id")
-  aspectRatio  Float?   @map("aspect_ratio")
-  thumbnailUrl String?  @map("thumbnail_url")
-  blurredUrl   String?  @map("blurred_url")
-  artwork      Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  createdAt    DateTime                    @default(now()) @map("created_at")
+  artworkId    String                      @map("artwork_id")
+  aspectRatio  Float?                      @map("aspect_ratio")
+  thumbnailUrl String?                     @map("thumbnail_url")
+  blurredUrl   String?                     @map("blurred_url")
+  phash        String?                     @map("phash")
+  embedding    Unsupported("vector(768)")? @map("embedding")
+  artwork      Artwork                     @relation(fields: [artworkId], references: [id], onDelete: Cascade)
 
   @@index([artworkId])
+  @@index([phash])
   @@map("artwork_images")
 }
 
@@ -388,8 +394,8 @@ model Subscription {
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
 
-  user    User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan    Plan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
   payments Payment[]
 
   @@unique([userId])
@@ -411,10 +417,10 @@ model ArtistTier {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  artist       User             @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  artist        User               @relation(fields: [artistId], references: [id], onDelete: Cascade)
   subscriptions TierSubscription[]
-  contents     TierContent[]
-  gatedArtworks Artwork[]       @relation("ArtworkRequiredTier")
+  contents      TierContent[]
+  gatedArtworks Artwork[]          @relation("ArtworkRequiredTier")
 
   @@index([artistId])
   @@map("artist_tiers")
@@ -460,23 +466,23 @@ model TierContent {
 }
 
 model Payment {
-  id                    String        @id @default(uuid())
-  userId                String        @map("user_id")
+  id                    String          @id @default(uuid())
+  userId                String          @map("user_id")
   provider              PaymentProvider
-  providerTransactionId String?       @map("provider_txn_id")
-  amount                Decimal       @db.Decimal(10, 2)
-  currency              String        @default("VND")
+  providerTransactionId String?         @map("provider_txn_id")
+  amount                Decimal         @db.Decimal(10, 2)
+  currency              String          @default("VND")
   type                  PaymentType
-  status                PaymentStatus @default(PENDING)
-  metadata              Json?         @default("{}")
-  createdAt             DateTime      @default(now()) @map("created_at")
+  status                PaymentStatus   @default(PENDING)
+  metadata              Json?           @default("{}")
+  createdAt             DateTime        @default(now()) @map("created_at")
 
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription      Subscription?     @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  subscriptionId    String?           @map("subscription_id")
-  tierSubscription  TierSubscription? @relation(fields: [tierSubscriptionId], references: [id], onDelete: SetNull)
-  tierSubscriptionId String?          @map("tier_subscription_id")
-  invoice           Invoice?
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription       Subscription?     @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscriptionId     String?           @map("subscription_id")
+  tierSubscription   TierSubscription? @relation(fields: [tierSubscriptionId], references: [id], onDelete: SetNull)
+  tierSubscriptionId String?           @map("tier_subscription_id")
+  invoice            Invoice?
 
   @@index([userId])
   @@index([providerTransactionId])
@@ -486,13 +492,13 @@ model Payment {
 }
 
 model Invoice {
-  id          String        @id @default(uuid())
-  paymentId   String        @unique @map("payment_id")
-  items       Json          @default("[]")
-  total       Decimal       @db.Decimal(10, 2)
-  status      InvoiceStatus @default(PAID)
-  pdfUrl      String?       @map("pdf_url")
-  createdAt   DateTime      @default(now()) @map("created_at")
+  id        String        @id @default(uuid())
+  paymentId String        @unique @map("payment_id")
+  items     Json          @default("[]")
+  total     Decimal       @db.Decimal(10, 2)
+  status    InvoiceStatus @default(PAID)
+  pdfUrl    String?       @map("pdf_url")
+  createdAt DateTime      @default(now()) @map("created_at")
 
   payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
@@ -500,21 +506,21 @@ model Invoice {
 }
 
 model Payout {
-  id          String        @id @default(uuid())
-  artistId    String        @map("artist_id")
-  amount      Decimal       @db.Decimal(10, 2)
-  fee         Decimal       @default(0) @db.Decimal(10, 2)
-  netAmount   Decimal       @map("net_amount") @db.Decimal(10, 2)
-  status      PayoutStatus  @default(PENDING)
-  note        String?
-  requestedAt DateTime      @default(now()) @map("requested_at")
-  approvedAt  DateTime?     @map("approved_at")
-  approvedBy  String?       @map("approved_by")
-  paidAt      DateTime?     @map("paid_at")
-  rejectedAt  DateTime?     @map("rejected_at")
-  rejectionReason String?   @map("rejection_reason")
+  id              String       @id @default(uuid())
+  artistId        String       @map("artist_id")
+  amount          Decimal      @db.Decimal(10, 2)
+  fee             Decimal      @default(0) @db.Decimal(10, 2)
+  netAmount       Decimal      @map("net_amount") @db.Decimal(10, 2)
+  status          PayoutStatus @default(PENDING)
+  note            String?
+  requestedAt     DateTime     @default(now()) @map("requested_at")
+  approvedAt      DateTime?    @map("approved_at")
+  approvedBy      String?      @map("approved_by")
+  paidAt          DateTime?    @map("paid_at")
+  rejectedAt      DateTime?    @map("rejected_at")
+  rejectionReason String?      @map("rejection_reason")
 
-  artist User @relation("payout_artist", fields: [artistId], references: [id], onDelete: Cascade)
+  artist   User  @relation("payout_artist", fields: [artistId], references: [id], onDelete: Cascade)
   approver User? @relation("payout_approver", fields: [approvedBy], references: [id], onDelete: SetNull)
 
   @@index([artistId])
@@ -558,4 +564,28 @@ enum PayoutStatus {
   APPROVED
   PAID
   REJECTED
+}
+
+model UserInteraction {
+  id        String          @id @default(uuid())
+  userId    String          @map("user_id")
+  artworkId String          @map("artwork_id")
+  action    InteractionType
+  weight    Int             @default(1)
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artwork Artwork @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, artworkId, action])
+  @@index([userId])
+  @@index([artworkId])
+  @@map("user_interactions")
+}
+
+enum InteractionType {
+  VIEW
+  LIKE
+  COMMENT
+  UNLOCK
 }

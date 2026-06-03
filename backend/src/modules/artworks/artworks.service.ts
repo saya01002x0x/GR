@@ -333,11 +333,13 @@ export class ArtworksService {
       }),
     ]);
 
+    const accessibleTierIdSet = new Set(accessibleTierIds);
+
     return {
-      artworks: await Promise.all(artworks.map(async artwork => ({
+      artworks: artworks.map(artwork => ({
         ...artwork,
-        access: await this.getArtworkAccess(this.toArtworkAccessSubject(artwork), viewerId),
-      }))),
+        access: this.getArtworkAccessFromAccessibleTierIds(artwork, accessibleTierIdSet, viewerId),
+      })),
       total,
       hasMore: offset + artworks.length < total,
     };
@@ -440,19 +442,66 @@ export class ArtworksService {
     artworks: Array<Record<string, unknown>>,
     viewerId?: string | null,
   ): Promise<Array<Record<string, unknown> & { access: ArtworkAccessState }>> {
-    const filtered = await Promise.all(artworks.map(async artwork => {
-      const access = await this.getArtworkAccess(this.toArtworkAccessSubject(artwork), viewerId);
+    const accessibleTierIds = viewerId
+      ? new Set((await this.prisma.tierSubscription.findMany({
+          where: { subscriberId: viewerId, status: 'ACTIVE' },
+          select: { tierId: true },
+        })).map(subscription => subscription.tierId))
+      : new Set<string>();
+
+    const filtered = artworks.map(artwork => {
+      const access = this.getArtworkAccessFromAccessibleTierIds(artwork, accessibleTierIds, viewerId);
       return access.canViewFull ? { ...artwork, access } : null;
-    }));
+    });
 
     return filtered.filter(Boolean) as Array<Record<string, unknown> & { access: ArtworkAccessState }>;
   }
 
+  private getArtworkAccessFromAccessibleTierIds(
+    artwork: Record<string, unknown>,
+    accessibleTierIds: Set<string>,
+    viewerId?: string | null,
+  ): ArtworkAccessState {
+    const subject = this.toArtworkAccessSubject(artwork);
+    const isOwner = Boolean(viewerId && subject.authorId === viewerId);
+
+    if (subject.visibility === ArtworkVisibility.PUBLIC || isOwner) {
+      return {
+        isOwner,
+        isSubscribed: false,
+        canViewFull: true,
+      };
+    }
+
+    if (!viewerId || !subject.requiredTierId) {
+      return {
+        isOwner,
+        isSubscribed: false,
+        canViewFull: false,
+      };
+    }
+
+    const isSubscribed = accessibleTierIds.has(subject.requiredTierId);
+    return {
+      isOwner,
+      isSubscribed,
+      canViewFull: isSubscribed,
+    };
+  }
+
   private toArtworkAccessSubject(artwork: Record<string, unknown>): ArtworkAccessSubject {
+    const requiredTier = artwork.requiredTier as { id?: unknown } | null | undefined;
+    const tier = artwork.tier as { id?: unknown } | null | undefined;
+    const requiredTierId = artwork.requiredTierId
+      ?? artwork.tierId
+      ?? requiredTier?.id
+      ?? tier?.id
+      ?? null;
+
     return {
       authorId: String(artwork.authorId || ''),
       visibility: artwork.visibility as ArtworkVisibility,
-      requiredTierId: (artwork.requiredTierId as string | null | undefined) ?? null,
+      requiredTierId: requiredTierId === null ? null : String(requiredTierId),
     };
   }
 

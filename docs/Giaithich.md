@@ -157,3 +157,73 @@ Sau khi thanh toán thành công trong chế độ Sandbox, tiền đã lên das
 **Decision:**
 - **Sửa Backend:** Cập nhật hàm `handleTierSubscriptionCreated` trong `payments.service.ts` để luôn tra cứu duy nhất qua trường `providerSubId` (ID subscription của Stripe) nhằm đảm bảo tính nguyên tử (Atomicity), không phụ thuộc vào `status` cũ.
 - **Sửa Frontend:** Dời lệnh `apiClient.setTokenGetter(getToken)` ra khỏi `useEffect` để chạy đồng bộ ngay lúc render. Đồng thời thêm điều kiện `enabled: isLoaded && !!identifier` vào `useQuery` để đảm bảo lệnh fetch chỉ chạy sau khi Clerk Auth đã tải xong dữ liệu tài khoản.
+
+---
+
+### [03/06] - Duplicate Detection Module (Perceptual Hashing)
+
+**Logic:**
+Module phát hiện ảnh trùng lặp dựa trên Perceptual Hashing (pHash):
+1. **Tạo Hash:** Khi upload ảnh, dùng `sharp-phash` để tạo "vân tay" (fingerprint) dạng chuỗi hex từ buffer ảnh. Hash này không phụ thuộc vào kích thước, nén, hay format — hai ảnh giống nhau về mặt thị giác sẽ có hash gần giống nhau.
+2. **So sánh Hamming Distance:** Lấy toàn bộ phash đã lưu trong DB (`artwork_images.phash`), so sánh với hash mới bằng Hamming distance (số bit khác nhau giữa 2 hash). Distance ≤ 5 = gần như trùng; ≤ 10 = nghi ngờ trùng.
+3. **Chặn Upload:** Method `checkAndReject()` tự động reject upload (throw `BadRequestException`) nếu phát hiện ảnh gần trùng (distance ≤ 5).
+
+**Decision:**
+- **Tại sao dùng Perceptual Hash thay vì MD5/SHA?** → MD5/SHA hash toàn bộ binary data. Chỉ cần resize hoặc re-compress ảnh là hash thay đổi hoàn toàn, không phát hiện được ảnh "giống nhau". pHash so sánh nội dung thị giác, robust với resize/crop/compression.
+- **Tại sao so sánh in-memory thay vì SQL?** → Hamming distance giữa 2 chuỗi ngắn (64 bit) là O(1), cực nhanh. Với vài chục ngàn ảnh, việc fetch all + loop vẫn nhanh hơn viết custom SQL function. Khi scale lớn hơn có thể chuyển sang BK-tree hoặc pgvector.
+- **Tại sao threshold 5 cho reject, 10 cho detect?** → Distance 0-5 gần như chắc chắn là cùng 1 ảnh (resize, crop nhẹ, nén khác). Distance 6-10 có thể là ảnh tương tự nhưng khác (cùng bối cảnh, góc chụp hơi khác) → chỉ cảnh báo, không block.
+
+---
+
+### [03/06] - AI Search Module (Gemini Embedding + pgvector)
+
+**Logic:**
+Module tìm kiếm ngữ nghĩa (semantic search) kết hợp Gemini Embedding API và pgvector:
+1. **Text Search:** Người dùng nhập câu hỏi tự nhiên (VD: "girl with red hair") → Gemini API tạo vector embedding 768 chiều → pgvector tìm ảnh có embedding gần nhất (cosine distance `<=>`). Kết quả trả về kèm `similarity` score.
+2. **Sketch Search (Premium):** Người dùng vẽ phác thảo → base64 image → Gemini multimodal embedding → pgvector search. Chỉ dành cho user có subscription ACTIVE.
+3. **Redis Caching:** Embedding của text query được cache 7 ngày trong Redis (key: `search:vector:{query}`) để tránh gọi Gemini API lặp lại cho cùng một câu hỏi.
+4. **Store Embedding:** Method `storeImageEmbedding()` được gọi khi upload ảnh để lưu vector vào cột `artwork_images.embedding`.
+
+**Decision:**
+- **Tại sao dùng `gemini-embedding-001` thay vì OpenAI?** → Google Gemini hỗ trợ multimodal embedding (cả text lẫn image) trong cùng 1 model, giúp so sánh cross-modal (text ↔ image) chính xác hơn. OpenAI tách riêng text embedding và image embedding.
+- **Tại sao cache embedding trong Redis thay vì DB?** → Embedding là dữ liệu tạm thời (chỉ cần cho query hiện tại), không cần persist lâu dài. Redis có TTL tự động xóa sau 7 ngày, tránh tích lũy rác. DB chỉ lưu embedding của artwork images (cần persist vĩnh viễn).
+- **Tại sao `DISTINCT ON (ai.artwork_id)`?** → Một artwork có nhiều images, mỗi image có embedding riêng. DISTINCT ON đảm bảo mỗi artwork chỉ xuất hiện 1 lần trong kết quả (lấy image có similarity cao nhất).
+- **Tại sao Sketch Search yêu cầu Premium?** → Multimodal embedding tốn tài nguyên API hơn text embedding (xử lý image data). Giới hạn cho Premium user giúp kiểm soát chi phí API và tạo thêm giá trị cho gói trả phí.
+- **Tại sao similarity threshold 0.3 cho sketch search?** → Sketch thường khác xa ảnh thực tế về chi tiết. Threshold 0.3 loại bỏ kết quả hoàn toàn không liên quan nhưng vẫn đủ rộng để bắt ảnh có bố cục/hình dáng tương tự.
+
+---
+
+### [03/06] - Recommendation Module (Item-based Collaborative Filtering)
+
+**Logic:**
+Module gợi ý artwork dựa trên hành vi tương tác của người dùng, gồm 3 thành phần chính:
+
+1. **Interaction Tracking (`InteractionsService`):** Ghi nhận mỗi hành vi của user (VIEW=1, COMMENT=2, LIKE=3, UNLOCK=5) vào bảng `user_interactions` với trọng số (weight) tương ứng. Dùng Redis debounce cho VIEW (max 1 view/user/artwork/giờ). Upsert để tránh duplicate record.
+
+2. **Item-based Collaborative Filtering (`RecommendationsService`):**
+   - **Artwork recommendations:** Tìm tất cả user đã tương tác với artwork A → tìm các artwork khác mà nhóm user đó cũng tương tác → xếp hạng theo tổng weight → "Users who liked this also liked..."
+   - **Personalized recommendations:** Tìm "similar users" (dựa trên artwork chung) → lấy artwork mà similar users thích nhưng user hiện tại chưa xem → nhân weight × affinity score → xếp hạng.
+
+3. **Redis Caching:** Kết quả recommendation được cache 1 giờ (`recommend:artwork:{id}`, `recommend:user:{id}`). Cache bị invalidate khi có interaction mới đáng kể.
+
+**Decision:**
+- **Tại sao Item-based CF thay vì Content-based?** → Không cần metadata phức tạp (tag, style, genre). Chỉ cần bảng interaction là đủ. Phù hợp với nền tảng ảnh nơi taste rất chủ quan và khó mô tả bằng features.
+- **Tại sao dùng Raw SQL (CTE) thay vì Prisma query builder?** → Query collaborative filtering cần CTE (`WITH`), self-join, và aggregation phức tạp. Prisma query builder không hỗ trợ CTE. Raw SQL rõ ràng và tối ưu hơn.
+- **Tại sao debounce VIEW ở Redis thay vì DB unique constraint?** → VIEW là interaction phổ biến nhất (mỗi lần mở trang). Unique constraint sẽ tạo upsert write mỗi lần → overhead lớn. Redis `SET NX EX` rẻ hơn rất nhiều, chặn spam ở tầng cache trước khi vào DB.
+- **Tại sao interaction tracking không throw error?** → Tracking là tính năng phụ trợ. Nếu Redis/DB tạm lỗi, main flow (xem artwork, like, comment) vẫn phải hoạt động bình thường. Error chỉ log, không propagate lên user.
+- **Tại sao cache 1 giờ?** → Recommendation không cần real-time. 1 giờ đủ tươi để phản ánh trend mới, đủ dài để giảm load SQL query nặng trên bảng interaction lớn.
+
+---
+
+### [03/06] - Giao diện AI Search & Sketch to Search
+
+**Logic:**
+- Chuyển đổi trạng thái tìm kiếm (Meilisearch vs AI Semantic) trực tiếp trên giao diện bằng SegmentedControl.
+- Sử dụng HTML5 `<canvas>` để người dùng vẽ hình phác thảo. Hình này được trích xuất thành chuỗi Base64 (`canvas.toDataURL()`).
+- Gửi ảnh Base64 lên backend qua `useAiSearchSketch` (React Query Mutation).
+- Kết quả trả về được map lại đúng chuẩn `SearchResponse` để tái sử dụng component `ArtworkCard` có sẵn.
+- Sau khi vẽ xong, Modal tự đóng và giao diện Search hiển thị 1 "Visual Indicator" (Nhãn dán Thumbnail ảnh phác thảo) để người dùng biết họ đang xem kết quả tìm bằng ảnh.
+
+**Decision:**
+- Chọn cách không tạo thêm Sidebar bên phải để giữ nguyên layout 2 cột Grid hiện tại (tránh phá vỡ UX giữa User Free và Premium). Đặt nút "Sketch to Search" ở dạng Banner ngay trên cột Filters.
+- Modal Canvas giúp người dùng vẽ dễ dàng mà không bị chuyển trang (mất bối cảnh trang hiện hành). Luồng "Vẽ -> Đóng Modal -> Hiện Nhãn -> Đổ Kết quả" tương đồng với chuẩn UX của Google Lens.

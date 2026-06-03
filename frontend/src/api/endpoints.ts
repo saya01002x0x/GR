@@ -156,4 +156,9 @@ export const E = {
   search: {
     artworks: (params: URLSearchParams) => `/search/artworks?${params.toString()}`,
   },
+
+  aiSearch: {
+    text: (query: string) => `/ai-search/text?q=${encodeURIComponent(query)}`,
+    sketch: () => `/ai-search/sketch`,
+  },
 };

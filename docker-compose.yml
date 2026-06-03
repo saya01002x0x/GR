@@ -33,7 +33,7 @@ services:
   # PostgreSQL - Database chính
   # ============================================
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     container_name: gr-postgres
     restart: unless-stopped
     ports:

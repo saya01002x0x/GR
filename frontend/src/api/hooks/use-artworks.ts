@@ -66,11 +66,11 @@ export function useArtworks({ limit = 25 }: { limit?: number } = {}) {
     queryFn: ({ pageParam = 0 }) =>
       apiClient.get<ArtworksListResponse>(E.artworks.list(limit, pageParam as number)),
     initialPageParam: 0,
-    getNextPageParam: (lastPage) => {
+    getNextPageParam: (lastPage, allPages) => {
       if (!lastPage.pagination.hasMore) {
         return undefined;
       }
-      return lastPage.data.length;
+      return allPages.reduce((sum, page) => sum + page.data.length, 0);
     },
   });
 

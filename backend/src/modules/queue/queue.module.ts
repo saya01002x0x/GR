@@ -5,6 +5,8 @@ import { ArtworkProcessor } from './processors/artwork.processor';
 import { StorageModule } from '../storage/storage.module';
 import { PrismaModule } from '../../database/prisma.module';
 import { SearchModule } from '../search/search.module';
+import { DuplicateDetectionModule } from '../duplicate-detection/duplicate-detection.module';
+import { AiSearchModule } from '../ai-search/ai-search.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { SearchModule } from '../search/search.module';
     StorageModule,
     PrismaModule,
     SearchModule,
+    DuplicateDetectionModule,
+    AiSearchModule,
   ],
   providers: [ArtworkProcessor],
   exports: [BullModule],

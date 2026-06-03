@@ -8,9 +8,19 @@ export class StripeService {
   private webhookSecret: string;
 
   constructor(private configService: ConfigService) {
-    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
+    const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const missingEnvVars = [
+      !secretKey && 'STRIPE_SECRET_KEY',
+      !webhookSecret && 'STRIPE_WEBHOOK_SECRET',
+    ].filter(Boolean);
+
+    if (!secretKey || !webhookSecret) {
+      throw new Error(`Missing required Stripe environment variable(s): ${missingEnvVars.join(', ')}`);
+    }
+
     this.stripe = new Stripe(secretKey);
-    this.webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET') || '';
+    this.webhookSecret = webhookSecret;
   }
 
   async createCheckoutSession(params: {
