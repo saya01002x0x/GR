@@ -35,31 +35,35 @@ export async function seedUsers(prisma: PrismaClient, folders: string[]) {
     }
   }
 
-  // 2. Create Fake Artists
-  for (let i = 0; i < FAKE_ARTISTS.length; i++) {
-    const artist = FAKE_ARTISTS[i];
-    const userId = `seed_user_${artist.username}`;
+  // 2. Create Fake Artists (Dynamically based on folders)
+  for (let i = 1; i < folders.length; i++) {
+    const folder = folders[i];
+    const theme = folder.replace(/^a\d{2}-/, ''); // 'car', 'cyberpunk', etc.
+    const username = `artist_${theme.replace(/-/g, '_')}`;
+    const displayName = theme
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ') + ' Studio';
+    const clerkId = `fake_artist_${i + 1}`;
+    
+    const userId = `seed_user_${username}`;
     const createdArtist = await prisma.user.upsert({
-      where: { clerkId: artist.clerkId },
+      where: { clerkId: clerkId },
       update: {
         isArtist: true,
       },
       create: {
         id: userId,
-        clerkId: artist.clerkId,
-        email: `${artist.username}@test.com`,
-        username: artist.username,
-        displayName: artist.displayName,
+        clerkId: clerkId,
+        email: `${username}@test.com`,
+        username: username,
+        displayName: displayName,
         isArtist: true,
-        avatar: `https://api.dicebear.com/9.x/avataaars/svg?seed=${artist.username}`,
+        avatar: `https://api.dicebear.com/9.x/avataaars/svg?seed=${username}`,
       }
     });
-    userMap.set(artist.username, createdArtist.id);
-    
-    // Assign remaining folders to fake artists
-    if (i + 1 < folders.length) {
-      artistFolderMap.set(folders[i + 1], createdArtist.id);
-    }
+    userMap.set(username, createdArtist.id);
+    artistFolderMap.set(folder, createdArtist.id);
   }
 
   // 3. Create Fake Users (from config + 20 extra programmatically)

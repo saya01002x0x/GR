@@ -15,8 +15,8 @@ import {
 } from '@mantine/core';
 import { IconSearch, IconSparkles } from '@tabler/icons-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useState } from 'react';
 import { useSearchArtworks } from '@/api/hooks';
 import { useAiSearchSketch, useAiSearchText } from '@/api/hooks/use-search';
 import { ArtworkCard } from '@/components/artwork';
@@ -29,11 +29,10 @@ import {
 } from '@/components/search';
 
 function SearchContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
-
-  // State for Search Mode Toggle
-  const [searchMode, setSearchMode] = useState<'standard' | 'ai'>('standard');
+  const searchMode = searchParams.get('mode') === 'ai' ? 'ai' : 'standard';
 
   // State for Sketch Search
   const [isSketchModalOpen, setIsSketchModalOpen] = useState(false);
@@ -41,9 +40,22 @@ function SearchContent() {
 
   // Hooks
   const { data: standardData, isLoading: isLoadingStandard, error: errorStandard } = useSearchArtworks(searchParams);
-  const { data: aiData, isLoading: isLoadingAi, error: errorAi } = useAiSearchText(query, 20);
+  const { data: aiData, isLoading: isLoadingAi, error: errorAi } = useAiSearchText(query, 20, searchMode === 'ai');
   const sketchMutation = useAiSearchSketch();
   const activeSketchBase64 = query ? null : sketchBase64;
+
+  const handleSearchModeChange = useCallback((mode: 'standard' | 'ai') => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (mode === 'ai') {
+      params.set('mode', 'ai');
+    } else {
+      params.set('mode', 'standard');
+    }
+
+    const newUrl = params.toString() ? `/search?${params}` : '/search';
+    router.push(newUrl, { scroll: false });
+  }, [router, searchParams]);
 
   const handleSketchSearch = (base64: string) => {
     setSketchBase64(base64);
@@ -97,14 +109,14 @@ function SearchContent() {
             )}
 
             {/* Mode Toggle for Text Search */}
-            {!activeSketchBase64 && query && (
+            {!activeSketchBase64 && (
               <Group mb="lg" align="center">
                 <Text size="sm" fw={500} c="dimmed">
                   Search Mode:
                 </Text>
                 <SegmentedControl
                   value={searchMode}
-                  onChange={val => setSearchMode(val as 'standard' | 'ai')}
+                  onChange={val => handleSearchModeChange(val as 'standard' | 'ai')}
                   data={[
                     {
                       value: 'standard',

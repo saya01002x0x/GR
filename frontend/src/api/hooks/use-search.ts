@@ -7,20 +7,22 @@ import { E } from '../endpoints';
 
 export function useSearchArtworks(params: URLSearchParams) {
   const { getToken } = useAuth();
+  const searchParams = new URLSearchParams(params.toString());
+  searchParams.delete('mode');
 
   useEffect(() => {
     apiClient.setTokenGetter(getToken);
   }, [getToken]);
 
   return useQuery({
-    queryKey: ['search', params.toString()],
-    queryFn: () => apiClient.get<SearchResponse>(E.search.artworks(params)),
+    queryKey: ['search', searchParams.toString()],
+    queryFn: () => apiClient.get<SearchResponse>(E.search.artworks(searchParams)),
     staleTime: 1000 * 60,
   });
 }
 
 // AI Semantic Text Search
-export function useAiSearchText(query: string, limit: number = 20) {
+export function useAiSearchText(query: string, limit: number = 20, enabled: boolean = true) {
   const { getToken } = useAuth();
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function useAiSearchText(query: string, limit: number = 20) {
         processingTimeMs: 0,
       } as unknown as SearchResponse;
     },
-    enabled: !!query,
+    enabled: enabled && !!query,
     staleTime: 1000 * 60,
   });
 }
