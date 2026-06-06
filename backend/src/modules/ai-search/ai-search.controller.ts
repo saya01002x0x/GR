@@ -35,6 +35,7 @@ export class AiSearchController {
 
     const userId = req?.auth?.userId;
     const ip = req?.ip || req?.socket?.remoteAddress || 'unknown';
+    const startedAt = Date.now();
 
     const results = await this.aiSearchService.searchByText(
       query,
@@ -46,6 +47,7 @@ export class AiSearchController {
     return {
       results,
       total: results.length,
+      processingTimeMs: Date.now() - startedAt,
     };
   }
 
@@ -62,9 +64,10 @@ export class AiSearchController {
   ) {
     const userId = req.auth?.userId;
     if (!userId) {
-      return { results: [], total: 0 };
+      return { results: [], total: 0, processingTimeMs: 0 };
     }
 
+    const startedAt = Date.now();
     const results = await this.aiSearchService.searchBySketch(
       userId,
       body.image,
@@ -74,6 +77,7 @@ export class AiSearchController {
     return {
       results,
       total: results.length,
+      processingTimeMs: Date.now() - startedAt,
     };
   }
 }

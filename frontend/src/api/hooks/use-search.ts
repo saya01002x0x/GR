@@ -35,12 +35,12 @@ export function useAiSearchText(query: string, limit: number = 20, enabled: bool
       if (!query) {
         return { hits: [], total: 0, processingTimeMs: 0 } as unknown as SearchResponse;
       }
-      const res = await apiClient.get<{ results: any[]; total: number }>(`${E.aiSearch.text(query)}&limit=${limit}`);
+      const res = await apiClient.get<{ results: any[]; total: number; processingTimeMs?: number }>(`${E.aiSearch.text(query)}&limit=${limit}`);
       // Map results to match the format of Meilisearch 'SearchResponse'
       return {
         hits: res.results || [],
         total: res.total || 0,
-        processingTimeMs: 0,
+        processingTimeMs: res.processingTimeMs || 0,
       } as unknown as SearchResponse;
     },
     enabled: enabled && !!query,
@@ -58,7 +58,7 @@ export function useAiSearchSketch() {
 
   return useMutation({
     mutationFn: async (base64Image: string) => {
-      const res = await apiClient.post<{ results: any[]; total: number }>(E.aiSearch.sketch(), {
+      const res = await apiClient.post<{ results: any[]; total: number; processingTimeMs?: number }>(E.aiSearch.sketch(), {
         image: base64Image,
         limit: 20,
       });
@@ -66,7 +66,7 @@ export function useAiSearchSketch() {
       return {
         hits: res.results || [],
         total: res.total || 0,
-        processingTimeMs: 0,
+        processingTimeMs: res.processingTimeMs || 0,
       } as unknown as SearchResponse;
     },
   });
