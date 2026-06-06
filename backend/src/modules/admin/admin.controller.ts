@@ -141,9 +141,14 @@ export class AdminController {
     @Query('role') role?: string,
     @Query('banned') banned?: string,
   ) {
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const normalizedPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const normalizedLimit = [10, 15, 20].includes(parsedLimit) ? parsedLimit : 20;
+
     return this.adminService.getUsers({
-      page: page ? parseInt(page, 10) : 1,
-      limit: limit ? parseInt(limit, 10) : 20,
+      page: normalizedPage,
+      limit: normalizedLimit,
       search,
       role,
       banned,

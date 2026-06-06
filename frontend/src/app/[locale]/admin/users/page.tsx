@@ -3,9 +3,11 @@
 import {
   Avatar,
   Badge,
+  Box,
   Button,
   Group,
   Loader,
+  Pagination,
   Select,
   Stack,
   Table,
@@ -29,17 +31,35 @@ const ROLE_RANK: Record<string, number> = {
 
 const ALL_ROLES = ['USER', 'MODERATOR', 'ADMIN', 'SUPER_ADMIN'];
 
+function getVisibleRoleOptions(role: string | null) {
+  if (role === 'SUPER_ADMIN') {
+    return ALL_ROLES;
+  }
+
+  const rank = ROLE_RANK[role ?? ''] ?? 0;
+  return ALL_ROLES.filter(r => (ROLE_RANK[r] ?? 0) < rank);
+}
+
 export default function UserPatrolPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebouncedValue(search, 300);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState('20');
 
   const { data: profile } = useUserProfile();
   const myRole = profile?.role ?? null;
   const myRank = ROLE_RANK[myRole ?? ''] ?? 0;
-  const visibleRoleOptions = ALL_ROLES.filter(r => (ROLE_RANK[r] ?? 0) < myRank);
+  const visibleRoleOptions = getVisibleRoleOptions(myRole);
+  const limit = Number(pageSize);
 
-  const { users, isLoading, banUser } = useAdminUsers(debouncedSearch || undefined, roleFilter || undefined);
+  const { users, total, isLoading, banUser } = useAdminUsers(
+    debouncedSearch || undefined,
+    roleFilter || undefined,
+    page,
+    limit,
+  );
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const handleBanToggle = async (userId: string, isBanned: boolean) => {
     try {
@@ -63,23 +83,39 @@ export default function UserPatrolPage() {
           placeholder="Search users..."
           leftSection={<IconSearch size={16} />}
           value={search}
-          onChange={e => setSearch(e.currentTarget.value)}
+          onChange={(e) => {
+            setSearch(e.currentTarget.value);
+            setPage(1);
+          }}
           style={{ flex: 1 }}
         />
         <Select
           value={roleFilter}
-          onChange={setRoleFilter}
+          onChange={(value) => {
+            setRoleFilter(value);
+            setPage(1);
+          }}
           data={visibleRoleOptions}
           placeholder="All roles"
           clearable
           w={160}
+        />
+        <Select
+          value={pageSize}
+          onChange={(value) => {
+            setPageSize(value ?? '20');
+            setPage(1);
+          }}
+          data={['10', '15', '20']}
+          allowDeselect={false}
+          w={110}
         />
       </Group>
 
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
-            <Table.Th>User</Table.Th>
+            <Table.Th w={320}>User</Table.Th>
             <Table.Th>Role</Table.Th>
             <Table.Th>Status</Table.Th>
             <Table.Th>Artworks</Table.Th>
@@ -91,12 +127,16 @@ export default function UserPatrolPage() {
           {users.map(user => (
             <Table.Tr key={user.id}>
               <Table.Td>
-                <Group gap="sm">
+                <Group gap="sm" wrap="nowrap" w={320}>
                   <Avatar src={user.avatar} size="sm" radius="xl" />
-                  <div>
-                    <Text size="sm" fw={500}>{user.displayName || user.username}</Text>
-                    <Text size="xs" c="dimmed">{user.email}</Text>
-                  </div>
+                  <Box miw={0} flex={1}>
+                    <Text size="sm" fw={500} truncate="end">
+                      {user.displayName || user.username}
+                    </Text>
+                    <Text size="xs" c="dimmed" truncate="end">
+                      {user.email}
+                    </Text>
+                  </Box>
                 </Group>
               </Table.Td>
               <Table.Td><Badge variant="light">{user.role}</Badge></Table.Td>
@@ -117,7 +157,7 @@ export default function UserPatrolPage() {
                   >
                     View
                   </Button>
-                  {myRank >= (ROLE_RANK.ADMIN ?? 0) && (
+                  {myRank >= (ROLE_RANK.ADMIN ?? 0) && (ROLE_RANK[user.role] ?? 0) < myRank && (
                     <Button
                       size="xs"
                       variant="light"
@@ -140,6 +180,26 @@ export default function UserPatrolPage() {
           )}
         </Table.Tbody>
       </Table>
+
+      <Group justify="space-between">
+        <Text size="sm" c="dimmed">
+          Showing
+          {' '}
+          {users.length}
+          {' '}
+          of
+          {' '}
+          {total}
+          {' '}
+          users
+        </Text>
+        <Pagination
+          value={page}
+          onChange={setPage}
+          total={totalPages}
+          withEdges
+        />
+      </Group>
     </Stack>
   );
 }

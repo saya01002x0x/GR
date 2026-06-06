@@ -1,5 +1,6 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
 import { Button, Card, Group, Text, ThemeIcon } from '@mantine/core';
 import { IconBrush, IconDiamond } from '@tabler/icons-react';
 
@@ -8,6 +9,8 @@ type Props = {
 };
 
 export function SketchSearchTrigger({ onClick }: Props) {
+  const { isSignedIn } = useUser();
+
   return (
     <Card
       withBorder
@@ -44,8 +47,9 @@ export function SketchSearchTrigger({ onClick }: Props) {
         size="sm"
         onClick={onClick}
         leftSection={<IconBrush size={16} />}
+        disabled={isSignedIn === false}
       >
-        Draw Now
+        {isSignedIn === false ? 'Đăng nhập để tiếp tục' : 'Draw Now'}
       </Button>
     </Card>
   );

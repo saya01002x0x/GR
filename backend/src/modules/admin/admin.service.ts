@@ -336,6 +336,10 @@ export class AdminService {
   }
 
   private getVisibleRoles(actorRole: string): string[] {
+    if (actorRole === 'SUPER_ADMIN') {
+      return Object.keys(AdminService.ROLE_RANK);
+    }
+
     const actorRank = this.getRoleRank(actorRole);
     return Object.entries(AdminService.ROLE_RANK)
       .filter(([, rank]) => rank < actorRank)

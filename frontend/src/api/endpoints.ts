@@ -72,8 +72,10 @@ export const E = {
       delete: (id: string) => `/admin/announcements/${id}`,
     },
     users: {
-      list: (search?: string, role?: string) => {
+      list: (search?: string, role?: string, page = 1, limit = 20) => {
         const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('limit', String(limit));
         if (search) {
           params.set('search', search);
         }

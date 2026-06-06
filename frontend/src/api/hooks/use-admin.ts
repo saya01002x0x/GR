@@ -36,6 +36,13 @@ type AdminUser = {
   _count: { artworks: number };
 };
 
+type AdminUsersResponse = {
+  users: AdminUser[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 type PatrolData = {
   user: {
     id: string;
@@ -204,7 +211,7 @@ export function useAdminAnnouncements() {
   };
 }
 
-export function useAdminUsers(search?: string, role?: string) {
+export function useAdminUsers(search?: string, role?: string, page = 1, limit = 20) {
   const { getToken } = useAuth();
   useEffect(() => {
     apiClient.setTokenGetter(getToken);
@@ -212,8 +219,8 @@ export function useAdminUsers(search?: string, role?: string) {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'users', search, role],
-    queryFn: () => apiClient.get<{ users: AdminUser[] }>(E.admin.users.list(search, role)),
+    queryKey: ['admin', 'users', search, role, page, limit],
+    queryFn: () => apiClient.get<AdminUsersResponse>(E.admin.users.list(search, role, page, limit)),
   });
 
   const banMutation = useMutation({
@@ -224,6 +231,9 @@ export function useAdminUsers(search?: string, role?: string) {
 
   return {
     users: data?.users ?? [],
+    total: data?.total ?? 0,
+    page: data?.page ?? page,
+    limit: data?.limit ?? limit,
     isLoading,
     banUser: banMutation.mutateAsync,
   };

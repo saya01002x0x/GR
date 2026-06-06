@@ -1,5 +1,6 @@
 'use client';
 
+import { useUser } from '@clerk/nextjs';
 import {
   Box,
   Center,
@@ -31,8 +32,9 @@ import {
 function SearchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isSignedIn } = useUser();
   const query = searchParams.get('q') || '';
-  const searchMode = searchParams.get('mode') === 'ai' ? 'ai' : 'standard';
+  const searchMode = searchParams.get('mode') === 'ai' && isSignedIn !== false ? 'ai' : 'standard';
 
   // State for Sketch Search
   const [isSketchModalOpen, setIsSketchModalOpen] = useState(false);
@@ -129,6 +131,7 @@ function SearchContent() {
                     },
                     {
                       value: 'ai',
+                      disabled: isSignedIn === false,
                       label: (
                         <Group gap="xs" wrap="nowrap">
                           <IconSparkles size={16} />
