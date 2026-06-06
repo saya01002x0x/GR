@@ -1,6 +1,6 @@
 'use client';
 
-import { SignInButton, useClerk, useUser } from '@clerk/nextjs';
+import { useClerk, useUser } from '@clerk/nextjs';
 import {
   ActionIcon,
   Avatar,
@@ -57,7 +57,7 @@ const STAFF_ROLES = ['MODERATOR', 'ADMIN', 'SUPER_ADMIN'];
 
 export function AppHeader() {
   const { isSignedIn, user, isLoaded } = useUser();
-  const { signOut } = useClerk();
+  const { openSignIn, signOut } = useClerk();
   const { toggleColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme('light');
   const { data: userProfile } = useUserProfile();
@@ -234,16 +234,16 @@ export function AppHeader() {
                       : <IconSun size={22} />}
                   </ActionIcon>
 
-                  <SignInButton mode="modal">
-                    <Button variant="subtle" radius="md">
-                      Sign In
-                    </Button>
-                  </SignInButton>
-                  <SignInButton mode="modal">
-                    <Button radius="md">
-                      Get Started
-                    </Button>
-                  </SignInButton>
+                  <Button
+                    variant="subtle"
+                    radius="md"
+                    onClick={() => openSignIn()}
+                  >
+                    Sign In
+                  </Button>
+                  <Button radius="md" onClick={() => openSignIn()}>
+                    Get Started
+                  </Button>
                 </Group>
               )}
       </Group>

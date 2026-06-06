@@ -130,6 +130,7 @@ export function GeneralSettings() {
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Select
               label="Display Language"
+              description="Choose the language used across the app interface."
               leftSection={<IconWorld size={18} />}
               data={[
                 { value: 'en', label: 'English' },

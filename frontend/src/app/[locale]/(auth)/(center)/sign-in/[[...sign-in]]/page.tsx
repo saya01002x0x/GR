@@ -78,7 +78,11 @@ export default async function SignInPage(props: ISignInPageProps) {
         appearance={{
           elements: {
             rootBox: { width: '100%' },
-            card: { boxShadow: 'none', padding: 0, backgroundColor: 'transparent' },
+            card: {
+              boxShadow: 'none',
+              padding: '24px',
+              backgroundColor: 'transparent',
+            },
             headerTitle: { display: 'none' },
             headerSubtitle: { display: 'none' },
             socialButtonsBlockButton: {
