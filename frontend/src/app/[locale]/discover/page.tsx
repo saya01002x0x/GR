@@ -22,7 +22,7 @@ import {
 import { categories, rankingTabs } from '@/mocks/discoverData';
 
 export default function DiscoverPage() {
-  const { artworks, hasMore, isLoading, isLoadingMore, loadMore } = useArtworks({ limit: 25 });
+  const { artworks, hasMore, isLoading, isLoadingMore, loadMore } = useArtworks({ limit: 24 });
   const { data: heroItems, isLoading: isHeroLoading } = useDiscoverHero();
   const { data: featured, isLoading: isFeaturedLoading } = useFeaturedArtworks();
 

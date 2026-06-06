@@ -3,10 +3,11 @@
 import type { DiscoverArtwork } from '@/mocks/discoverData';
 import {
   Box,
-  Button,
+  Loader,
   Title,
 } from '@mantine/core';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 import { ArtworkCard } from '@/components/artwork';
 
 type DiscoverGridProps = {
@@ -16,16 +17,41 @@ type DiscoverGridProps = {
 };
 
 export function DiscoverGrid({ artworks, onLoadMore, loading }: DiscoverGridProps) {
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!onLoadMore) {
+      return;
+    }
+
+    const target = loadMoreRef.current;
+    if (!target) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && !loading) {
+          onLoadMore();
+        }
+      },
+      { rootMargin: '600px 0px', threshold: 0 },
+    );
+
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [loading, onLoadMore]);
+
   return (
     <Box>
       <Title order={3} mb="lg">
         Discover New Art
       </Title>
 
-      {/* Masonry Grid - uses CSS from global.css */}
-      <Box className="masonry-grid">
+      <Box className="discover-grid">
         {artworks.map(artwork => (
-          <Box key={artwork.id} className="masonry-item">
+          <Box key={artwork.id}>
             <Link href={`/artworks/${artwork.id}`} style={{ textDecoration: 'none' }}>
               <ArtworkCard
                 title={artwork.title}
@@ -43,19 +69,9 @@ export function DiscoverGrid({ artworks, onLoadMore, loading }: DiscoverGridProp
         ))}
       </Box>
 
-      {/* Load More */}
       {onLoadMore && (
-        <Box ta="center" mt="xl">
-          <Button
-            variant="default"
-            radius="xl"
-            size="md"
-            onClick={onLoadMore}
-            loading={loading}
-            leftSection={loading ? undefined : undefined}
-          >
-            {loading ? 'Loading...' : 'Load More'}
-          </Button>
+        <Box ref={loadMoreRef} ta="center" mt="xl" mih={36}>
+          {loading && <Loader size="sm" />}
         </Box>
       )}
     </Box>

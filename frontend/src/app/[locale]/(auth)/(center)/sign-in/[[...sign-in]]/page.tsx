@@ -75,6 +75,7 @@ export default async function SignInPage(props: ISignInPageProps) {
       </Stack>
       <SignIn
         path={getI18nPath('/sign-in', locale)}
+        signUpUrl={getI18nPath('/sign-up', locale)}
         appearance={{
           elements: {
             rootBox: { width: '100%' },

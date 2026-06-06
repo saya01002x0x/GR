@@ -243,3 +243,7 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 ### [03/06] - Fix client import in useDiscover hooks
 - **Logic:** Đổi import `client` thành `apiClient` trong file `frontend/src/api/hooks/useDiscover.ts`.
 - **Decision:** File `frontend/src/api/client.ts` export biến `apiClient` (một instance của class ApiClient), không phải là `client`. Việc gọi nhầm tên export gây lỗi "export not found". Sửa lại để đảm bảo React Query gọi đúng API client instance.
+
+### [06/06] - Sửa lỗi chuyển hướng trang Sign-in và Sign-up của Clerk
+- **Logic:** Thêm prop \signUpUrl={getI18nPath('/sign-up', locale)}\ vào component \<SignIn>\ và prop \signInUrl={getI18nPath('/sign-in', locale)}\ vào component \<SignUp>\.
+- **Decision:** Mặc định, component của Clerk sẽ chuyển hướng về \/sign-up\ hoặc \/sign-in\ không có locale prefix khi người dùng bấm chuyển đổi giữa Đăng ký/Đăng nhập. Khi dùng hệ thống i18n định tuyến động (ví dụ \/vi/sign-in\, \/en/sign-in\), điều này khiến Clerk điều hướng sai hoặc lỗi. Khai báo rõ ràng đường dẫn đã được i18n hóa thông qua Helper \getI18nPath\ giúp Clerk định tuyến chính xác.

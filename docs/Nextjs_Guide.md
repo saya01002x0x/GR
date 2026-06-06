@@ -96,3 +96,13 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
   </Link>
   ```
 - **Ứng dụng:** Khắc phục lỗi compiler `alt does not exist` trên Mantine `Image` trong component `FeaturedArtwork`.
+
+#### Định tuyến động trong Clerk Component (Localized Clerk Routing)
+- **Là gì:** Cấu hình đường dẫn điều hướng nội bộ (\signInUrl\, \signUpUrl\) thủ công cho các component \<SignIn>\ và \<SignUp>\ khi sử dụng định tuyến đa ngôn ngữ (i18n).
+- **Cách dùng:**
+  \\\	sx
+  <SignIn
+    path={getI18nPath('/sign-in', locale)}
+    signUpUrl={getI18nPath('/sign-up', locale)}
+  />
+  \\\`n- **Ứng dụng:** Dùng để đồng bộ hóa liên kết "Sign up" bên trong component Đăng nhập của Clerk và liên kết "Sign in" trong component Đăng ký của Clerk tương ứng với locale hiện tại, tránh bị văng về trang mặc định không có prefix ngôn ngữ của Clerk.
