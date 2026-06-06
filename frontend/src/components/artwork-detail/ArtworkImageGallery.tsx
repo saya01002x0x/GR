@@ -6,15 +6,18 @@ import {
   Button,
   Group,
   Image,
+  Modal,
   Stack,
   Text,
 } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { IconChevronLeft, IconChevronRight, IconLayoutGrid, IconList } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 
 type ArtworkImage = {
   id: string;
   url: string;
+  originalUrl?: string;
   thumbnailUrl?: string;
   width?: number;
   height?: number;
@@ -36,6 +39,7 @@ type ArtworkImageGalleryProps = {
 export function ArtworkImageGallery({ images, alt }: ArtworkImageGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'paginate' | 'scroll'>('paginate');
+  const [opened, { open, close }] = useDisclosure(false);
 
   // Sort images by order
   const sortedImages = [...images].sort((a, b) => a.order - b.order);
@@ -92,8 +96,10 @@ export function ArtworkImageGallery({ images, alt }: ArtworkImageGalleryProps) {
           src={sortedImages[0]?.url}
           alt={alt}
           radius="md"
-          style={{ width: '100%', height: 'auto' }}
+          style={{ width: '100%', height: 'auto', cursor: 'zoom-in' }}
+          onClick={open}
         />
+        <ViewerModal opened={opened} close={close} images={sortedImages} alt={alt} />
       </Box>
     );
   }
@@ -124,7 +130,8 @@ export function ArtworkImageGallery({ images, alt }: ArtworkImageGalleryProps) {
               src={img.url}
               alt={`${alt} - ${i + 1}`}
               radius="md"
-              style={{ width: '100%', height: 'auto' }}
+              style={{ width: '100%', height: 'auto', cursor: 'zoom-in' }}
+              onClick={open}
             />
             <Text size="xs" c="dimmed" ta="center" mt={4}>
               {i + 1}
@@ -134,6 +141,7 @@ export function ArtworkImageGallery({ images, alt }: ArtworkImageGalleryProps) {
             </Text>
           </Box>
         ))}
+        <ViewerModal opened={opened} close={close} images={sortedImages} alt={alt} />
       </Stack>
     );
   }
@@ -150,7 +158,8 @@ export function ArtworkImageGallery({ images, alt }: ArtworkImageGalleryProps) {
         src={currentImage?.url}
         alt={alt}
         radius="md"
-        style={{ width: '100%', height: 'auto' }}
+        style={{ width: '100%', height: 'auto', cursor: 'zoom-in' }}
+        onClick={open}
       />
 
       {/* Navigation Arrows */}
@@ -236,6 +245,38 @@ export function ArtworkImageGallery({ images, alt }: ArtworkImageGalleryProps) {
           <IconList size={16} color="white" />
         </ActionIcon>
       </Group>
+
+      <ViewerModal opened={opened} close={close} images={sortedImages} alt={alt} />
     </Box>
+  );
+}
+
+function ViewerModal({ opened, close, images, alt }: { opened: boolean; close: () => void; images: ArtworkImage[]; alt: string }) {
+  return (
+    <Modal
+      opened={opened}
+      onClose={close}
+      fullScreen
+      withCloseButton={true}
+      size="100%"
+      transitionProps={{ transition: 'fade', duration: 200 }}
+      styles={{
+        content: { backgroundColor: 'var(--mantine-color-body)' },
+        header: { backgroundColor: 'var(--mantine-color-body)' },
+        body: { padding: 0 },
+      }}
+    >
+      <Stack gap="xl" align="center" pb="xl">
+        {images.map((img, i) => (
+          <Image
+            key={img.id}
+            src={img.originalUrl || img.url}
+            alt={`${alt} - ${i + 1}`}
+            style={{ maxWidth: '100vw', height: 'auto', cursor: 'zoom-out' }}
+            onClick={close}
+          />
+        ))}
+      </Stack>
+    </Modal>
   );
 }

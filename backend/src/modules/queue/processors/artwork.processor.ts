@@ -23,6 +23,7 @@ import sharp from 'sharp';
 
 /** Per-image processing result used internally */
 interface ImageProcessResult {
+  originalUrl?: string;
   url: string;
   thumbnailUrl: string;
   blurredUrl: string;
@@ -296,7 +297,8 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         }
 
         // Sharp Processing
-        const [processed, thumbnail, blurred] = await Promise.all([
+        const [original, processed, thumbnail, blurred] = await Promise.all([
+          this.storageService.processOriginal(imageBuffer),
           this.storageService.processImage(imageBuffer, {
             maxWidth: 1920,
             quality: 85,
@@ -306,6 +308,11 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         ]);
 
         // Generate paths
+        const originalPath = this.storageService.generateArtworkPath(
+          userId,
+          artworkId,
+          `original_${i}`,
+        );
         const previewPath = this.storageService.generateArtworkPath(
           userId,
           artworkId,
@@ -323,7 +330,8 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         );
 
         // Upload Optimized
-        const [previewUrl, thumbUrl, blurUrl] = await Promise.all([
+        const [originalUrl, previewUrl, thumbUrl, blurUrl] = await Promise.all([
+          this.storageService.uploadFile(original, originalPath),
           this.storageService.uploadFile(processed.buffer, previewPath),
           this.storageService.uploadFile(thumbnail, thumbPath),
           this.storageService.uploadFile(blurred, blurPath),
@@ -333,6 +341,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         await this.storageService.deleteFile(fileMeta.key);
 
         processedImages.push({
+          originalUrl: originalUrl,
           url: previewUrl,
           thumbnailUrl: thumbUrl,
           blurredUrl: blurUrl,
@@ -366,6 +375,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         await tx.artworkImage.createMany({
           data: processedImages.map((img) => ({
             artworkId,
+            originalUrl: img.originalUrl || null,
             url: img.url,
             thumbnailUrl: img.thumbnailUrl,
             blurredUrl: img.blurredUrl,
@@ -493,50 +503,30 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
   private async generateAndStoreEmbeddings(artworkId: string) {
     const images = await this.prisma.artworkImage.findMany({
       where: { artworkId, status: 'PROCESSED' },
-      select: { id: true, url: true }
+      select: { id: true, thumbnailUrl: true }
     });
 
     for (const img of images) {
       try {
-        // We use the image URL to get a public stream/buffer, or fetch from storage
-        const objectKey = new URL(img.url).pathname.slice(1); // naive way to get key from s3 url
-        const rawBuffer = await this.storageService.download(objectKey);
-        const base64Data = rawBuffer.toString('base64');
-        
-        const embedding = await this.embeddingService.getImageEmbedding(base64Data);
+        if (!img.thumbnailUrl) {
+          this.logger.warn(`No thumbnail URL found for image ${img.id}, skipping embedding`);
+          continue;
+        }
+
+        // We just pass the thumbnail URL directly to the embedding service (which runs in a child process)
+        // The child process will download the lightweight thumbnail image natively via Transformers.js
+        const embedding = await this.embeddingService.getImageEmbedding(img.thumbnailUrl);
         
         // Store embedding manually via raw query since it's pgvector
         const vectorStr = `[${embedding.join(',')}]`;
         await this.prisma.$queryRawUnsafe(
-          `UPDATE artwork_images SET embedding = $1::vector WHERE id = $2`,
+          `UPDATE artwork_images SET embedding = $1::vector, has_embedding = true WHERE id = $2`,
           vectorStr,
           img.id,
         );
         this.logger.debug(`Stored vector embedding for image ${img.id}`);
 
-        // --- BẮT ĐẦU SCRIPT DEBUG CHO BẠN ---
-        // Lưu preview của embedding ra file JSON để xem dễ dàng
-        const fs = require('fs');
-        const path = require('path');
-        const debugPath = path.join(process.cwd(), 'embeddings_debug.json');
-        let debugData: any = {};
-        try {
-          if (fs.existsSync(debugPath)) {
-            debugData = JSON.parse(fs.readFileSync(debugPath, 'utf8'));
-          }
-        } catch(e) {}
-        
-        debugData[img.id] = {
-          artworkId,
-          url: img.url,
-          vector_size: embedding.length,
-          vector_preview: `[${embedding.slice(0, 5).join(', ')} ... và ${embedding.length - 5} số nữa]`,
-          time: new Date().toISOString()
-        };
-        fs.writeFileSync(debugPath, JSON.stringify(debugData, null, 2));
-        // --- KẾT THÚC SCRIPT DEBUG ---
-
-      } catch (err) {
+      } catch (err: any) {
         this.logger.error(`Failed to generate embedding for image ${img.id}: ${err.message}`);
       }
     }

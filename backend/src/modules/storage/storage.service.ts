@@ -119,7 +119,7 @@ export class StorageService implements OnModuleInit {
     // Process image
     const processed = await sharp(buffer)
       .rotate() // Auto-rotate based on EXIF
-      .withMetadata() // Strip EXIF (GPS, camera info)
+      // omitted .withMetadata() to strip EXIF (GPS, camera info)
       .resize(maxWidth, undefined, { withoutEnlargement: true })
       .jpeg({ quality, progressive: true })
       .toBuffer();
@@ -140,12 +140,26 @@ export class StorageService implements OnModuleInit {
   }
 
   /**
+   * Process original image
+   * - Auto-rotate based on EXIF
+   * - Strip EXIF (GPS, camera info)
+   * - Keep original size
+   */
+  async processOriginal(buffer: Buffer): Promise<Buffer> {
+    return await sharp(buffer)
+      .rotate() // Auto-rotate based on EXIF
+      // omitted .withMetadata() to strip EXIF
+      .jpeg({ quality: 100, progressive: true })
+      .toBuffer();
+  }
+
+  /**
    * Create thumbnail
    */
   async createThumbnail(buffer: Buffer, size = 400): Promise<Buffer> {
     return await sharp(buffer)
       .rotate()
-      .withMetadata()
+      // omitted .withMetadata() to strip EXIF
       .resize(size, size, { fit: 'cover' })
       .jpeg({ quality: 70 })
       .toBuffer();
@@ -162,7 +176,7 @@ export class StorageService implements OnModuleInit {
   ): Promise<Buffer> {
     return await sharp(buffer)
       .rotate()
-      .withMetadata()
+      // omitted .withMetadata() to strip EXIF
       .resize(size, size, { fit: 'inside', withoutEnlargement: true })
       .blur(blurRadius)
       .jpeg({ quality: 50, progressive: true })

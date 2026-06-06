@@ -269,3 +269,19 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 
 **Decision:**
 - **Tại sao Discover trắng bóc?** Hệ thống Discover hiện tại chỉ lọc và hiển thị các artwork có status PUBLISHED. Vì ta đang test luồng mới với queue PROCESSING/FAILED/ACTION_REQUIRED, Database cục bộ chưa có artwork PUBLISHED mới nào, nên API trả về []. Khi Publish thành công, Discover sẽ hiển thị bình thường (có Hero, Featured Promoted, Ranking, và Rising Stars theo like/view).
+
+### [06/06] - Local AI Embedding (Transformers.js) & Caching Seeder
+- **Logic:** Chuy盻ハ ﾄ黛ｻ品 logic Semantic Search t盻ｫ Gemini API sang Local AI model Xenova/clip-vit-base-patch32 b蘯ｱng thﾆｰ vi盻㌻ `@xenova/transformers` (ch蘯｡y hoﾃn toﾃn b蘯ｱng CPU node.js). Gi蘯｣m chi盻「 Vector t盻ｫ 768 xu盻創g 512, thﾃｪm c盻冲 hasEmbedding (Boolean) ﾄ黛ｻ・ﾄ妥｡nh d蘯･u trﾃｪn Database. Tﾃｭch h盻｣p tﾃｭnh toﾃ｡n mﾃ｣ pHash vﾃ m蘯｣ng Vector vﾃo file artworks.seeder.ts, sau ﾄ妥ｳ ﾃ｡p d盻･ng thu蘯ｭt toﾃ｡n lﾆｰu tr盻ｯ Cache vﾃo `seed-data/embeddings-cache.json` ﾄ黛ｻ・tﾃ｡i s盻ｭ d盻･ng 盻・cﾃ｡c l蘯ｧn ch蘯｡y sau.
+- **Decision:** Vi盻㌘ ﾄ柁ｰa mﾃｴ hﾃｬnh AI v盻・ch蘯｡y c盻･c b盻・(Local/Edge AI) giﾃｺp ti蘯ｿt ki盻㍊ 100% chi phﾃｭ API, gi蘯｣i quy蘯ｿt tri盻㏄ ﾄ黛ｻ・nguy cﾆ｡ dﾃｭnh Rate Limit c盻ｧa bﾃｪn th盻ｩ 3, ﾄ黛ｻ渡g th盻拱 gia tﾄハg ﾄ黛ｻ・kh盻ｧng cho ﾄ黛ｻ・ﾃ｡n. Cﾆ｡ ch蘯ｿ Cache JSON trong Seeder giﾃｺp h盻・th盻創g vﾆｰ盻｣t qua rﾃo c蘯｣n th盻拱 gian tﾃｭnh toﾃ｡n c盻ｧa AI, gi盻ｯ nguyﾃｪn t盻祖 ﾄ黛ｻ・reset DB siﾃｪu nhanh (vﾃi giﾃ｢y) mﾃ v蘯ｫn ﾄ黛ｺ｣m b蘯｣o data m蘯ｫu gi盻創g 100% th盻ｱc t蘯ｿ.
+
+### [06/06] - Fix AI Embedding Memory Crashes (Child Process)
+- **Logic:** Chuyển xử lý AI (Transformers.js sinh vector embedding) từ tiến trình chính sang tiến trình con (child_process) thông qua file ai-worker.ts. Giao tiếp qua IPC bằng cách truyền đường dẫn thumbnailUrl thay vì truyền Buffer thô. Thêm bắt sự kiện onModuleDestroy và exit để tiêu diệt (kill) tiến trình con.
+- **Decision:** Việc chạy Sharp (xử lý ảnh C++) và AI model (WASM/C++) trên cùng một process gây tranh chấp bộ nhớ và dẫn đến crash (OOM). Tách sang child_process có RAM độc lập để xử lý. Gửi thumbnailUrl qua IPC thay vì Buffer giúp tránh serialize data nặng gây kẹt CPU. Kill child process khi NestJS restart giúp tránh rò rỉ RAM (Zombie Process).
+
+### [06/06] - Fix Original Image Deletion
+- **Logic:** Thêm trường `original_url` vào mô hình ArtworkImage. Trong quá trình upload ảnh ngầm (artwork.processor.ts), lưu giữ lại ảnh gốc (chỉ xoay và xoá EXIF metadata để bảo vệ quyền riêng tư) thay vì xoá hoàn toàn bản gốc.
+- **Decision:** Việc xoá file gốc khiến người dùng lo lắng ảnh chất lượng cao của họ bị mất. Lưu lại originalUrl để phục vụ cho tính năng tải ảnh gốc (hoặc cho Tier Subscriber) trong tương lai.
+
+### [06/06] - View Original Artwork Modal
+- **Logic:** Thêm hiệu ứng trỏ chuột dạng kính lúp (zoom-in) vào các ảnh trong trang chi tiết Artwork (ArtworkImageGallery.tsx). Sử dụng component Modal của Mantine kết hợp useDisclosure để tạo một giao diện hiển thị ảnh toàn màn hình. Khi người dùng click vào ảnh, hệ thống ưu tiên tải \originalUrl\ (nếu có) hoặc dùng lại \url\ để xem ảnh ở kích thước thật.
+- **Decision:** Tái hiện lại trải nghiệm xem ảnh của Pixiv, mang lại cảm giác thân thiện và quen thuộc cho người dùng. Thiết kế thành Modal toàn màn hình giúp người dùng tập trung vào tác phẩm.

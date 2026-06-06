@@ -14,6 +14,7 @@ export type ArtworkAuthor = {
 // Image info from ArtworkImage model
 export type ArtworkImage = {
   id: string;
+  originalUrl?: string;
   url: string;
   thumbnailUrl: string;
   blurredUrl?: string;

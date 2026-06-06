@@ -98,6 +98,7 @@ model Artwork {
 
 model ArtworkImage {
   id            String                      @id @default(uuid())
+  originalUrl   String?                     @map("original_url")
   url           String
   order         Int                         @default(0)
   width         Int?
@@ -110,7 +111,8 @@ model ArtworkImage {
   thumbnailUrl  String?                     @map("thumbnail_url")
   blurredUrl    String?                     @map("blurred_url")
   phash         String?                     @map("phash")
-  embedding     Unsupported("vector(768)")? @map("embedding")
+  embedding     Unsupported("vector(512)")? @map("embedding")
+  hasEmbedding  Boolean                     @default(false) @map("has_embedding")
   artwork       Artwork                     @relation(fields: [artworkId], references: [id], onDelete: Cascade)
 
   @@index([artworkId])
