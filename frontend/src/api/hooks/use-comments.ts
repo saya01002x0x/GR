@@ -17,7 +17,7 @@ type CommentsResponse = {
 
 type CommentsPage = CommentsResponse & { nextOffset: number };
 
-export function useComments(artworkId: string, parentId: string | null = null) {
+export function useComments(artworkId: string, parentId: string | null = null, enabled = true) {
   const { getToken } = useAuth();
 
   useEffect(() => {
@@ -42,6 +42,7 @@ export function useComments(artworkId: string, parentId: string | null = null) {
       }
       return lastPage.nextOffset;
     },
+    enabled,
   });
 
   const allComments = data?.pages.flatMap(page => page.data) ?? [];

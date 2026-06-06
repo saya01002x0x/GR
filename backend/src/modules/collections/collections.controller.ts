@@ -54,6 +54,32 @@ export class CollectionsController {
   }
 
   /**
+   * Get collection membership for an artwork
+   * GET /collections/artworks/:artworkId/status
+   */
+  @Get('artworks/:artworkId/status')
+  @ApiOperation({ summary: 'Get collection status for an artwork' })
+  @ApiParam({ name: 'artworkId', description: 'Artwork ID' })
+  @ApiResponse({ status: 200, description: 'Artwork collection status retrieved' })
+  async getArtworkCollectionStatus(
+    @Param('artworkId') artworkId: string,
+    @CurrentUser() user: User,
+  ) {
+    const collectionIds = await this.collectionsService.getArtworkCollections(
+      user.id,
+      artworkId,
+    );
+
+    return {
+      message: 'Artwork collection status retrieved',
+      data: {
+        isSaved: collectionIds.length > 0,
+        collectionIds,
+      },
+    };
+  }
+
+  /**
    * Create a new collection
    * POST /collections
    */

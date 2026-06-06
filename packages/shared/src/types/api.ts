@@ -24,6 +24,11 @@ export interface Collection {
   createdAt: string;
 }
 
+export interface ArtworkCollectionStatus {
+  isSaved: boolean;
+  collectionIds: string[];
+}
+
 export interface LikeStatus {
   liked: boolean;
   likeCount: number;

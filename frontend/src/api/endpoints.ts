@@ -21,6 +21,8 @@ export const E = {
 
   collections: {
     list: () => '/collections',
+    artworkStatus: (artworkId: string) =>
+      `/collections/artworks/${artworkId}/status`,
     create: () => '/collections',
     delete: (id: string) => `/collections/${id}`,
     addArtwork: (collectionId: string) =>

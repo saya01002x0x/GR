@@ -73,7 +73,7 @@ function CommentItem({
     addComment: addReply,
     deleteComment: deleteReply,
     isLoading: loadingReplies,
-  } = useComments(artworkId, showReplies ? comment.id : null);
+  } = useComments(artworkId, comment.id, showReplies || showReply);
 
   const handlePostReply = async () => {
     if (!replyContent.trim()) {

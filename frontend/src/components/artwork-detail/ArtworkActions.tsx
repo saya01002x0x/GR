@@ -15,7 +15,7 @@ import {
   IconShare,
 } from '@tabler/icons-react';
 import { useState } from 'react';
-import { useLike } from '@/api/hooks';
+import { useArtworkCollections, useLike } from '@/api/hooks';
 import { ReportModal } from './ReportModal';
 import { SaveToCollectionModal } from './SaveToCollectionModal';
 
@@ -40,9 +40,9 @@ export function ArtworkActions({
 }: ArtworkActionsProps) {
   const { isSignedIn } = useAuth();
   const { liked, likeCount, toggleLike } = useLike(artworkId);
+  const { isSaved } = useArtworkCollections(artworkId);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const authOnlyProps = !isSignedIn
     ? {
         disabled: true,
@@ -117,7 +117,6 @@ export function ArtworkActions({
         artworkId={artworkId}
         opened={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
-        onSaved={() => setIsSaved(true)}
       />
 
       <ReportModal

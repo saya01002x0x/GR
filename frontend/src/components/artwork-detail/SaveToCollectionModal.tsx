@@ -14,7 +14,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { IconFolder, IconLock, IconPlus, IconWorld } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useArtworkCollections, useCollections } from '@/api/hooks';
 
 type SaveToCollectionModalProps = {
@@ -31,23 +31,47 @@ export function SaveToCollectionModal({
   onSaved,
 }: SaveToCollectionModalProps) {
   const { collections, isLoading, createCollection } = useCollections();
-  const { toggleCollection } = useArtworkCollections(artworkId);
+  const {
+    collectionIds,
+    isLoading: isLoadingArtworkCollections,
+    toggleCollection,
+  } = useArtworkCollections(artworkId);
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [draftSelection, setDraftSelection] = useState<{
+    baseKey: string;
+    ids: Set<string>;
+  }>(() => ({ baseKey: '', ids: new Set() }));
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [saving, setSaving] = useState(false);
+  const savedKey = useMemo(() => collectionIds.join('\0'), [collectionIds]);
+  const savedIds = useMemo<Set<string>>(() => new Set(collectionIds), [collectionIds]);
+  const selectedIds = draftSelection.baseKey === savedKey
+    ? draftSelection.ids
+    : savedIds;
+  const hasChanges = useMemo(() => {
+    if (selectedIds.size !== savedIds.size) {
+      return true;
+    }
+    for (const id of selectedIds) {
+      if (!savedIds.has(id)) {
+        return true;
+      }
+    }
+    return false;
+  }, [savedIds, selectedIds]);
 
   const handleToggle = (collectionId: string) => {
-    setSelectedIds((prev) => {
-      const newSet = new Set(prev);
+    setDraftSelection((prev) => {
+      const currentIds = prev.baseKey === savedKey ? prev.ids : savedIds;
+      const newSet = new Set(currentIds);
       if (newSet.has(collectionId)) {
         newSet.delete(collectionId);
       } else {
         newSet.add(collectionId);
       }
-      return newSet;
+      return { baseKey: savedKey, ids: newSet };
     });
   };
 
@@ -58,20 +82,39 @@ export function SaveToCollectionModal({
 
     const response = await createCollection({ name: newName.trim(), isPrivate });
     if (response?.data) {
-      setSelectedIds(prev => new Set(prev).add(response.data.id));
+      setDraftSelection((prev) => {
+        const currentIds = prev.baseKey === savedKey ? prev.ids : savedIds;
+        return {
+          baseKey: savedKey,
+          ids: new Set(currentIds).add(response.data.id),
+        };
+      });
       setNewName('');
       setShowCreateForm(false);
     }
   };
 
+  const handleClose = () => {
+    setDraftSelection({ baseKey: savedKey, ids: new Set(savedIds) });
+    setShowCreateForm(false);
+    setNewName('');
+    onClose();
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      for (const collectionId of selectedIds) {
+      const removals = [...savedIds].filter(id => !selectedIds.has(id));
+      const additions = [...selectedIds].filter(id => !savedIds.has(id));
+
+      for (const collectionId of removals) {
+        await toggleCollection({ collectionId, isCurrentlyInCollection: true });
+      }
+      for (const collectionId of additions) {
         await toggleCollection({ collectionId, isCurrentlyInCollection: false });
       }
       onSaved?.();
-      onClose();
+      handleClose();
     } finally {
       setSaving(false);
     }
@@ -80,12 +123,12 @@ export function SaveToCollectionModal({
   return (
     <Modal
       opened={opened}
-      onClose={onClose}
+      onClose={handleClose}
       title="Save to Collection"
       size="sm"
       centered
     >
-      {isLoading
+      {isLoading || isLoadingArtworkCollections
         ? (
             <Box py="xl" ta="center">
               <Loader size="sm" />
@@ -180,14 +223,9 @@ export function SaveToCollectionModal({
                 fullWidth
                 onClick={handleSave}
                 loading={saving}
-                disabled={selectedIds.size === 0}
+                disabled={!hasChanges}
               >
-                Save to
-                {' '}
-                {selectedIds.size}
-                {' '}
-                collection
-                {selectedIds.size !== 1 ? 's' : ''}
+                Save changes
               </Button>
             </Stack>
           )}

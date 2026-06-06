@@ -6,6 +6,10 @@ import { apiClient } from '../client';
 import { E } from '../endpoints';
 
 type CollectionsResponse = ApiResponse<Collection[]>;
+type ArtworkCollectionStatus = {
+  isSaved: boolean;
+  collectionIds: string[];
+};
 
 export function useCollections() {
   const { getToken, isSignedIn } = useAuth();
@@ -66,6 +70,15 @@ export function useArtworkCollections(artworkId: string) {
 
   const queryClient = useQueryClient();
 
+  const { data: statusData, isLoading: isLoadingStatus } = useQuery({
+    queryKey: ['collections', 'artwork-status', artworkId],
+    queryFn: () =>
+      apiClient.get<ApiResponse<ArtworkCollectionStatus>>(
+        E.collections.artworkStatus(artworkId),
+      ),
+    enabled: !!isSignedIn && !!artworkId,
+  });
+
   const toggleMutation = useMutation({
     mutationFn: ({
       collectionId,
@@ -86,6 +99,9 @@ export function useArtworkCollections(artworkId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
+      queryClient.invalidateQueries({
+        queryKey: ['collections', 'artwork-status', artworkId],
+      });
     },
   });
 
@@ -96,12 +112,17 @@ export function useArtworkCollections(artworkId: string) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
+      queryClient.invalidateQueries({
+        queryKey: ['collections', 'artwork-status', artworkId],
+      });
     },
   });
 
   return {
     collections,
-    isLoading,
+    collectionIds: statusData?.data.collectionIds ?? [],
+    isSaved: statusData?.data.isSaved ?? false,
+    isLoading: isLoading || isLoadingStatus,
     toggleCollection: toggleMutation.mutateAsync,
     addToCollection: addMutation.mutateAsync,
     isSignedIn: !!isSignedIn,
