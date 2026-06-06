@@ -17,7 +17,7 @@ import {
 } from '@mantine/core';
 import { IconCornerDownRight, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
-import { useComments } from '@/api/hooks';
+import { useComments, useUserProfile } from '@/api/hooks';
 
 type CommentsSectionProps = {
   artworkId: string;
@@ -199,7 +199,8 @@ function CommentItem({
 export function CommentsSection({ artworkId }: CommentsSectionProps) {
   const [newComment, setNewComment] = useState('');
   const { isSignedIn } = useAuth();
-  const { user } = useUser();
+  const { user: clerkUser } = useUser();
+  const { data: userProfile } = useUserProfile();
   const {
     comments,
     hasMore,
@@ -229,12 +230,12 @@ export function CommentsSection({ artworkId }: CommentsSectionProps) {
         ? (
             <Group align="flex-start" gap="sm" mb="lg" wrap="nowrap">
               <Avatar
-                src={user?.imageUrl}
+                src={clerkUser?.imageUrl}
                 size={36}
                 radius="xl"
                 style={{ flexShrink: 0 }}
               >
-                {user?.username?.[0]?.toUpperCase() || 'U'}
+                {clerkUser?.username?.[0]?.toUpperCase() || 'U'}
               </Avatar>
               <Textarea
                 placeholder="Add a comment..."
@@ -284,7 +285,7 @@ export function CommentsSection({ artworkId }: CommentsSectionProps) {
                     comment={comment}
                     artworkId={artworkId}
                     onDelete={deleteComment}
-                    currentUserId={user?.id}
+                    currentUserId={userProfile?.id}
                   />
                 ))}
               </Stack>

@@ -247,3 +247,15 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 ### [06/06] - Sửa lỗi chuyển hướng trang Sign-in và Sign-up của Clerk
 - **Logic:** Thêm prop \signUpUrl={getI18nPath('/sign-up', locale)}\ vào component \<SignIn>\ và prop \signInUrl={getI18nPath('/sign-in', locale)}\ vào component \<SignUp>\.
 - **Decision:** Mặc định, component của Clerk sẽ chuyển hướng về \/sign-up\ hoặc \/sign-in\ không có locale prefix khi người dùng bấm chuyển đổi giữa Đăng ký/Đăng nhập. Khi dùng hệ thống i18n định tuyến động (ví dụ \/vi/sign-in\, \/en/sign-in\), điều này khiến Clerk điều hướng sai hoặc lỗi. Khai báo rõ ràng đường dẫn đã được i18n hóa thông qua Helper \getI18nPath\ giúp Clerk định tuyến chính xác.
+
+### [06/06] - Fix lỗi Reply Comment & Xóa Comment
+- **Logic:** 
+  - **Reply Comment:** Thêm cờ `enabled` vào hook `useComments` và truyền `parentId = comment.id` ngay từ đầu thay vì gán `null` khi chưa mở rộng (expand) danh sách reply.
+  - **Xóa Comment:** Thay đổi logic kiểm tra quyền sở hữu (`isOwner`) từ việc dùng Clerk ID (`user.id` từ `useUser`) sang dùng Database UUID (`userProfile.id` từ `useUserProfile`).
+- **Decision:** 
+  - API tạo comment yêu cầu `parentId` phải khớp với ID của comment cha. Việc truyền `null` khi state `showReplies` là false khiến comment bị thêm vào root (như một comment độc lập) thay vì làm reply. Thêm `enabled = showReplies || showReply` giúp ngăn fetch data không cần thiết mà vẫn giữ đúng `parentId`.
+  - Database Prisma sử dụng UUID riêng cho bảng `User`, trong khi Clerk có ID định dạng chuỗi `user_2...`. Sử dụng đồng nhất Database UUID giúp logic `currentUserId === comment.user.id` hoạt động chính xác và hiển thị nút Xóa.
+
+### [06/06] - Hide Banned Artworks
+- **Logic:** Updated \dmin.service.ts\ to call \SearchService.removeArtwork()\ when an artwork is rejected, removing it from Meilisearch so it doesn't appear in search results. Added a status check in \rtworks.service.ts\ (\indById\) to throw a NotFoundException if the artwork is not PUBLISHED (unless the viewer is the author).
+- **Decision:** Removing from the search index and blocking direct URL access ensures banned artworks are completely inaccessible to the public, while still allowing the original author to view them on their dashboard.

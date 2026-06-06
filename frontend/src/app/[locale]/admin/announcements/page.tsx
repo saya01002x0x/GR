@@ -98,13 +98,19 @@ export default function AnnouncementsPage() {
           <TextInput
             label="Title"
             value={form.title}
-            onChange={e => setForm(f => ({ ...f, title: e.currentTarget.value }))}
+            onChange={(e) => {
+              const val = e.currentTarget.value;
+              setForm(f => ({ ...f, title: val }));
+            }}
             required
           />
           <Textarea
             label="Content"
             value={form.content}
-            onChange={e => setForm(f => ({ ...f, content: e.currentTarget.value }))}
+            onChange={(e) => {
+              const val = e.currentTarget.value;
+              setForm(f => ({ ...f, content: val }));
+            }}
             rows={4}
             required
           />

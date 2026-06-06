@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum ReportReasonDto {
@@ -20,7 +20,8 @@ export class CreateReportDto {
   description?: string;
 
   @ApiProperty()
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   artworkId: string;
 }
 

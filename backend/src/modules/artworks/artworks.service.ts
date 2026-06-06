@@ -285,6 +285,17 @@ export class ArtworksService {
       return null;
     }
 
+    if (artwork.status === ArtworkStatus.HIDDEN) {
+      throw new NotFoundException('Artwork not found');
+    }
+
+    if (
+      artwork.status !== ArtworkStatus.PUBLISHED
+      && artwork.authorId !== viewerId
+    ) {
+      throw new NotFoundException('Artwork not found');
+    }
+
     const access = await this.getArtworkAccess(this.toArtworkAccessSubject(artwork), viewerId);
     if (!access.canViewFull) {
       throw new NotFoundException('Artwork not found');

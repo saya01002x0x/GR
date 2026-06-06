@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { AuthModule } from '../auth/auth.module';
+import { SearchModule } from '../search/search.module';
 import { AutoUnbanTask } from './auto-unban.task';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, SearchModule],
   controllers: [AdminController],
   providers: [AdminService, AutoUnbanTask],
   exports: [AdminService],

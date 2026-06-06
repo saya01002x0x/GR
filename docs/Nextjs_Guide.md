@@ -106,3 +106,12 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
     signUpUrl={getI18nPath('/sign-up', locale)}
   />
   \\\`n- **Ứng dụng:** Dùng để đồng bộ hóa liên kết "Sign up" bên trong component Đăng nhập của Clerk và liên kết "Sign in" trong component Đăng ký của Clerk tương ứng với locale hiện tại, tránh bị văng về trang mặc định không có prefix ngôn ngữ của Clerk.
+
+#### Clerk ID vs Database UUID (useUser vs useUserProfile)
+- **Là gì:** useUser (Clerk) trả về user auth object với ID định dạng chuỗi (user_xxx), trong khi useUserProfile trả về user từ Database với ID định dạng UUID.
+- **Cách dùng:** 
+  `	sx
+  const { user: clerkUser } = useUser(); // ID: user_2pz...
+  const { data: userProfile } = useUserProfile(); // ID: 123e4567-e89b-12d3...
+  `
+- **Ứng dụng:** Tránh lỗi so sánh ID (isOwner) giữa Frontend và Backend. Cần dùng userProfile?.id khi so sánh với khóa chính (ID) của dữ liệu trả về từ DB (như comment.user.id).
