@@ -27,14 +27,20 @@ export class AiSearchController {
   async searchByText(
     @Query('q') query: string,
     @Query('limit') limit?: string,
+    @Request() req?: any,
   ) {
     if (!query || query.trim().length === 0) {
       return { results: [], total: 0 };
     }
 
+    const userId = req?.auth?.userId;
+    const ip = req?.ip || req?.socket?.remoteAddress || 'unknown';
+
     const results = await this.aiSearchService.searchByText(
       query,
       limit ? parseInt(limit, 10) : 20,
+      userId,
+      ip,
     );
 
     return {

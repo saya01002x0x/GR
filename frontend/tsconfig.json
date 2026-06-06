@@ -78,7 +78,8 @@
       {
         "name": "next"
       }
-    ] // Enable Next.js TypeScript plugin
+    ], // Enable Next.js TypeScript pluginm
+    "ignoreDeprecations": "5.0"
   },
   "include": [
     "next-env.d.ts",

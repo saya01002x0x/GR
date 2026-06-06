@@ -12,9 +12,19 @@ import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
 import { QueueModule } from '../queue/queue.module';
 import { StatsModule } from '../stats/stats.module';
+import { PaymentsModule } from '../payments/payments.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [PrismaModule, StorageModule, AuthModule, QueueModule, StatsModule],
+  imports: [
+    PrismaModule, 
+    StorageModule, 
+    AuthModule, 
+    QueueModule, 
+    StatsModule,
+    PaymentsModule,
+    ConfigModule
+  ],
   controllers: [ArtworksController],
   providers: [ArtworksService],
   exports: [ArtworksService],

@@ -23,3 +23,10 @@ export { useNotifications } from './use-notifications';
 export { useSearchArtworks } from './use-search';
 export { useTrendingArtworks } from './use-trending';
 export { useUserProfile } from './use-user-profile';
+export {
+  useDiscoverHero,
+  useFeaturedArtworks,
+  usePopularTags,
+  useRanking,
+  useRisingStars,
+} from './useDiscover';

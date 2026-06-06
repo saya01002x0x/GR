@@ -1,6 +1,6 @@
 'use client';
 
-import type { FeaturedArtworkData } from '@/mocks/discoverData';
+import type { ArtworkDetail } from '@/types/artwork';
 import {
   ActionIcon,
   AspectRatio,
@@ -16,18 +16,60 @@ import {
   Title,
 } from '@mantine/core';
 import { IconEye, IconHeart } from '@tabler/icons-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 type FeaturedArtworkProps = {
-  artwork: FeaturedArtworkData;
+  artworks?: ArtworkDetail[];
 };
 
-export function FeaturedArtwork({ artwork }: FeaturedArtworkProps) {
+export function FeaturedArtwork({ artworks = [] }: FeaturedArtworkProps) {
+  const [currentArtworkIndex, setCurrentArtworkIndex] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (!artworks || artworks.length === 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCurrentImageIndex((prevImageIndex) => {
+        const currentArtwork = artworks[currentArtworkIndex];
+        const imageCount = currentArtwork?.images?.length || 1;
+
+        if (prevImageIndex + 1 < imageCount) {
+          // Move to next image in the same artwork
+          return prevImageIndex + 1;
+        }
+        // Move to next artwork, reset image index
+        setCurrentArtworkIndex(prevArtworkIndex =>
+          (prevArtworkIndex + 1) % artworks.length,
+        );
+        return 0;
+      });
+    }, 4000); // Change image every 4 seconds
+
+    return () => clearInterval(timer);
+  }, [artworks, currentArtworkIndex]);
+
+  if (!artworks || artworks.length === 0) {
+    return null; // Do not render if no featured artworks
+  }
+
+  const currentArtwork = artworks[currentArtworkIndex];
+  if (!currentArtwork) {
+    return null;
+  }
+  const images = currentArtwork.images || [];
+  const currentImage = images[currentImageIndex]?.url || '';
+
   return (
     <Card
       mb="xl"
       p="lg"
       radius="lg"
       withBorder
+      style={{ overflow: 'hidden' }}
     >
       <Group justify="space-between" mb="lg">
         <Title order={3}>Featured Artwork</Title>
@@ -37,15 +79,17 @@ export function FeaturedArtwork({ artwork }: FeaturedArtworkProps) {
         direction={{ base: 'column', md: 'row' }}
         gap="lg"
       >
-        {/* Image */}
+        {/* Image Carousel */}
         <Box flex={1} maw={{ base: '100%', md: 400 }}>
           <AspectRatio ratio={16 / 9}>
-            <Image
-              src={artwork.image}
-              alt={artwork.title}
-              radius="md"
-              style={{ cursor: 'pointer' }}
-            />
+            <Link href={`/artworks/${currentArtwork.id}`}>
+              <Image
+                src={currentImage}
+                alt={currentArtwork.title || 'Featured Artwork'}
+                radius="md"
+                style={{ cursor: 'pointer', transition: 'opacity 0.5s ease-in-out' }}
+              />
+            </Link>
           </AspectRatio>
         </Box>
 
@@ -54,34 +98,37 @@ export function FeaturedArtwork({ artwork }: FeaturedArtworkProps) {
           {/* Artist */}
           <Group gap="sm">
             <Avatar
-              src={artwork.artist.avatar}
+              src={currentArtwork.author?.avatar || ''}
               size={40}
               radius="xl"
             />
             <Box>
-              <Title order={4}>{artwork.title}</Title>
+              <Title order={4}>{currentArtwork.title}</Title>
               <Text size="xs" c="dimmed">
                 by
                 {' '}
                 <Text
-                  component="span"
+                  component={Link}
+                  href={`/artists/${currentArtwork.author?.username || currentArtwork.author?.id}`}
                   c="primary"
                   style={{ cursor: 'pointer' }}
                 >
-                  {artwork.artist.name}
+                  {currentArtwork.author?.displayName || currentArtwork.author?.username || 'Unknown Artist'}
                 </Text>
               </Text>
             </Box>
           </Group>
 
           {/* Description */}
-          <Text size="sm" lh={1.6}>
-            {artwork.description}
+          <Text size="sm" lh={1.6} lineClamp={3}>
+            {currentArtwork.description || 'No description available.'}
           </Text>
 
           {/* Actions */}
           <Group gap="sm">
             <Button
+              component={Link}
+              href={`/artworks/${currentArtwork.id}`}
               leftSection={<IconEye size={18} />}
               radius="md"
             >

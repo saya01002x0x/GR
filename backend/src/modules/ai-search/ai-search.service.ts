@@ -44,10 +44,15 @@ export class AiSearchService {
   async searchByText(
     query: string,
     limit = 20,
+    userId?: string,
+    ip?: string,
   ): Promise<VectorSearchResult[]> {
     if (!this.embeddingService.isAvailable()) {
       throw new BadRequestException('AI Search is not available. GEMINI_API_KEY not configured.');
     }
+
+    // Check rate limit
+    await this.checkRateLimit(userId, ip, 'text');
 
     const normalizedQuery = query.toLowerCase().trim();
     const cacheKey = `search:vector:${normalizedQuery}`;
@@ -71,6 +76,9 @@ export class AiSearchService {
       throw new Error('Failed to retrieve or generate embedding');
     }
 
+    // Increment usage
+    await this.incrementUsage(userId, ip, 'text');
+
     // 2. Query pgvector (Cosine Distance: <=>)
     const vectorStr = `[${embedding.join(',')}]`;
     const results = await this.prisma.$queryRawUnsafe<VectorSearchResult[]>(
@@ -89,9 +97,7 @@ export class AiSearchService {
   }
 
   /**
-   * Search artworks by sketch image (Premium only)
-   * Requires active subscription to use
-   * Flow: check premium -> embed sketch -> pgvector search
+   * Search artworks by sketch image
    */
   async searchBySketch(
     userId: string,
@@ -102,20 +108,15 @@ export class AiSearchService {
       throw new BadRequestException('AI Search is not available. GEMINI_API_KEY not configured.');
     }
 
-    // 1. Check Premium subscription
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { userId, status: 'ACTIVE' },
-    });
-
-    if (!subscription) {
-      throw new ForbiddenException(
-        'Sketch Search requires a Premium subscription. Please upgrade your plan.',
-      );
-    }
+    // Check rate limit
+    await this.checkRateLimit(userId, null, 'sketch');
 
     // 2. Generate image embedding via Gemini
     this.logger.log(`Generating sketch embedding for user ${userId}`);
     const embedding = await this.embeddingService.getImageEmbedding(base64Image);
+    
+    // Increment usage
+    await this.incrementUsage(userId, null, 'sketch');
 
     // 3. Query pgvector
     const vectorStr = `[${embedding.join(',')}]`;
@@ -149,5 +150,52 @@ export class AiSearchService {
       imageId,
     );
     this.logger.debug(`Stored embedding for image ${imageId}`);
+  }
+
+  private async getSettings() {
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'discover_settings' },
+    });
+    return setting?.value as any || {
+      freeTextSearchLimit: 10,
+      freeSketchSearchLimit: 2,
+    };
+  }
+
+  private async checkRateLimit(userId: string | undefined, ip: string | undefined | null, type: 'text' | 'sketch') {
+    // If logged in, check subscription
+    if (userId) {
+      const subscription = await this.prisma.subscription.findFirst({
+        where: { userId, status: 'ACTIVE' },
+      });
+      // Premium user has no limits
+      if (subscription) return;
+    }
+
+    const settings = await this.getSettings();
+    const limit = type === 'text' ? settings.freeTextSearchLimit : settings.freeSketchSearchLimit;
+    
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `rate_limit:ai_search:${type}:${today}:${userId || ip || 'unknown'}`;
+    const countStr = await this.redis.get(key);
+    const count = countStr ? parseInt(countStr, 10) : 0;
+
+    if (count >= limit) {
+      throw new ForbiddenException(`Free ${type} search limit reached (${limit}/day). Upgrade to Premium for unlimited searches.`);
+    }
+  }
+
+  private async incrementUsage(userId: string | undefined, ip: string | undefined | null, type: 'text' | 'sketch') {
+    if (userId) {
+      const subscription = await this.prisma.subscription.findFirst({
+        where: { userId, status: 'ACTIVE' },
+      });
+      if (subscription) return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const key = `rate_limit:ai_search:${type}:${today}:${userId || ip || 'unknown'}`;
+    await this.redis.incr(key);
+    await this.redis.expire(key, 86400); // 1 day
   }
 }

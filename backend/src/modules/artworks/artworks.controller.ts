@@ -83,11 +83,9 @@ export class ArtworksController {
   }
 
   /**
- * Get trending/popular artworks
- * GET /artworks/popular?limit=10
- * @description This get all of the artworks, timerannge is not implemented yet
- * @todo implement timerannge
- */
+   * Get trending/popular artworks (Legacy - keeping for backwards compatibility)
+   * GET /artworks/popular?limit=10
+   */
   @Get('popular')
   @ApiOperation({ summary: 'Get trending artworks' })
   @ApiQuery({ name: 'limit', required: false })
@@ -103,32 +101,45 @@ export class ArtworksController {
     };
   }
 
-  /**
-   * Get related artworks by ID
-   * GET /artworks/:id/related
-   */
-  @Get(':id/related')
-  @ApiOperation({ summary: 'Get related artworks' })
-  @ApiParam({ name: 'id', description: 'Artwork ID' })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    description: 'Number of related artworks',
-  })
-  @ApiResponse({ status: 200, description: 'Related artworks retrieved' })
-  async findRelated(@Param('id') id: string, @Query('limit') limit?: string, @Req() req?: Request) {
-    const viewer = req ? await this.authService.getOptionalUser(req) : null;
-    const relatedArtworks = await this.artworksService.findRelated(
-      id,
-      limit ? parseInt(limit, 10) : 10,
-      viewer?.id,
-    );
+  // ==================== DISCOVER ENDPOINTS ====================
 
-    return {
-      message: 'Related artworks retrieved successfully',
-      data: relatedArtworks,
-    };
+  @Get('discover/hero')
+  @ApiOperation({ summary: 'Get Hero section artworks (Spotlight, Staff Pick, Tutorial)' })
+  async getHeroArtworks() {
+    const data = await this.artworksService.getHeroArtworks();
+    return { message: 'OK', data };
   }
+
+  @Get('discover/featured')
+  @ApiOperation({ summary: 'Get currently promoted/featured artworks' })
+  async getFeaturedArtworks() {
+    const data = await this.artworksService.getFeaturedArtworks();
+    return { message: 'OK', data };
+  }
+
+  @Get('ranking')
+  @ApiOperation({ summary: 'Get ranked artworks' })
+  @ApiQuery({ name: 'timeframe', enum: ['daily', 'weekly', 'monthly', 'rookie'] })
+  async getRanking(@Query('timeframe') timeframe: string = 'daily') {
+    const data = await this.artworksService.getRanking(timeframe);
+    return { message: 'OK', data };
+  }
+
+  @Get('rising-stars')
+  @ApiOperation({ summary: 'Get rising star artists' })
+  async getRisingStars() {
+    const data = await this.artworksService.getRisingStars();
+    return { message: 'OK', data };
+  }
+
+  @Get('popular-tags')
+  @ApiOperation({ summary: 'Get popular tags' })
+  async getPopularTags() {
+    const data = await this.artworksService.getPopularTags();
+    return { message: 'OK', data };
+  }
+
+  // ============================================================
 
   /**
    * Get current user's artworks
@@ -149,10 +160,30 @@ export class ArtworksController {
     };
   }
 
-  /**
-   * Get artwork by ID
-   * GET /artworks/:id
-   */
+  @Post(':id/promote')
+  @UseGuards(ClerkGuard)
+  @ApiBearerAuth('clerk-auth')
+  @ApiOperation({ summary: 'Promote an artwork (pay for featuring)' })
+  @ApiParam({ name: 'id', description: 'Artwork ID' })
+  @ApiResponse({ status: 200, description: 'Artwork promoted successfully' })
+  @ApiResponse({ status: 403, description: 'Not the owner of the artwork' })
+  async promoteArtwork(
+    @Param('id') id: string,
+    @Body() body: { weeks: number },
+    @CurrentUser() user: User,
+  ) {
+    if (!user.isArtist) {
+      return { message: 'Only artists can promote artworks', data: null };
+    }
+
+    const result = await this.artworksService.promoteArtwork(id, user.id, body.weeks);
+
+    return {
+      message: 'Artwork promoted successfully',
+      data: result,
+    };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get artwork by ID' })
   @ApiParam({ name: 'id', description: 'Artwork ID' })

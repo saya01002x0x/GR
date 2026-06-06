@@ -10,6 +10,15 @@ export const E = {
     byUser: () => '/artworks/user/me',
   },
 
+  discover: {
+    hero: () => '/artworks/discover/hero',
+    featured: () => '/artworks/discover/featured',
+    ranking: (timeframe: 'daily' | 'weekly' | 'monthly' | 'rookie' = 'daily') =>
+      `/artworks/ranking?timeframe=${timeframe}`,
+    risingStars: () => '/artworks/rising-stars',
+    popularTags: () => '/artworks/popular-tags',
+  },
+
   collections: {
     list: () => '/collections',
     create: () => '/collections',
@@ -108,6 +117,7 @@ export const E = {
       growth: (days = 30) => `/admin/analytics/growth?days=${days}`,
       trendingTags: () => '/admin/analytics/tags/trending',
     },
+    discoverSettings: () => '/admin/discover-settings',
     payouts: {
       list: (status?: string) => {
         const params = new URLSearchParams();
@@ -159,6 +169,6 @@ export const E = {
 
   aiSearch: {
     text: (query: string) => `/ai-search/text?q=${encodeURIComponent(query)}`,
-    sketch: () => `/ai-search/sketch`,
+    sketch: () => '/ai-search/sketch',
   },
 };

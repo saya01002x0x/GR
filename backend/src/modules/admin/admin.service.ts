@@ -624,6 +624,32 @@ export class AdminService {
     });
   }
 
+  // ── Discover & Premium Settings ──
+
+  async getDiscoverSettings() {
+    const setting = await this.prisma.systemSetting.findUnique({
+      where: { key: 'discover_settings' },
+    });
+
+    return (
+      setting?.value ?? {
+        promotionPricePerWeek: 5.0, // 5 USD
+        rookieAccountAgeDays: 90, // 3 months
+        risingStarsAccountAgeDays: 90, // 3 months
+        freeTextSearchLimit: 10,
+        freeSketchSearchLimit: 2,
+      }
+    );
+  }
+
+  async updateDiscoverSettings(settings: Record<string, any>) {
+    return this.prisma.systemSetting.upsert({
+      where: { key: 'discover_settings' },
+      update: { value: settings },
+      create: { key: 'discover_settings', value: settings },
+    });
+  }
+
   // ── Staff (SUPER_ADMIN) ──
 
   async getStaff() {

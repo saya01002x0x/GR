@@ -44,6 +44,12 @@ export class WebhookController {
       switch (event.type) {
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session;
+          
+          if (session.metadata?.type === 'PROMOTE_ARTWORK') {
+            await this.payments.handlePromoteArtworkPayment(session.metadata);
+            break;
+          }
+
           const subscriptionId = typeof session.subscription === 'string'
             ? session.subscription
             : session.subscription?.id;

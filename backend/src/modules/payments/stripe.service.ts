@@ -128,6 +128,44 @@ export class StripeService {
     };
   }
 
+  async createOneTimeCheckoutSession(params: {
+    productName: string;
+    amount: number; // in dollars
+    currency: string;
+    successUrl: string;
+    cancelUrl: string;
+    metadata: Record<string, string>;
+    userEmail?: string;
+    customerId?: string;
+  }) {
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      customer: params.customerId,
+      customer_email: params.customerId ? undefined : params.userEmail,
+      line_items: [
+        {
+          price_data: {
+            currency: params.currency || 'usd',
+            product_data: {
+              name: params.productName,
+            },
+            unit_amount: Math.round(params.amount * 100),
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      metadata: params.metadata,
+    });
+
+    return {
+      checkoutUrl: session.url,
+      sessionId: session.id,
+    };
+  }
+
   async retrieveSubscription(subscriptionId: string) {
     return this.stripe.subscriptions.retrieve(subscriptionId) as Promise<Stripe.Subscription & {
       current_period_end?: number;

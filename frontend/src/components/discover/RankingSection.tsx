@@ -1,6 +1,5 @@
 'use client';
 
-import type { RankingArtwork } from '@/mocks/discoverData';
 import {
   Anchor,
   Box,
@@ -9,7 +8,6 @@ import {
   Tabs,
   Title,
 } from '@mantine/core';
-import { useState } from 'react';
 import { ArtworkCard } from '@/components/artwork';
 
 type RankingTab = {
@@ -19,12 +17,12 @@ type RankingTab = {
 
 type RankingSectionProps = {
   tabs: RankingTab[];
-  artworks: RankingArtwork[];
+  artworks: any[];
+  activeTab: string;
+  onTabChange: (tab: string) => void;
 };
 
-export function RankingSection({ tabs, artworks }: RankingSectionProps) {
-  const [activeTab, setActiveTab] = useState(tabs[0]?.id);
-
+export function RankingSection({ tabs, artworks, activeTab, onTabChange }: RankingSectionProps) {
   return (
     <Box mb="xl">
       {/* Header */}
@@ -38,7 +36,7 @@ export function RankingSection({ tabs, artworks }: RankingSectionProps) {
       {/* Tabs */}
       <Tabs
         value={activeTab}
-        onChange={value => setActiveTab(value || tabs[0]?.id)}
+        onChange={value => onTabChange(value || tabs[0]?.id || '')}
         variant="unstyled"
         mb="lg"
       >

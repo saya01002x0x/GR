@@ -57,6 +57,36 @@ export class PaymentsService {
     return customer.id;
   }
 
+  // ==================== ONE-TIME PAYMENTS ====================
+  async handlePromoteArtworkPayment(metadata: Record<string, string>) {
+    const artworkId = metadata.artworkId;
+    const weeks = parseInt(metadata.weeks, 10);
+
+    if (!artworkId || isNaN(weeks)) return;
+
+    const artwork = await this.prisma.artwork.findUnique({
+      where: { id: artworkId },
+    });
+
+    if (!artwork) return;
+
+    const now = new Date();
+    const startFrom = (artwork.isPromoted && artwork.promotedUntil && artwork.promotedUntil > now) 
+      ? artwork.promotedUntil 
+      : now;
+      
+    const promotedUntil = new Date(startFrom.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
+
+    await this.prisma.artwork.update({
+      where: { id: artworkId },
+      data: {
+        isPromoted: true,
+        promotedAt: artwork.isPromoted ? artwork.promotedAt : now,
+        promotedUntil,
+      },
+    });
+  }
+
   // ==================== PLANS ====================
 
   async getPlans() {

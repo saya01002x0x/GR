@@ -1,7 +1,16 @@
 'use client';
 
+import type { ArtworkListItem } from '@/types/artwork';
 import { Box, Flex, Skeleton, Stack, Text, Title } from '@mantine/core';
-import { useArtworks } from '@/api/hooks';
+import { useState } from 'react';
+import {
+  useArtworks,
+  useDiscoverHero,
+  useFeaturedArtworks,
+  usePopularTags,
+  useRanking,
+  useRisingStars,
+} from '@/api/hooks';
 import {
   CategoryPills,
   DiscoverGrid,
@@ -10,18 +19,23 @@ import {
   RankingSection,
   SidebarContent,
 } from '@/components/discover';
-import {
-  categories,
-  featuredArtwork,
-  featuredItems,
-  popularTags,
-  rankingArtworks,
-  rankingTabs,
-  risingStars,
-} from '@/mocks/discoverData';
+import { categories, rankingTabs } from '@/mocks/discoverData';
 
 export default function DiscoverPage() {
   const { artworks, hasMore, isLoading, isLoadingMore, loadMore } = useArtworks({ limit: 25 });
+  const { data: heroItems, isLoading: isHeroLoading } = useDiscoverHero();
+  const { data: featured, isLoading: isFeaturedLoading } = useFeaturedArtworks();
+
+  const [activeRankingTab, setActiveRankingTab] = useState<'daily' | 'weekly' | 'monthly' | 'rookie'>('daily');
+  const { data: rankingData, isLoading: isRankingLoading } = useRanking(activeRankingTab);
+
+  const { data: risingStarsData } = useRisingStars();
+  const { data: popularTagsData } = usePopularTags();
+
+  const heroItemsFormatted = (heroItems || []).map(item => ({
+    ...item,
+    tag: item.tag ?? { label: 'Featured', color: 'primary' },
+  }));
 
   const discoverArtworks = artworks.map(artwork => ({
     id: artwork.id,
@@ -34,9 +48,24 @@ export default function DiscoverPage() {
     liked: false,
   }));
 
+  const rankingArtworksFormatted = (rankingData || []).map((artwork: ArtworkListItem, index: number) => ({
+    id: artwork.id,
+    title: artwork.title,
+    artist: {
+      name: artwork.author.displayName || artwork.author.username,
+      avatar: artwork.author.avatar || '',
+    },
+    image: artwork.images[0]?.url || artwork.images[0]?.thumbnailUrl || '',
+    rank: index + 1,
+  }));
+
   return (
     <Box maw={1600} mx="auto">
-      <HeroSection items={featuredItems} />
+      {isHeroLoading
+        ? <Skeleton height={400} mb="xl" />
+        : (
+            <HeroSection items={heroItemsFormatted} />
+          )}
 
       <CategoryPills categories={categories} />
 
@@ -47,9 +76,22 @@ export default function DiscoverPage() {
         pb="xl"
       >
         <Box flex={1} miw={0}>
-          <RankingSection tabs={rankingTabs} artworks={rankingArtworks} />
+          {isRankingLoading
+            ? <Skeleton height={300} mb="xl" />
+            : (
+                <RankingSection
+                  tabs={rankingTabs}
+                  artworks={rankingArtworksFormatted}
+                  activeTab={activeRankingTab}
+                  onTabChange={tab => setActiveRankingTab(tab as any)}
+                />
+              )}
 
-          <FeaturedArtwork artwork={featuredArtwork} />
+          {isFeaturedLoading
+            ? <Skeleton height={400} mb="xl" />
+            : (
+                <FeaturedArtwork artworks={featured || []} />
+              )}
 
           {isLoading
             ? (
@@ -86,8 +128,8 @@ export default function DiscoverPage() {
         </Box>
 
         <SidebarContent
-          risingStars={risingStars}
-          popularTags={popularTags}
+          risingStars={risingStarsData || []}
+          popularTags={popularTagsData || []}
         />
       </Flex>
     </Box>

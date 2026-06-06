@@ -225,6 +225,25 @@ export class AdminController {
     return this.adminService.updateRankingWeights(weights);
   }
 
+  // ── Discover & Premium Settings ──
+
+  @Get('discover-settings')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Get Discover & Premium settings (Admin+)' })
+  async getDiscoverSettings() {
+    return this.adminService.getDiscoverSettings();
+  }
+
+  @Put('discover-settings')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Update Discover & Premium settings (Admin+)' })
+  async updateDiscoverSettings(
+    @CurrentUser() actor: User,
+    @Body() settings: Record<string, any>,
+  ) {
+    return this.adminService.updateDiscoverSettings(settings);
+  }
+
   // ── Staff Management ──
 
   @Get('staff')

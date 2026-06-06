@@ -79,3 +79,20 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
   }
   ```
 - **Ứng dụng:** Được dùng trong `SketchSearchModal` để cho phép người dùng vẽ phác thảo bức tranh. Base64 xuất ra từ canvas sẽ được gửi qua `useAiSearchSketch` (React Query) lên Backend để convert thành vector.
+
+---
+
+#### Hạn chế Component Polymorphism (Mantine 8 với Next.js Link)
+- **Là gì:** Việc truyền component khác (như `Link` của Next.js) qua prop `component` trong Mantine đôi khi gây xung đột kiểu dữ liệu (TypeScript Type Collision) do các thuộc tính HTML bị chồng chéo.
+- **Cách dùng:**
+  Thay vì:
+  ```tsx
+  <Image component={Link} href="/destination" alt="..." />
+  ```
+  Hãy bọc trực tiếp:
+  ```tsx
+  <Link href="/destination">
+    <Image alt="..." />
+  </Link>
+  ```
+- **Ứng dụng:** Khắc phục lỗi compiler `alt does not exist` trên Mantine `Image` trong component `FeaturedArtwork`.

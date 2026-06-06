@@ -11,6 +11,6 @@ import { WebhookController } from './webhook.controller';
   imports: [PrismaModule, ConfigModule],
   controllers: [PaymentsController, WebhookController],
   providers: [PaymentsService, StripeService, SubscriptionSyncTask],
-  exports: [PaymentsService],
+  exports: [PaymentsService, StripeService],
 })
 export class PaymentsModule {}
