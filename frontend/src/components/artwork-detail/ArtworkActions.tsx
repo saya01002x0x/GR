@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import {
   ActionIcon,
   Button,
@@ -37,10 +38,17 @@ export function ArtworkActions({
   artworkId,
   initialLikeCount = 0,
 }: ArtworkActionsProps) {
+  const { isSignedIn } = useAuth();
   const { liked, likeCount, toggleLike } = useLike(artworkId);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const authOnlyProps = !isSignedIn
+    ? {
+        disabled: true,
+        title: 'Sign in required',
+      }
+    : {};
 
   const handleShare = () => {
     if (navigator.share) {
@@ -78,7 +86,8 @@ export function ArtworkActions({
           color={isSaved ? 'primary' : 'gray'}
           size="lg"
           radius="md"
-          onClick={() => setSaveModalOpen(true)}
+          onClick={isSignedIn ? () => setSaveModalOpen(true) : undefined}
+          {...authOnlyProps}
         >
           {isSaved ? <IconBookmarkFilled size={20} /> : <IconBookmark size={20} />}
         </ActionIcon>
@@ -96,8 +105,9 @@ export function ArtworkActions({
           variant="default"
           size="lg"
           radius="md"
-          onClick={() => setReportModalOpen(true)}
-          title="Report"
+          onClick={isSignedIn ? () => setReportModalOpen(true) : undefined}
+          title={isSignedIn ? 'Report' : 'Sign in required'}
+          disabled={!isSignedIn}
         >
           <IconFlag size={20} />
         </ActionIcon>

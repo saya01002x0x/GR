@@ -1,6 +1,7 @@
 'use client';
 
 import type { ArtworkDetail } from '@/mocks/artworkDetailData';
+import { useAuth } from '@clerk/nextjs';
 import {
   Avatar,
   Badge,
@@ -26,6 +27,8 @@ type ArtworkSidebarProps = {
 };
 
 export function ArtworkSidebar({ artwork }: ArtworkSidebarProps) {
+  const { isSignedIn } = useAuth();
+
   return (
     <Box
       w={320}
@@ -63,8 +66,9 @@ export function ArtworkSidebar({ artwork }: ArtworkSidebarProps) {
           fullWidth
           radius="md"
           leftSection={<IconUserPlus size={18} />}
+          disabled={!isSignedIn}
         >
-          Follow Artist
+          {isSignedIn ? 'Follow Artist' : 'Signin to follow'}
         </Button>
       </Card>
 
