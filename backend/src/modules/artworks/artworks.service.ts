@@ -4,6 +4,12 @@
  * Reference: https://docs.nestjs.com/providers
  */
 
+/**
+ * Artworks Service
+ * Handle artwork CRUD operations with image processing
+ * Reference: https://docs.nestjs.com/providers
+ */
+
 import { Injectable, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -14,6 +20,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_NAME, JOB_PROCESS_IMAGES } from '../queue/queue.constants';
 import { randomUUID } from 'crypto';
+import { getExpandedAccessibleTierIds } from '../../utils/tier-helpers';
 
 export interface CreateArtworkDto {
   title: string;
@@ -316,10 +323,7 @@ export class ArtworksService {
     const { limit = 25, offset = 0, viewerId } = options;
 
     const accessibleTierIds = viewerId
-      ? (await this.prisma.tierSubscription.findMany({
-          where: { subscriberId: viewerId, status: 'ACTIVE' },
-          select: { tierId: true },
-        })).map(subscription => subscription.tierId)
+      ? await getExpandedAccessibleTierIds(this.prisma as any, viewerId)
       : [];
 
     const [artworks, total] = await Promise.all([
@@ -359,6 +363,165 @@ export class ArtworksService {
       total,
       hasMore: offset + artworks.length < total,
     };
+  }
+
+  async findTrending(limit = 10) {
+    return this.prisma.artwork.findMany({
+      where: {
+        status: ArtworkStatus.PUBLISHED,
+        visibility: ArtworkVisibility.PUBLIC,
+      },
+      include: this.artworkListInclude,
+      orderBy: [{ viewCount: 'desc' }, { likeCount: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+    });
+  }
+
+  async getHeroArtworks() {
+    const artworks = await this.prisma.artwork.findMany({
+      where: {
+        status: ArtworkStatus.PUBLISHED,
+        visibility: ArtworkVisibility.PUBLIC,
+      },
+      include: this.artworkListInclude,
+      orderBy: [{ isPromoted: 'desc' }, { likeCount: 'desc' }, { createdAt: 'desc' }],
+      take: 3,
+    });
+
+    const labels = ['Spotlight', 'Staff Pick', 'Tutorial'];
+    return artworks.map((artwork, index) => ({
+      id: artwork.id,
+      title: artwork.title,
+      subtitle: artwork.author.displayName || artwork.author.username,
+      image: artwork.images[0]?.url || artwork.images[0]?.thumbnailUrl || '',
+      tag: { label: labels[index] || 'Featured', color: 'primary' },
+      artwork,
+    }));
+  }
+
+  async getFeaturedArtworks() {
+    const now = new Date();
+
+    return this.prisma.artwork.findMany({
+      where: {
+        status: ArtworkStatus.PUBLISHED,
+        visibility: ArtworkVisibility.PUBLIC,
+        isPromoted: true,
+        OR: [{ promotedUntil: null }, { promotedUntil: { gt: now } }],
+      },
+      include: this.artworkDetailInclude,
+      orderBy: [{ promotedAt: 'desc' }, { createdAt: 'desc' }],
+      take: 12,
+    });
+  }
+
+  async getRanking(timeframe = 'daily') {
+    const now = new Date();
+    const createdAfter = new Date(now);
+
+    switch (timeframe) {
+      case 'weekly':
+        createdAfter.setDate(now.getDate() - 7);
+        break;
+      case 'monthly':
+        createdAfter.setMonth(now.getMonth() - 1);
+        break;
+      case 'rookie':
+        createdAfter.setDate(now.getDate() - 30);
+        break;
+      case 'daily':
+      default:
+        createdAfter.setDate(now.getDate() - 1);
+        break;
+    }
+
+    return this.prisma.artwork.findMany({
+      where: {
+        status: ArtworkStatus.PUBLISHED,
+        visibility: ArtworkVisibility.PUBLIC,
+        createdAt: { gte: createdAfter },
+      },
+      include: this.artworkListInclude,
+      orderBy: [{ likeCount: 'desc' }, { viewCount: 'desc' }, { createdAt: 'desc' }],
+      take: 20,
+    });
+  }
+
+  async getRisingStars() {
+    const artists = await this.prisma.user.findMany({
+      where: {
+        isArtist: true,
+        artworks: {
+          some: {
+            status: ArtworkStatus.PUBLISHED,
+            visibility: ArtworkVisibility.PUBLIC,
+          },
+        },
+      },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        avatar: true,
+        _count: {
+          select: {
+            artworks: {
+              where: {
+                status: ArtworkStatus.PUBLISHED,
+                visibility: ArtworkVisibility.PUBLIC,
+              },
+            },
+            followers: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
+    return artists.map((artist) => ({
+      ...artist,
+      artworkCount: artist._count.artworks,
+      followerCount: artist._count.followers,
+    }));
+  }
+
+  async getPopularTags() {
+    const tags = await this.prisma.tag.findMany({
+      orderBy: { count: 'desc' },
+      take: 20,
+      select: { name: true },
+    });
+
+    return tags.map((tag) => tag.name);
+  }
+
+  async promoteArtwork(id: string, userId: string, weeks = 1) {
+    const artwork = await this.prisma.artwork.findUnique({ where: { id } });
+    if (!artwork) {
+      throw new NotFoundException('Artwork not found');
+    }
+
+    if (artwork.authorId !== userId) {
+      throw new ForbiddenException('Not the owner of this artwork');
+    }
+
+    const safeWeeks = Number.isFinite(weeks) && weeks > 0 ? weeks : 1;
+    const now = new Date();
+    const startFrom = artwork.isPromoted && artwork.promotedUntil && artwork.promotedUntil > now
+      ? artwork.promotedUntil
+      : now;
+    const promotedUntil = new Date(startFrom.getTime() + safeWeeks * 7 * 24 * 60 * 60 * 1000);
+
+    return this.prisma.artwork.update({
+      where: { id },
+      data: {
+        isPromoted: true,
+        promotedAt: artwork.promotedAt || now,
+        promotedUntil,
+      },
+      include: this.artworkDetailInclude,
+    });
   }
 
   /**
@@ -435,237 +598,26 @@ export class ArtworksService {
         authorId: userId,
         status: { not: ArtworkStatus.HIDDEN },
       },
-      include: {
-        images: {
-          take: 1,
-          orderBy: { order: 'asc' },
-        },
-      },
+      include: this.artworkListInclude,
       orderBy: { createdAt: 'desc' },
     });
   }
-
-  /**
-   * Get trending artworks (by viewCount)
-   */
-  async findTrending(limit = 10) {
-    return this.prisma.artwork.findMany({
-      where: { status: 'PUBLISHED', visibility: ArtworkVisibility.PUBLIC },
-      include: this.artworkListInclude,
-      orderBy: [{ viewCount: 'desc' }, { createdAt: 'desc' }],
-      take: limit,
-    });
-  }
-
-  // ==================== DISCOVER ====================
-
-  async getHeroArtworks() {
-    // For now, get 3 most liked/viewed artworks with different tags if possible
-    // Or just top 3 recent popular artworks
-    const artworks = await this.prisma.artwork.findMany({
-      where: { status: 'PUBLISHED', visibility: ArtworkVisibility.PUBLIC },
-      include: this.artworkListInclude,
-      orderBy: [{ likeCount: 'desc' }, { viewCount: 'desc' }],
-      take: 3,
-    });
-
-    // Format them to match FeaturedItem frontend type
-    return artworks.map((artwork, i) => ({
-      id: artwork.id,
-      title: artwork.title,
-      subtitle: artwork.description?.slice(0, 100) || 'Featured artwork',
-      image: artwork.images[0]?.url || '',
-      tag: { 
-        label: i === 0 ? 'Spotlight' : (i === 1 ? 'Staff Pick' : 'Tutorial'), 
-        color: i === 0 ? 'primary' : (i === 1 ? 'primary' : 'blue') 
-      },
-      artwork, // send full data just in case
-    }));
-  }
-
-  async getFeaturedArtworks() {
-    const now = new Date();
-    return this.prisma.artwork.findMany({
-      where: {
-        status: 'PUBLISHED',
-        isPromoted: true,
-        promotedUntil: { gt: now },
-        visibility: ArtworkVisibility.PUBLIC,
-      },
-      include: this.artworkDetailInclude, // Includes full author details
-      orderBy: { promotedAt: 'desc' },
-      take: 5,
-    });
-  }
-
-  async getRanking(timeframe: string) {
-    const now = new Date();
-    let startDate = new Date();
-    
-    if (timeframe === 'daily') {
-      startDate.setDate(now.getDate() - 1);
-    } else if (timeframe === 'weekly') {
-      startDate.setDate(now.getDate() - 7);
-    } else if (timeframe === 'monthly') {
-      startDate.setMonth(now.getMonth() - 1);
-    } else if (timeframe === 'rookie') {
-      // Rookie: Artwork from artists who joined recently
-      const settings = await this.prisma.systemSetting.findUnique({
-        where: { key: 'discover_settings' },
-      });
-      const rookieDays = (settings?.value as any)?.rookieAccountAgeDays || 90;
-      const rookieCutoff = new Date();
-      rookieCutoff.setDate(now.getDate() - rookieDays);
-      
-      return this.prisma.artwork.findMany({
-        where: {
-          status: 'PUBLISHED',
-          visibility: ArtworkVisibility.PUBLIC,
-          author: {
-            createdAt: { gt: rookieCutoff }
-          }
-        },
-        include: this.artworkListInclude,
-        orderBy: [{ likeCount: 'desc' }, { viewCount: 'desc' }],
-        take: 20,
-      });
-    }
-
-    // For daily/weekly/monthly, we should ideally sum up views/likes within the period.
-    // Since we don't have time-series interaction data aggregated yet, we will sort by recent artworks + their total engagement as an approximation.
-    return this.prisma.artwork.findMany({
-      where: {
-        status: 'PUBLISHED',
-        visibility: ArtworkVisibility.PUBLIC,
-        createdAt: { gt: startDate },
-      },
-      include: this.artworkListInclude,
-      orderBy: [{ likeCount: 'desc' }, { viewCount: 'desc' }],
-      take: 20,
-    });
-  }
-
-  async getRisingStars() {
-    const settings = await this.prisma.systemSetting.findUnique({
-      where: { key: 'discover_settings' },
-    });
-    const days = (settings?.value as any)?.risingStarsAccountAgeDays || 90;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-
-    const users = await this.prisma.user.findMany({
-      where: {
-        isArtist: true,
-        createdAt: { gt: cutoff },
-      },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        avatar: true,
-        _count: {
-          select: { followers: true }
-        }
-      },
-      orderBy: {
-        followers: {
-          _count: 'desc'
-        }
-      },
-      take: 5,
-    });
-
-    return users.map(u => ({
-      id: u.id,
-      name: u.displayName || u.username,
-      avatar: u.avatar || '',
-      followers: u._count.followers,
-    }));
-  }
-
-  async getPopularTags(limit = 10) {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const tags = await this.prisma.artworkTag.groupBy({
-      by: ['tagId'],
-      where: {
-        artwork: { createdAt: { gte: thirtyDaysAgo }, status: 'PUBLISHED' },
-      },
-      _count: { tagId: true },
-      orderBy: { _count: { tagId: 'desc' } },
-      take: limit,
-    });
-
-    const tagIds = tags.map((t) => t.tagId);
-    const tagRecords = await this.prisma.tag.findMany({
-      where: { id: { in: tagIds } },
-    });
-    const tagMap = new Map(tagRecords.map((t) => [t.id, t.name]));
-
-    return tags.map((t) => tagMap.get(t.tagId)).filter(Boolean);
-  }
-
-  // ====================================================
-
-  /**
-   * Promote artwork
-   */
-  async promoteArtwork(artworkId: string, userId: string, weeks: number) {
-    const artwork = await this.prisma.artwork.findUnique({
-      where: { id: artworkId },
-      include: { author: true }
-    });
-
-    if (!artwork || artwork.authorId !== userId) {
-      throw new ForbiddenException('Not authorized to promote this artwork');
-    }
-
-    const settings = await this.prisma.systemSetting.findUnique({
-      where: { key: 'discover_settings' },
-    });
-    const config = settings?.value as any || { promotionPricePerWeek: 5.0 };
-    
-    const price = config.promotionPricePerWeek * weeks;
-    this.logger.log(`Creating Stripe checkout to promote artwork ${artworkId} for ${weeks} weeks. Total: $${price}`);
-
-    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5146';
-    
-    return this.stripeService.createOneTimeCheckoutSession({
-      productName: `Promote Artwork: ${artwork.title}`,
-      amount: price,
-      currency: 'usd',
-      successUrl: `${frontendUrl}/discover?promotion=success`,
-      cancelUrl: `${frontendUrl}/discover?promotion=cancelled`,
-      userEmail: artwork.author.email || undefined,
-      metadata: {
-        type: 'PROMOTE_ARTWORK',
-        artworkId,
-        userId,
-        weeks: weeks.toString()
-      }
-    });
-  }
-
-
 
   private async filterAccessibleArtworks(
     artworks: Array<Record<string, unknown>>,
     viewerId?: string | null,
   ): Promise<Array<Record<string, unknown> & { access: ArtworkAccessState }>> {
     const accessibleTierIds = viewerId
-      ? new Set((await this.prisma.tierSubscription.findMany({
-          where: { subscriberId: viewerId, status: 'ACTIVE' },
-          select: { tierId: true },
-        })).map(subscription => subscription.tierId))
-      : new Set<string>();
+      ? await getExpandedAccessibleTierIds(this.prisma as any, viewerId)
+      : [];
+    const accessibleTierIdSet = new Set(accessibleTierIds);
 
-    const filtered = artworks.map(artwork => {
-      const access = this.getArtworkAccessFromAccessibleTierIds(artwork, accessibleTierIds, viewerId);
-      return access.canViewFull ? { ...artwork, access } : null;
-    });
-
-    return filtered.filter(Boolean) as Array<Record<string, unknown> & { access: ArtworkAccessState }>;
+    return artworks
+      .map((artwork) => ({
+        ...artwork,
+        access: this.getArtworkAccessFromAccessibleTierIds(artwork, accessibleTierIdSet, viewerId),
+      }))
+      .filter((artwork) => artwork.access.canViewFull);
   }
 
   private getArtworkAccessFromAccessibleTierIds(
@@ -737,19 +689,17 @@ export class ArtworksService {
       };
     }
 
-    const subscription = await this.prisma.tierSubscription.findFirst({
-      where: {
-        subscriberId: viewerId,
-        tierId: artwork.requiredTierId,
-        status: 'ACTIVE',
-      },
-      select: { id: true },
-    });
+    const accessibleTierIds = await getExpandedAccessibleTierIds(
+      this.prisma as any,
+      viewerId,
+      artwork.authorId,
+    );
+    const isSubscribed = accessibleTierIds.includes(artwork.requiredTierId);
 
     return {
       isOwner,
-      isSubscribed: Boolean(subscription),
-      canViewFull: Boolean(subscription),
+      isSubscribed,
+      canViewFull: isSubscribed,
     };
   }
 }

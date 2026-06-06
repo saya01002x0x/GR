@@ -41,6 +41,8 @@ export type ArtistTier = {
   benefits: string[];
   maxMembers: number | null;
   isActive: boolean;
+  isArchived?: boolean;
+  parentTierId?: string | null;
   createdAt: string;
   updatedAt: string;
   memberCount?: number;

@@ -252,6 +252,7 @@ export class PaymentsService {
     currency?: string;
     benefits?: string[];
     maxMembers?: number;
+    parentTierId?: string;
   }) {
     this.validateTierPrice(data.price);
 
@@ -261,6 +262,7 @@ export class PaymentsService {
         currency: data.currency || 'VND',
         benefits: data.benefits || [],
         artistId,
+        parentTierId: data.parentTierId,
       },
     });
   }
@@ -272,10 +274,23 @@ export class PaymentsService {
     benefits?: string[];
     maxMembers?: number;
     isActive?: boolean;
+    parentTierId?: string;
   }) {
     const tier = await this.prisma.artistTier.findUnique({ where: { id: tierId } });
     if (!tier) throw new NotFoundException('Tier not found');
     if (tier.artistId !== artistId) throw new BadRequestException('Not your tier');
+
+    // Grandfathering logic: Khóa đổi giá nếu đã có người đăng ký
+    if (data.price !== undefined && Number(data.price) !== Number(tier.price)) {
+      const activeSubscribersCount = await this.prisma.tierSubscription.count({
+        where: { tierId, status: 'ACTIVE' }
+      });
+
+      if (activeSubscribersCount > 0) {
+        throw new BadRequestException('Không thể đổi giá Tier đã có người đăng ký. Vui lòng Archive và tạo Tier mới.');
+      }
+    }
+
     if (typeof data.price === 'number') {
       this.validateTierPrice(data.price);
     }
@@ -291,15 +306,36 @@ export class PaymentsService {
     if (!tier) throw new NotFoundException('Tier not found');
     if (tier.artistId !== artistId) throw new BadRequestException('Not your tier');
 
+    const activeSubscribersCount = await this.prisma.tierSubscription.count({
+      where: { tierId, status: 'ACTIVE' },
+    });
+
+    if (activeSubscribersCount > 0) {
+      throw new BadRequestException(
+        'Cannot delete a tier that has active subscribers. Archive it instead.',
+      );
+    }
+
     return this.prisma.artistTier.update({
       where: { id: tierId },
       data: { isActive: false },
     });
   }
 
+  async archiveTier(tierId: string, artistId: string) {
+    const tier = await this.prisma.artistTier.findUnique({ where: { id: tierId } });
+    if (!tier) throw new NotFoundException('Tier not found');
+    if (tier.artistId !== artistId) throw new BadRequestException('Not your tier');
+
+    return this.prisma.artistTier.update({
+      where: { id: tierId },
+      data: { isActive: false, isArchived: true },
+    });
+  }
+
   async getPublicArtistTiers(artistId: string) {
     return this.prisma.artistTier.findMany({
-      where: { artistId, isActive: true },
+      where: { artistId, isActive: true, isArchived: false },
       orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
       include: {
         _count: { select: { subscriptions: true } },

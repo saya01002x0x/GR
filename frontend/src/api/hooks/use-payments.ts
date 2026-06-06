@@ -121,7 +121,7 @@ export function useCreateTier() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { name: string; description?: string; price: number; currency?: string; benefits?: string[]; maxMembers?: number }) =>
+    mutationFn: (data: { name: string; description?: string; price: number; currency?: string; benefits?: string[]; maxMembers?: number; parentTierId?: string }) =>
       apiClient.post<{ message: string; data: ArtistTier }>(E.payments.tiers.create(), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments', 'tiers'] });
@@ -159,10 +159,24 @@ export function useDeleteTier() {
   });
 }
 
+export function useArchiveTier() {
+  const { getToken } = useAuth();
+  apiClient.setTokenGetter(getToken);
+
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (tierId: string) =>
+      apiClient.patch<{ message: string }>(E.payments.tiers.archive(tierId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', 'tiers'] });
+    },
+  });
+}
+
 export function useTierSubscribers() {
   const { getToken, isSignedIn } = useAuth();
   apiClient.setTokenGetter(getToken);
-
   return useQuery({
     queryKey: ['payments', 'tiers', 'subscribers'],
     queryFn: () => apiClient.get<{ message: string; data: TierSubscription[] }>(E.payments.tiers.subscribers()),

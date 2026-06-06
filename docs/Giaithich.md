@@ -285,3 +285,14 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 ### [06/06] - View Original Artwork Modal
 - **Logic:** Thêm hiệu ứng trỏ chuột dạng kính lúp (zoom-in) vào các ảnh trong trang chi tiết Artwork (ArtworkImageGallery.tsx). Sử dụng component Modal của Mantine kết hợp useDisclosure để tạo một giao diện hiển thị ảnh toàn màn hình. Khi người dùng click vào ảnh, hệ thống ưu tiên tải \originalUrl\ (nếu có) hoặc dùng lại \url\ để xem ảnh ở kích thước thật.
 - **Decision:** Tái hiện lại trải nghiệm xem ảnh của Pixiv, mang lại cảm giác thân thiện và quen thuộc cho người dùng. Thiết kế thành Modal toàn màn hình giúp người dùng tập trung vào tác phẩm.
+
+### [06/06] - [??ng ky Tier & Grandfathering]
+- **Logic:** 
+  - Them c? ch? "Grandfathering" cho ArtistTier. Khi Tier ?a co ng??i ??ng ky (subscribers > 0), Artist khong ???c phep s?a gia (nh?m b?o v? quy?n l?i user c? va tranh l?i Stripe Subscription). 
+  - Them ch?c n?ng Archive (isArchived) ?? ?n Tier c? kh?i danh sach va t?o Tier m?i n?u c?n ??i gia. 
+  - H? tr? mo hinh Sub-tier (k? th?a ??c quy?n) thong qua parentTierId, v?i chu?i k? th?a theo h??ng Parent/Child (A k? th?a B, B k? th?a C).
+- **Decision:** S? d?ng tr??ng isArchived ?? gi? nguyen tr?ng thai Active cho subscriber c? nh?ng ch?n khong cho ??ng ky m?i. Ap d?ng Parent/Child (parentTierId) cho Sub-tier ?? ??n gi?n hoa qua trinh truy xu?t quy?n l?i, thay vi dung quan h? Many-to-Many ph?c t?p.
+
+### [06/06] - [Fix: Parent/Child Tier Logic]
+- **Logic:** Khi User ??ng ky m?t Tier (Tier A) co ch?a (k? th?a) quy?n l?i t? Tier con (Tier B), Backend c?n ?? quy ?? l?y toan b? 	ierId c?a cac Tier c?p d??i. Ham getExpandedAccessibleTierIds ???c them vao ?? th?c hi?n vi?c duy?t m?ng ?? quy va m? khoa toan b? n?i dung c?a Tier B (va C, D n?u co) cho User ?ang sub Tier A.
+- **Decision:** Thay vi ch? l?y tr?c ti?p 	ierId t? TierSubscription (lam User b? khoa content c?a Tier B), ta t?o m?t utility helper dung chung cho c? rtworks.service va users.service ?? t? ??ng expand ccessibleTierIds. ??ng th?i, ??i wording UI t? "Parent Tier" thanh "Includes all benefits of (Lower Tier)" ?? ng??i dung d? hi?u h?n (Tier to bao g?m Tier nh?, thay vi Tier to k? th?a Tier nh?).

@@ -420,24 +420,29 @@ model Subscription {
 }
 
 model ArtistTier {
-  id          String   @id @default(uuid())
-  artistId    String   @map("artist_id")
-  name        String
-  description String?
-  price       Decimal  @db.Decimal(10, 2)
-  currency    String   @default("VND")
-  benefits    Json     @default("[]")
-  maxMembers  Int?     @map("max_members")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  artistId     String   @map("artist_id")
+  name         String
+  description  String?
+  price        Decimal  @db.Decimal(10, 2)
+  currency     String   @default("VND")
+  benefits     Json     @default("[]")
+  maxMembers   Int?     @map("max_members")
+  isActive     Boolean  @default(true) @map("is_active")
+  isArchived   Boolean  @default(false) @map("is_archived")
+  parentTierId String?  @map("parent_tier_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   artist        User               @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  parentTier    ArtistTier?        @relation("TierHierarchy", fields: [parentTierId], references: [id])
+  subTiers      ArtistTier[]       @relation("TierHierarchy")
   subscriptions TierSubscription[]
   contents      TierContent[]
   gatedArtworks Artwork[]          @relation("ArtworkRequiredTier")
 
   @@index([artistId])
+  @@index([parentTierId])
   @@map("artist_tiers")
 }
 

@@ -159,6 +159,7 @@ export const E = {
       create: () => '/payments/tiers/me',
       update: (id: string) => `/payments/tiers/me/${id}`,
       delete: (id: string) => `/payments/tiers/me/${id}`,
+      archive: (id: string) => `/payments/tiers/me/${id}/archive`,
       subscribers: () => '/payments/tiers/me/subscribers',
       subscribed: () => '/payments/tiers/subscribed',
       subscribe: (tierId: string) => `/payments/tiers/${tierId}/subscribe`,

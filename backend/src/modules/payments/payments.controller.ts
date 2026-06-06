@@ -141,7 +141,7 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Create a new tier' })
   async createTier(
     @CurrentUser() user: User,
-    @Body() body: { name: string; description?: string; price: number; currency?: string; benefits?: string[]; maxMembers?: number },
+    @Body() body: { name: string; description?: string; price: number; currency?: string; benefits?: string[]; maxMembers?: number; parentTierId?: string },
   ) {
     if (!user.isArtist) {
       return { message: 'Only artists can create tiers', data: null };
@@ -155,7 +155,7 @@ export class PaymentsController {
   async updateTier(
     @CurrentUser() user: User,
     @Param('tierId') tierId: string,
-    @Body() body: { name?: string; description?: string; price?: number; benefits?: string[]; maxMembers?: number; isActive?: boolean },
+    @Body() body: { name?: string; description?: string; price?: number; benefits?: string[]; maxMembers?: number; isActive?: boolean; parentTierId?: string },
   ) {
     if (!user.isArtist) {
       return { message: 'Only artists can update tiers', data: null };
@@ -172,6 +172,16 @@ export class PaymentsController {
     }
     await this.payments.deleteTier(tierId, user.id);
     return { message: 'Tier deleted' };
+  }
+
+  @Patch('tiers/me/:tierId/archive')
+  @ApiOperation({ summary: 'Archive my tier' })
+  async archiveTier(@CurrentUser() user: User, @Param('tierId') tierId: string) {
+    if (!user.isArtist) {
+      return { message: 'Only artists can archive tiers', data: null };
+    }
+    const data = await this.payments.archiveTier(tierId, user.id);
+    return { message: 'Tier archived', data };
   }
 
   @Get('tiers/me/subscribers')

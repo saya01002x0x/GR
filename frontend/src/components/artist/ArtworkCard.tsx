@@ -9,6 +9,7 @@ import {
 } from '@mantine/core';
 import { useHover } from '@mantine/hooks';
 import { IconHeart } from '@tabler/icons-react';
+import Link from 'next/link';
 import { formatNumber } from '@/mocks/artistData';
 
 type ArtworkCardProps = {
@@ -20,6 +21,8 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
 
   return (
     <Box
+      component={Link}
+      href={`/artworks/${artwork.id}`}
       ref={ref}
       className="masonry-item"
       pos="relative"
@@ -27,6 +30,9 @@ export function ArtworkCard({ artwork }: ArtworkCardProps) {
         borderRadius: 'var(--mantine-radius-md)',
         overflow: 'hidden',
         cursor: 'pointer',
+        display: 'block',
+        color: 'inherit',
+        textDecoration: 'none',
       }}
     >
       {/* Artwork Image */}

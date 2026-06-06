@@ -7,6 +7,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { ArtworkVisibility, User } from '@prisma/client';
+import { getExpandedAccessibleTierIds } from '../../utils/tier-helpers';
 
 export interface ClerkUserData {
   clerkId: string;
@@ -150,18 +151,11 @@ export class UsersService {
       },
     });
 
-    const activeSubscriptions = viewerId
-      ? await this.prisma.tierSubscription.findMany({
-          where: {
-            subscriberId: viewerId,
-            artistId: artist.id,
-            status: 'ACTIVE',
-          },
-          select: { tierId: true },
-        })
+    const accessibleTierIdsList = viewerId
+      ? await getExpandedAccessibleTierIds(this.prisma as any, viewerId, artist.id)
       : [];
 
-    const accessibleTierIds = new Set(activeSubscriptions.map(subscription => subscription.tierId));
+    const accessibleTierIds = new Set(accessibleTierIdsList);
     const isOwner = viewerId === artist.id;
 
     const counts = await Promise.all([
@@ -235,18 +229,9 @@ export class UsersService {
     }
 
     const isOwner = viewerId === artist.id;
-    const activeSubscriptions = !isOwner && viewerId
-      ? await this.prisma.tierSubscription.findMany({
-          where: {
-            subscriberId: viewerId,
-            artistId: artist.id,
-            status: 'ACTIVE',
-          },
-          select: { tierId: true },
-        })
+    const accessibleTierIds = !isOwner && viewerId
+      ? await getExpandedAccessibleTierIds(this.prisma as any, viewerId, artist.id)
       : [];
-
-    const accessibleTierIds = activeSubscriptions.map(subscription => subscription.tierId);
     const accessWhere = isOwner
       ? {}
       : {
@@ -317,10 +302,7 @@ export class UsersService {
 
     // Get viewer's subscribed tier IDs
     const subscribedTierIds = viewerId
-      ? (await this.prisma.tierSubscription.findMany({
-          where: { subscriberId: viewerId, artistId: artist.id, status: 'ACTIVE' },
-          select: { tierId: true },
-        })).map(s => s.tierId)
+      ? await getExpandedAccessibleTierIds(this.prisma as any, viewerId, artist.id)
       : [];
 
     // For each tier, get preview artworks and counts
