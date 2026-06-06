@@ -10,6 +10,10 @@ export const E = {
     byUser: () => '/artworks/user/me',
   },
 
+  tags: {
+    search: (q: string) => `/artworks/tags/search?q=${encodeURIComponent(q)}`,
+  },
+
   discover: {
     hero: () => '/artworks/discover/hero',
     featured: () => '/artworks/discover/featured',

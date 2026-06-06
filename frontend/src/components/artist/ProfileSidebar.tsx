@@ -15,7 +15,10 @@ import {
 import {
   IconMail,
   IconPlus,
+  IconUpload,
 } from '@tabler/icons-react';
+import { useLocale } from 'next-intl';
+import Link from 'next/link';
 import { formatNumber } from '@/mocks/artistData';
 
 export type PublicArtistDetail = {
@@ -38,6 +41,9 @@ type ProfileSidebarProps = {
 };
 
 export function ProfileSidebar({ artist }: ProfileSidebarProps) {
+  const locale = useLocale();
+  const uploadHref = `/${locale}/upload`;
+
   return (
     <Stack gap="md" w={{ base: '100%', lg: 320 }} style={{ flexShrink: 0 }}>
       {/* Identity Card */}
@@ -85,21 +91,37 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
 
           {/* Action Buttons */}
           <Group w="100%" gap="sm" mt="sm">
-            <Button
-              flex={1}
-              radius="md"
-              leftSection={<IconPlus size={18} />}
-            >
-              Follow
-            </Button>
-            <Button
-              flex={1}
-              radius="md"
-              variant="default"
-              leftSection={<IconMail size={18} />}
-            >
-              Message
-            </Button>
+            {artist.isOwner
+              ? (
+                  <Button
+                    component={Link}
+                    href={uploadHref}
+                    flex={1}
+                    radius="md"
+                    leftSection={<IconUpload size={18} />}
+                  >
+                    Upload Work
+                  </Button>
+                )
+              : (
+                  <>
+                    <Button
+                      flex={1}
+                      radius="md"
+                      leftSection={<IconPlus size={18} />}
+                    >
+                      Follow Artist
+                    </Button>
+                    <Button
+                      flex={1}
+                      radius="md"
+                      variant="default"
+                      leftSection={<IconMail size={18} />}
+                    >
+                      Message
+                    </Button>
+                  </>
+                )}
           </Group>
         </Stack>
 

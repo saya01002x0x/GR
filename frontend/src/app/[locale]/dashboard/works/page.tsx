@@ -19,7 +19,7 @@ import { useMyArtworks } from '@/api/hooks';
 
 export default function DashboardWorksPage() {
   const { data: artworks, isLoading: loading } = useMyArtworks();
-  const list = artworks ?? [];
+  const list = (artworks ?? []).filter(artwork => artwork.status !== 'HIDDEN');
 
   return (
     <Container size="xl" py="xl">
@@ -126,38 +126,61 @@ export default function DashboardWorksPage() {
                                 </Text>
                               </Box>
                             )
-                          : artwork.images?.[0]?.thumbnailUrl
-                            ? (
-                                <Link href={`/artworks/${artwork.id}`}>
-                                  <Box
-                                    h={150}
-                                    style={{
-                                      backgroundImage: `url(${artwork.images[0].thumbnailUrl})`,
-                                      backgroundSize: 'cover',
-                                      backgroundPosition: 'center',
-                                      borderRadius: 'var(--mantine-radius-md)',
-                                      cursor: 'pointer',
-                                    }}
-                                  />
-                                </Link>
-                              )
-                            : (
-                                <Link href={`/artworks/${artwork.id}`}>
-                                  <Box
-                                    h={150}
-                                    bg="gray.1"
-                                    style={{
-                                      borderRadius: 'var(--mantine-radius-md)',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      cursor: 'pointer',
-                                    }}
-                                  >
-                                    <IconPhoto size={32} color="var(--mantine-color-dimmed)" />
-                                  </Box>
-                                </Link>
-                              )}
+                          : (artwork.status === 'ACTION_REQUIRED' || artwork.status === 'IN_REVIEW')
+                              ? (
+                                  <Link href={`/artworks/${artwork.id}/review`}>
+                                    <Box
+                                      h={150}
+                                      bg="orange.0"
+                                      style={{
+                                        borderRadius: 'var(--mantine-radius-md)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexDirection: 'column',
+                                        gap: 8,
+                                        cursor: 'pointer',
+                                      }}
+                                    >
+                                      <IconAlertTriangle size={28} color="var(--mantine-color-orange-6)" />
+                                      <Text size="xs" c="orange.8" fw={500}>
+                                        {artwork.status === 'ACTION_REQUIRED' ? 'Needs Review' : 'Under Review'}
+                                      </Text>
+                                    </Box>
+                                  </Link>
+                                )
+                              : artwork.images?.[0]?.thumbnailUrl
+                                ? (
+                                    <Link href={`/artworks/${artwork.id}`}>
+                                      <Box
+                                        h={150}
+                                        style={{
+                                          backgroundImage: `url(${artwork.images[0].thumbnailUrl})`,
+                                          backgroundSize: 'cover',
+                                          backgroundPosition: 'center',
+                                          borderRadius: 'var(--mantine-radius-md)',
+                                          cursor: 'pointer',
+                                        }}
+                                      />
+                                    </Link>
+                                  )
+                                : (
+                                    <Link href={`/artworks/${artwork.id}`}>
+                                      <Box
+                                        h={150}
+                                        bg="gray.1"
+                                        style={{
+                                          borderRadius: 'var(--mantine-radius-md)',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          cursor: 'pointer',
+                                        }}
+                                      >
+                                        <IconPhoto size={32} color="var(--mantine-color-dimmed)" />
+                                      </Box>
+                                    </Link>
+                                  )}
 
                       {/* Title + status badge */}
                       <Group gap="xs" justify="space-between" wrap="nowrap">
@@ -182,6 +205,26 @@ export default function DashboardWorksPage() {
                             leftSection={<IconAlertTriangle size={10} />}
                           >
                             Failed
+                          </Badge>
+                        )}
+                        {artwork.status === 'ACTION_REQUIRED' && (
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            color="orange"
+                            leftSection={<IconAlertTriangle size={10} />}
+                          >
+                            Action Required
+                          </Badge>
+                        )}
+                        {artwork.status === 'IN_REVIEW' && (
+                          <Badge
+                            size="xs"
+                            variant="light"
+                            color="blue"
+                            leftSection={<IconClock size={10} />}
+                          >
+                            In Review
                           </Badge>
                         )}
                       </Group>

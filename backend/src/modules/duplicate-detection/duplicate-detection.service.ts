@@ -93,8 +93,10 @@ export class DuplicateDetectionService {
         `Duplicate detected! Distance: ${closest.distance}, Artwork: ${closest.artworkId}`,
       );
       throw new BadRequestException({
-        message: 'Duplicate image detected. This image has already been uploaded.',
+        message:
+          'Duplicate image detected. This image has already been uploaded.',
         duplicateArtworkId: closest.artworkId,
+        duplicateImageId: closest.imageId,
         distance: closest.distance,
       });
     }

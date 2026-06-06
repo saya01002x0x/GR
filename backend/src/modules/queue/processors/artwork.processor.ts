@@ -12,7 +12,7 @@ import {
 import * as nsfwjs from 'nsfwjs';
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-cpu';
-import { ArtworkStatus } from '@prisma/client';
+import { ArtworkStatus, ImageStatus } from '@prisma/client';
 import {
   SearchService,
   type ArtworkDocument,
@@ -20,6 +20,21 @@ import {
 import { DuplicateDetectionService } from '../../duplicate-detection/duplicate-detection.service';
 import { EmbeddingService } from '../../ai-search/embedding.service';
 import sharp from 'sharp';
+
+/** Per-image processing result used internally */
+interface ImageProcessResult {
+  url: string;
+  thumbnailUrl: string;
+  blurredUrl: string;
+  width: number;
+  height: number;
+  aspectRatio: number;
+  order: number;
+  caption?: string;
+  phash?: string;
+  status: 'PROCESSED' | 'FAILED';
+  errorMetadata?: Record<string, any>;
+}
 
 @Processor(QUEUE_NAME, {
   concurrency: AI_TAGGING_CONCURRENCY, // Limit to 1 job to save RAM
@@ -53,6 +68,22 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
     }
   }
 
+  /**
+   * Get the NSFW threshold from SystemSettings (configurable by Admin).
+   * Default: 0.7
+   */
+  private async getNsfwThreshold(): Promise<number> {
+    try {
+      const setting = await this.prisma.systemSetting.findUnique({
+        where: { key: 'content_moderation' },
+      });
+      const value = setting?.value as any;
+      return value?.nsfwThreshold ?? 0.7;
+    } catch {
+      return 0.7;
+    }
+  }
+
   async process(job: Job<ProcessArtworkJob>): Promise<any> {
     const { artworkId, userId, files } = job.data;
     this.logger.log(
@@ -60,45 +91,107 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
     );
 
     try {
-      // Step 1: Download & Process Images
-      const processedImages: {
-        url: string;
-        thumbnailUrl: string;
-        blurredUrl: string;
-        width: number;
-        height: number;
-        aspectRatio: number;
-        order: number;
-        caption?: string;
-        phash?: string;
-      }[] = [];
-      let isNSFW = false;
+      const nsfwThreshold = await this.getNsfwThreshold();
+      this.logger.log(`NSFW threshold: ${nsfwThreshold}`);
+
+      // Step 1: Download & Process Images (with per-image error handling)
+      const processedImages: ImageProcessResult[] = [];
+      let hasFailures = false;
       let primaryRatioClass = 'square';
       let primaryMaxResolution = 0;
       let primaryIsHighRes = false;
 
       for (let i = 0; i < files.length; i++) {
         const fileMeta = files[i];
-        this.logger.log(`Downloading raw file: ${fileMeta.key}`);
 
+        // Report progress: downloading
+        await job.updateProgress({
+          phase: 'downloading',
+          current: i + 1,
+          total: files.length,
+          message: `Đang tải ảnh ${i + 1}/${files.length}...`,
+          percent: Math.round(((i / files.length) * 20)),
+        });
+
+        this.logger.log(`Downloading raw file: ${fileMeta.key}`);
         const rawBuffer = await this.storageService.download(fileMeta.key);
 
-        // Duplicate Detection: Generate pHash and check for duplicates
+        // --- Phase: Duplicate Detection ---
+        await job.updateProgress({
+          phase: 'duplicate_check',
+          current: i + 1,
+          total: files.length,
+          message: `Đang kiểm tra trùng lặp ảnh ${i + 1}/${files.length}...`,
+          percent: Math.round(20 + ((i / files.length) * 15)),
+        });
+
         let imagePhash: string | undefined;
+        let duplicateError: Record<string, any> | null = null;
         try {
           imagePhash = await this.duplicateDetection.checkAndReject(rawBuffer);
           this.logger.log(`Image ${i} phash: ${imagePhash.substring(0, 16)}...`);
         } catch (dupError) {
           if (dupError.response?.message === 'Duplicate image detected. This image has already been uploaded.') {
-            this.logger.warn(`Skipping duplicate image ${i} in artwork ${artworkId}`);
-            // For multi-image artworks, skip the duplicate image instead of failing entire job
-            // For single image artworks, this will still throw
-            if (files.length === 1) throw dupError;
-            continue;
+            this.logger.warn(`Duplicate detected in image ${i} of artwork ${artworkId}`);
+            duplicateError = {
+              reason: 'DUPLICATE',
+              originalArtworkId: dupError.response?.duplicateArtworkId,
+              originalImageId: dupError.response?.duplicateImageId,
+              distance: dupError.response?.distance,
+            };
+          } else {
+            // pHash generation failed - log and continue without phash
+            this.logger.warn(`pHash generation failed for image ${i}, continuing without: ${dupError.message}`);
           }
-          // Other errors - just log and continue without phash
-          this.logger.warn(`pHash generation failed for image ${i}, continuing without: ${dupError.message}`);
         }
+
+        // If duplicate detected, mark as failed and continue to next image
+        if (duplicateError) {
+          hasFailures = true;
+          // Still upload a thumbnail so user can see which image failed
+          try {
+            const thumbnail = await this.storageService.createThumbnail(rawBuffer, 400);
+            const thumbPath = this.storageService.generateArtworkPath(userId, artworkId, `thumb_${i}`);
+            const thumbUrl = await this.storageService.uploadFile(thumbnail, thumbPath);
+            processedImages.push({
+              url: thumbUrl,
+              thumbnailUrl: thumbUrl,
+              blurredUrl: thumbUrl,
+              width: 0,
+              height: 0,
+              aspectRatio: 1,
+              order: fileMeta.order,
+              caption: fileMeta.caption,
+              phash: imagePhash,
+              status: 'FAILED',
+              errorMetadata: duplicateError,
+            });
+          } catch {
+            processedImages.push({
+              url: '',
+              thumbnailUrl: '',
+              blurredUrl: '',
+              width: 0,
+              height: 0,
+              aspectRatio: 1,
+              order: fileMeta.order,
+              status: 'FAILED',
+              errorMetadata: duplicateError,
+            });
+          }
+          // Cleanup raw file
+          await this.storageService.deleteFile(fileMeta.key).catch(() => {});
+          continue;
+        }
+
+        // --- Phase: NSFW Check ---
+        await job.updateProgress({
+          phase: 'nsfw_check',
+          current: i + 1,
+          total: files.length,
+          message: `Đang kiểm tra nội dung nhạy cảm ảnh ${i + 1}/${files.length}...`,
+          percent: Math.round(35 + ((i / files.length) * 15)),
+        });
 
         // Decode image for AI check using Sharp
         const { data, info } = await sharp(rawBuffer)
@@ -113,7 +206,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
           'int32',
         );
 
-        // NSFW Check (Phase 1)
+        // NSFW Check
         const predictions = await this.nsfwModel.classify(
           imageTensor as unknown as tf.Tensor3D,
         );
@@ -123,13 +216,61 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
           predictions.find(
             (p) => p.className === 'Porn' || p.className === 'Hentai',
           )?.probability || 0;
-        if (nsfwScore > 0.6) {
-          isNSFW = true;
-          this.logger.warn(`NSFW detected in image ${i}: ${nsfwScore}`);
+
+        if (nsfwScore > nsfwThreshold) {
+          this.logger.warn(`NSFW detected in image ${i}: score=${nsfwScore}, threshold=${nsfwThreshold}`);
+          hasFailures = true;
+          // Upload blurred thumbnail for admin/user review
+          try {
+            const blurred = await this.storageService.createBlurredImage(rawBuffer, 400, 30);
+            const blurPath = this.storageService.generateArtworkPath(userId, artworkId, `blur_${i}`);
+            const blurUrl = await this.storageService.uploadFile(blurred, blurPath);
+            // Also upload unblurred version for admin toggle
+            const thumbnail = await this.storageService.createThumbnail(rawBuffer, 400);
+            const thumbPath = this.storageService.generateArtworkPath(userId, artworkId, `thumb_${i}`);
+            const thumbUrl = await this.storageService.uploadFile(thumbnail, thumbPath);
+            processedImages.push({
+              url: thumbUrl,
+              thumbnailUrl: thumbUrl,
+              blurredUrl: blurUrl,
+              width: 0,
+              height: 0,
+              aspectRatio: 1,
+              order: fileMeta.order,
+              caption: fileMeta.caption,
+              phash: imagePhash,
+              status: 'FAILED',
+              errorMetadata: { reason: 'NSFW', score: nsfwScore, threshold: nsfwThreshold },
+            });
+          } catch {
+            processedImages.push({
+              url: '',
+              thumbnailUrl: '',
+              blurredUrl: '',
+              width: 0,
+              height: 0,
+              aspectRatio: 1,
+              order: fileMeta.order,
+              status: 'FAILED',
+              errorMetadata: { reason: 'NSFW', score: nsfwScore, threshold: nsfwThreshold },
+            });
+          }
+          // Cleanup raw file
+          await this.storageService.deleteFile(fileMeta.key).catch(() => {});
+          continue;
         }
 
-        // Calculate ratio/resolution from the primary (first) image's raw metadata
-        if (i === 0) {
+        // --- Phase: Image Processing (watermark, resize, thumbnail) ---
+        await job.updateProgress({
+          phase: 'processing',
+          current: i + 1,
+          total: files.length,
+          message: `Đang xử lý ảnh ${i + 1}/${files.length} (thu nhỏ, đóng dấu)...`,
+          percent: Math.round(50 + ((i / files.length) * 25)),
+        });
+
+        // Calculate ratio/resolution from the primary (first processed) image's raw metadata
+        if (processedImages.filter(img => img.status === 'PROCESSED').length === 0) {
           const rawMeta = await sharp(rawBuffer).metadata();
           const origW = rawMeta.width || 0;
           const origH = rawMeta.height || 0;
@@ -201,31 +342,47 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
           order: fileMeta.order,
           caption: fileMeta.caption,
           phash: imagePhash,
+          status: 'PROCESSED',
         });
       }
 
+      // --- Phase: Saving to database ---
+      await job.updateProgress({
+        phase: 'saving',
+        current: files.length,
+        total: files.length,
+        message: 'Đang lưu dữ liệu vào cơ sở dữ liệu...',
+        percent: 80,
+      });
+
+      // Determine final artwork status
+      const successfulImages = processedImages.filter(img => img.status === 'PROCESSED');
+      const failedImages = processedImages.filter(img => img.status === 'FAILED');
+      const finalStatus: ArtworkStatus = hasFailures ? 'ACTION_REQUIRED' : 'PUBLISHED';
+
       // Step 2: Transaction - Update DB
       await this.prisma.$transaction(async (tx) => {
-        // Create Image records
+        // Create Image records (both successful and failed ones)
         await tx.artworkImage.createMany({
           data: processedImages.map((img) => ({
             artworkId,
             url: img.url,
             thumbnailUrl: img.thumbnailUrl,
             blurredUrl: img.blurredUrl,
-            width: img.width,
-            height: img.height,
-            aspectRatio: img.aspectRatio,
+            width: img.width || null,
+            height: img.height || null,
+            aspectRatio: img.aspectRatio || null,
             order: img.order,
             phash: img.phash,
+            status: img.status as ImageStatus,
+            errorMetadata: img.errorMetadata || undefined,
           })),
         });
 
         await tx.artwork.update({
           where: { id: artworkId },
           data: {
-            status: 'PUBLISHED' as ArtworkStatus,
-            rating: isNSFW ? 'R18' : undefined,
+            status: finalStatus,
             ratioClass: primaryRatioClass,
             maxResolution: primaryMaxResolution,
             isHighRes: primaryIsHighRes,
@@ -233,58 +390,80 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         });
       });
 
-      // Step 3: Index to Meilisearch (after DB transaction success)
-      try {
-        const artwork = await this.prisma.artwork.findUnique({
-          where: { id: artworkId },
-          include: { author: true, tags: { include: { tag: true } } },
-        });
+      // Step 3: Index to Meilisearch (only if published successfully)
+      if (finalStatus === 'PUBLISHED') {
+        try {
+          const artwork = await this.prisma.artwork.findUnique({
+            where: { id: artworkId },
+            include: { author: true, tags: { include: { tag: true } } },
+          });
 
-        if (artwork) {
-          const document: ArtworkDocument = {
-            id: artwork.id,
-            title: artwork.title,
-            description: artwork.description || '',
-            slug: artwork.id,
-            author: {
-              id: artwork.author.id,
-              username: artwork.author.username || '',
-              displayName: artwork.author.displayName || '',
-              avatar: artwork.author.avatar || '',
-            },
-            thumbnail: processedImages[0]?.thumbnailUrl || '',
-            tags: artwork.tags.map((at) => at.tag.name),
-            rating: artwork.rating || 'SAFE',
-            isAI: artwork.isAI || false,
-            createdAt: Math.floor(artwork.createdAt.getTime() / 1000),
-            likeCount: artwork.likeCount || 0,
-            viewCount: artwork.viewCount || 0,
-            ratioClass: primaryRatioClass,
-            maxResolution: primaryMaxResolution,
-            isHighRes: primaryIsHighRes,
-          };
-          await this.searchService.indexArtwork(document);
-          this.logger.log(`Job ${job.id}: Indexed artwork to Meilisearch`);
+          if (artwork) {
+            const firstSuccessful = successfulImages[0];
+            const document: ArtworkDocument = {
+              id: artwork.id,
+              title: artwork.title,
+              description: artwork.description || '',
+              slug: artwork.id,
+              author: {
+                id: artwork.author.id,
+                username: artwork.author.username || '',
+                displayName: artwork.author.displayName || '',
+                avatar: artwork.author.avatar || '',
+              },
+              thumbnail: firstSuccessful?.thumbnailUrl || '',
+              tags: artwork.tags.map((at) => at.tag.name),
+              rating: artwork.rating || 'SAFE',
+              isAI: artwork.isAI || false,
+              createdAt: Math.floor(artwork.createdAt.getTime() / 1000),
+              likeCount: artwork.likeCount || 0,
+              viewCount: artwork.viewCount || 0,
+              ratioClass: primaryRatioClass,
+              maxResolution: primaryMaxResolution,
+              isHighRes: primaryIsHighRes,
+            };
+            await this.searchService.indexArtwork(document);
+            this.logger.log(`Job ${job.id}: Indexed artwork to Meilisearch`);
+          }
+        } catch (meiliError) {
+          this.logger.error(
+            `Meilisearch index failed for ${artworkId}, DB is updated. Run sync-search to fix.`,
+            meiliError,
+          );
         }
-      } catch (meiliError) {
-        this.logger.error(
-          `Meilisearch index failed for ${artworkId}, DB is updated. Run sync-search to fix.`,
-          meiliError,
-        );
       }
 
-      this.logger.log(
-        `Job ${job.id}: Successfully processed artwork ${artworkId}`,
-      );
-
-      // Step 4: Generate & store image embeddings (async, non-blocking)
-      if (this.embeddingService.isAvailable()) {
+      // Step 4: Generate & store image embeddings (async, non-blocking) - only for successful images
+      if (this.embeddingService.isAvailable() && successfulImages.length > 0) {
         this.generateAndStoreEmbeddings(artworkId).catch((err) =>
           this.logger.error(`Embedding generation failed for ${artworkId}: ${err.message}`),
         );
       }
 
-      return { success: true, images: processedImages.length, nsfw: isNSFW };
+      // Final progress update
+      await job.updateProgress({
+        phase: 'complete',
+        current: files.length,
+        total: files.length,
+        message: hasFailures
+          ? `Hoàn tất! ${successfulImages.length} ảnh thành công, ${failedImages.length} ảnh cần xử lý.`
+          : `Hoàn tất! ${successfulImages.length} ảnh đã được xuất bản.`,
+        percent: 100,
+        hasFailures,
+        failedCount: failedImages.length,
+        successCount: successfulImages.length,
+      });
+
+      this.logger.log(
+        `Job ${job.id}: Processed artwork ${artworkId} — ${successfulImages.length} OK, ${failedImages.length} failed, status=${finalStatus}`,
+      );
+
+      return {
+        success: !hasFailures,
+        images: processedImages.length,
+        failed: failedImages.length,
+        status: finalStatus,
+      };
     } catch (error: unknown) {
       const errMsg = error instanceof Error ? error.message : String(error);
       const errStack = error instanceof Error ? error.stack : undefined;
@@ -296,6 +475,13 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         data: { status: 'FAILED' as ArtworkStatus },
       });
 
+      // Report failure via progress
+      await job.updateProgress({
+        phase: 'error',
+        message: `Lỗi hệ thống: ${errMsg}`,
+        percent: 100,
+      }).catch(() => {});
+
       throw error;
     }
   }
@@ -306,7 +492,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
    */
   private async generateAndStoreEmbeddings(artworkId: string) {
     const images = await this.prisma.artworkImage.findMany({
-      where: { artworkId },
+      where: { artworkId, status: 'PROCESSED' },
       select: { id: true, url: true }
     });
 
@@ -327,6 +513,29 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
           img.id,
         );
         this.logger.debug(`Stored vector embedding for image ${img.id}`);
+
+        // --- BẮT ĐẦU SCRIPT DEBUG CHO BẠN ---
+        // Lưu preview của embedding ra file JSON để xem dễ dàng
+        const fs = require('fs');
+        const path = require('path');
+        const debugPath = path.join(process.cwd(), 'embeddings_debug.json');
+        let debugData: any = {};
+        try {
+          if (fs.existsSync(debugPath)) {
+            debugData = JSON.parse(fs.readFileSync(debugPath, 'utf8'));
+          }
+        } catch(e) {}
+        
+        debugData[img.id] = {
+          artworkId,
+          url: img.url,
+          vector_size: embedding.length,
+          vector_preview: `[${embedding.slice(0, 5).join(', ')} ... và ${embedding.length - 5} số nữa]`,
+          time: new Date().toISOString()
+        };
+        fs.writeFileSync(debugPath, JSON.stringify(debugData, null, 2));
+        // --- KẾT THÚC SCRIPT DEBUG ---
+
       } catch (err) {
         this.logger.error(`Failed to generate embedding for image ${img.id}: ${err.message}`);
       }

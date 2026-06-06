@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useClerk, useUser } from '@clerk/nextjs';
 import {
   Box,
   Button,
@@ -16,7 +16,12 @@ import {
 import { IconAt, IconWorld } from '@tabler/icons-react';
 
 export function GeneralSettings() {
-  const { user } = useUser();
+  const clerk = useClerk();
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  const openClerkProfile = () => {
+    clerk.openUserProfile();
+  };
 
   return (
     <Stack gap="xl">
@@ -47,6 +52,8 @@ export function GeneralSettings() {
                   size="compact-xs"
                   variant="subtle"
                   color="primary"
+                  onClick={openClerkProfile}
+                  disabled={!isLoaded || !isSignedIn}
                 >
                   Change
                 </Button>
@@ -77,47 +84,22 @@ export function GeneralSettings() {
 
       {/* Password Section */}
       <Card withBorder radius="lg" p="lg">
-        <Title order={4} mb="lg">
-          Password
-        </Title>
-
-        {user?.passwordEnabled
-          ? (
-              <Stack gap="md" maw={600}>
-                <TextInput
-                  label="Current Password"
-                  type="password"
-                  placeholder="••••••••"
-                />
-                <Grid>
-                  <Grid.Col span={{ base: 12, md: 6 }}>
-                    <TextInput
-                      label="New Password"
-                      type="password"
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, md: 6 }}>
-                    <TextInput
-                      label="Confirm New Password"
-                      type="password"
-                    />
-                  </Grid.Col>
-                </Grid>
-              </Stack>
-            )
-          : (
-              <Box
-                p="md"
-                style={{
-                  backgroundColor: 'var(--mantine-color-gray-0)',
-                  borderRadius: 'var(--mantine-radius-md)',
-                }}
-              >
-                <Text size="sm" c="dimmed">
-                  Your account is managed through Google. Password changes are handled via your Google account settings.
-                </Text>
-              </Box>
-            )}
+        <Group justify="space-between" align="center" gap="md">
+          <Box>
+            <Title order={4} mb={4}>
+              Password
+            </Title>
+            <Text size="sm" c="dimmed">
+              Open Clerk account settings to manage your password and security options.
+            </Text>
+          </Box>
+          <Button
+            onClick={openClerkProfile}
+            disabled={!isLoaded || !isSignedIn}
+          >
+            Manage Password
+          </Button>
+        </Group>
       </Card>
 
       {/* Language & Region */}
@@ -160,16 +142,6 @@ export function GeneralSettings() {
           </Grid.Col>
         </Grid>
       </Card>
-
-      {/* Save Buttons */}
-      <Group justify="flex-end" gap="md">
-        <Button variant="default" size="md">
-          Cancel
-        </Button>
-        <Button size="md">
-          Save Changes
-        </Button>
-      </Group>
     </Stack>
   );
 }

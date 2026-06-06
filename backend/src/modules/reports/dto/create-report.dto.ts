@@ -4,6 +4,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export enum ReportReasonDto {
   SPAM = 'SPAM',
   NSFW = 'NSFW',
+  DUPLICATE = 'DUPLICATE',
   COPYRIGHT = 'COPYRIGHT',
   HARASSMENT = 'HARASSMENT',
   OTHER = 'OTHER',

@@ -8,6 +8,7 @@ export type ArtworkDetail = {
   createdAt: string;
   description: string;
   tags: string[];
+  isOwner?: boolean;
   artist: {
     id: string;
     name: string;

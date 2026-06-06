@@ -21,6 +21,8 @@ export type ArtworkImage = {
   height: number;
   aspectRatio: number;
   order: number;
+  status?: string;
+  errorMetadata?: { reason?: string; [key: string]: any };
 };
 
 // Tag relation from ArtworkTag model
@@ -65,6 +67,11 @@ export type ArtworkDetail = {
   author: ArtworkAuthor;
   images: ArtworkImage[];
   tags: ArtworkTagRelation[];
+  access?: {
+    isOwner: boolean;
+    isSubscribed: boolean;
+    canViewFull: boolean;
+  };
 };
 
 /**

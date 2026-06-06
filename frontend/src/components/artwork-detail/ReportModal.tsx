@@ -18,6 +18,7 @@ import { E } from '@/api/endpoints';
 const REPORT_REASONS = [
   { value: 'SPAM', label: 'Spam' },
   { value: 'NSFW', label: 'Inappropriate / NSFW content' },
+  { value: 'DUPLICATE', label: 'Duplicate / copied artwork' },
   { value: 'COPYRIGHT', label: 'Copyright violation' },
   { value: 'HARASSMENT', label: 'Harassment' },
   { value: 'OTHER', label: 'Other' },

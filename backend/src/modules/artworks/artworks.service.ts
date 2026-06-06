@@ -193,7 +193,7 @@ export class ArtworksService {
       );
 
       // Step 3: Add Job to Queue
-      await this.queue.add(
+      const queueJob = await this.queue.add(
         JOB_PROCESS_IMAGES,
         {
           artworkId: artwork.id,
@@ -206,11 +206,12 @@ export class ArtworksService {
             type: 'exponential',
             delay: 1000,
           },
-          removeOnComplete: true,
+          removeOnComplete: { age: 300 }, // Keep completed jobs for 5 min (SSE needs to read final state)
+          removeOnFail: { age: 3600 },    // Keep failed jobs for 1 hour
         },
       );
 
-      this.logger.log(`Added job for artwork ${artwork.id} to queue`);
+      this.logger.log(`Added job ${queueJob.id} for artwork ${artwork.id} to queue`);
 
       // Step 4: Step 3 (Create Tags) moved to here to ensure tags exist
       // Or worker can do it. But doing it here gives immediate feedback on tags.
@@ -255,7 +256,7 @@ export class ArtworksService {
       return {
         message: 'Upload successful. Processing in background.',
         artwork: { ...artwork, status: 'PROCESSING' as ArtworkStatus },
-        jobId: 'queued',
+        jobId: String(queueJob.id),
       };
     } catch (error) {
       this.logger.error(
@@ -430,7 +431,10 @@ export class ArtworksService {
    */
   async findByUserId(userId: string) {
     return this.prisma.artwork.findMany({
-      where: { authorId: userId },
+      where: {
+        authorId: userId,
+        status: { not: ArtworkStatus.HIDDEN },
+      },
       include: {
         images: {
           take: 1,

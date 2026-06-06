@@ -9,8 +9,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { ArtworkStatus, UserRole, Prisma, ReportStatus } from '@prisma/client';
+import {
+  ArtworkStatus,
+  UserRole,
+  Prisma,
+  ReportStatus,
+  PayoutStatus,
+} from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import dist from 'sharp-phash/distance';
 
 const WARNING_EXPIRY_DAYS = 30;
 const TEMP_BAN_DAYS = 7;
@@ -61,7 +68,7 @@ export class AdminService {
   async getFlaggedArtworks(page = 1, limit = 20) {
     const where: Prisma.ArtworkWhereInput = {
       reports: { some: { status: ReportStatus.PENDING } },
-      status: ArtworkStatus.PUBLISHED,
+      status: { in: [ArtworkStatus.PUBLISHED, ArtworkStatus.IN_REVIEW] },
     };
 
     const [artworks, total] = await Promise.all([
@@ -120,7 +127,18 @@ export class AdminService {
             },
           },
         },
-        images: { take: 1, select: { thumbnailUrl: true, url: true } },
+        images: {
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            url: true,
+            thumbnailUrl: true,
+            status: true,
+            errorMetadata: true,
+            order: true,
+            phash: true,
+          },
+        },
         reports: {
           where: { status: 'PENDING' },
           select: {
@@ -136,7 +154,140 @@ export class AdminService {
     });
 
     if (!artwork) throw new NotFoundException('Artwork not found');
-    return artwork;
+
+    const hasDuplicateReport = artwork.reports.some(
+      (report) => String(report.reason) === 'DUPLICATE',
+    );
+    const duplicateMatches = await this.getDuplicateMatches(
+      artwork.id,
+      artwork.images,
+      hasDuplicateReport,
+    );
+
+    return { ...artwork, duplicateMatches };
+  }
+
+  private async getDuplicateMatches(
+    artworkId: string,
+    images: {
+      id: string;
+      url: string;
+      thumbnailUrl: string | null;
+      status: string;
+      errorMetadata: Prisma.JsonValue;
+      order: number;
+      phash: string | null;
+    }[],
+    hasDuplicateReport: boolean,
+  ) {
+    const matches: {
+      sourceImage: (typeof images)[number];
+      originalImage: unknown;
+      distance: number | null;
+      source: 'SYSTEM' | 'REPORT';
+    }[] = [];
+
+    for (const image of images) {
+      const metadata =
+        image.errorMetadata && typeof image.errorMetadata === 'object'
+          ? (image.errorMetadata as Record<string, unknown>)
+          : null;
+
+      const isSystemDuplicate = metadata?.reason === 'DUPLICATE';
+      if (isSystemDuplicate) {
+        const originalImageId =
+          typeof metadata.originalImageId === 'string'
+            ? metadata.originalImageId
+            : null;
+        const originalArtworkId =
+          typeof metadata.originalArtworkId === 'string'
+            ? metadata.originalArtworkId
+            : null;
+
+        const originalImage = await this.prisma.artworkImage.findFirst({
+          where: originalImageId
+            ? { id: originalImageId }
+            : originalArtworkId
+              ? { artworkId: originalArtworkId }
+              : { id: '__missing_duplicate_reference__' },
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            url: true,
+            thumbnailUrl: true,
+            artwork: {
+              select: {
+                id: true,
+                title: true,
+                author: {
+                  select: {
+                    username: true,
+                    displayName: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        matches.push({
+          sourceImage: image,
+          originalImage,
+          distance:
+            typeof metadata.distance === 'number' ? metadata.distance : null,
+          source: 'SYSTEM',
+        });
+        continue;
+      }
+
+      if (!hasDuplicateReport || !image.phash) {
+        continue;
+      }
+
+      const candidates = await this.prisma.artworkImage.findMany({
+        where: {
+          id: { not: image.id },
+          artworkId: { not: artworkId },
+          phash: { not: null },
+        },
+        select: {
+          id: true,
+          url: true,
+          thumbnailUrl: true,
+          phash: true,
+          artwork: {
+            select: {
+              id: true,
+              title: true,
+              author: {
+                select: {
+                  username: true,
+                  displayName: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const closest = candidates
+        .map((candidate) => ({
+          image: candidate,
+          distance: dist(image.phash!, candidate.phash!),
+        }))
+        .sort((a, b) => a.distance - b.distance)[0];
+
+      if (closest) {
+        matches.push({
+          sourceImage: image,
+          originalImage: closest.image,
+          distance: closest.distance,
+          source: 'REPORT',
+        });
+      }
+    }
+
+    return matches;
   }
 
   async getResolvedReports(page = 1, limit = 20) {
@@ -722,9 +873,17 @@ export class AdminService {
 
   async getAllPayouts(status?: string) {
     return this.prisma.payout.findMany({
-      where: status ? { status: status as any } : undefined,
+      where: status ? { status: status as PayoutStatus } : undefined,
       include: {
-        artist: { select: { id: true, username: true, displayName: true, avatar: true, email: true } },
+        artist: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatar: true,
+            email: true,
+          },
+        },
         approver: { select: { id: true, username: true, displayName: true } },
       },
       orderBy: { requestedAt: 'desc' },

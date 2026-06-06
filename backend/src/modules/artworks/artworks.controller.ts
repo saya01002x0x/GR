@@ -11,10 +11,12 @@ import {
   Param,
   Query,
   Req,
+  Sse,
   UseGuards,
   UseInterceptors,
   UploadedFiles,
   Body,
+  MessageEvent,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -33,6 +35,11 @@ import { ArtworksService, CreateArtworkDto } from './artworks.service';
 import { ViewService } from '../stats/view.service';
 import type { User, ContentRating, ArtworkVisibility } from '@prisma/client';
 import type { Request } from 'express';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_NAME } from '../queue/queue.constants';
+import { Observable, interval, map, takeWhile, switchMap, from, of } from 'rxjs';
+import { PrismaService } from '../../database/prisma.service';
 
 @ApiTags('artworks')
 @Controller('artworks')
@@ -41,6 +48,8 @@ export class ArtworksController {
     private readonly artworksService: ArtworksService,
     private readonly viewService: ViewService,
     private readonly authService: AuthService,
+    private readonly prisma: PrismaService,
+    @InjectQueue(QUEUE_NAME) private readonly artworkQueue: Queue,
   ) { }
 
   /**
@@ -139,6 +148,57 @@ export class ArtworksController {
     return { message: 'OK', data };
   }
 
+  /**
+   * Search existing tags by keyword (autocomplete)
+   * GET /artworks/tags/search?q=ani
+   */
+  @Get('tags/search')
+  @ApiOperation({ summary: 'Search tags for autocomplete' })
+  @ApiQuery({ name: 'q', required: true, description: 'Search keyword' })
+  async searchTags(@Query('q') q: string) {
+    if (!q || q.length < 1) {
+      return { message: 'OK', data: [] };
+    }
+    const tags = await this.prisma.tag.findMany({
+      where: { name: { contains: q.toLowerCase(), mode: 'insensitive' } },
+      orderBy: { count: 'desc' },
+      take: 20,
+      select: { name: true, count: true },
+    });
+    return { message: 'OK', data: tags };
+  }
+
+  /**
+   * SSE endpoint for real-time job progress
+   * GET /artworks/job/:jobId/progress
+   */
+  @Sse('job/:jobId/progress')
+  @ApiOperation({ summary: 'Stream job processing progress via SSE' })
+  @ApiParam({ name: 'jobId', description: 'BullMQ Job ID' })
+  jobProgress(@Param('jobId') jobId: string): Observable<MessageEvent> {
+    return interval(1000).pipe(
+      switchMap(() => from(this.artworkQueue.getJob(jobId))),
+      map((job) => {
+        if (!job) {
+          return { data: { phase: 'not_found', message: 'Job not found', percent: 0 } };
+        }
+        const progress = job.progress as any;
+        const state = job.finishedOn ? 'completed' : (job.failedReason ? 'failed' : 'active');
+        return {
+          data: {
+            ...progress,
+            state,
+            failedReason: job.failedReason || null,
+          },
+        };
+      }),
+      takeWhile((event) => {
+        const d = event.data as any;
+        return d.state !== 'completed' && d.state !== 'failed' && d.phase !== 'not_found';
+      }, true), // inclusive: emit the final event before closing
+    );
+  }
+
   // ============================================================
 
   /**
@@ -181,6 +241,22 @@ export class ArtworksController {
     return {
       message: 'Artwork promoted successfully',
       data: result,
+    };
+  }
+
+  @Get(':id/related')
+  @ApiOperation({ summary: 'Get related artworks' })
+  @ApiParam({ name: 'id', description: 'Artwork ID' })
+  @ApiResponse({ status: 200, description: 'Related artworks retrieved' })
+  async getRelated(@Param('id') id: string, @Req() req: Request) {
+    const viewer = await this.authService.getOptionalUser(req);
+    const limit = Number(req.query.limit) || 10;
+
+    const related = await this.artworksService.findRelated(id, limit, viewer?.id);
+
+    return {
+      message: 'Related artworks',
+      data: related,
     };
   }
 
@@ -299,7 +375,7 @@ export class ArtworksController {
       title: body.title,
       description: body.description,
       tags,
-      rating: body.rating || 'SAFE',
+      rating: 'SAFE' as ContentRating, // NSFW no longer allowed
       isAI: body.isAI === 'true',
       visibility: body.visibility || 'PUBLIC',
       requiredTierId: body.requiredTierId,

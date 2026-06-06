@@ -259,3 +259,13 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 ### [06/06] - Hide Banned Artworks
 - **Logic:** Updated \dmin.service.ts\ to call \SearchService.removeArtwork()\ when an artwork is rejected, removing it from Meilisearch so it doesn't appear in search results. Added a status check in \rtworks.service.ts\ (\indById\) to throw a NotFoundException if the artwork is not PUBLISHED (unless the viewer is the author).
 - **Decision:** Removing from the search index and blocking direct URL access ensures banned artworks are completely inaccessible to the public, while still allowing the original author to view them on their dashboard.
+
+
+### [06/06] - Review Failed Uploads & Fix Recommendations
+**Logic:**
+- Luồng xử lý ảnh chạy ngầm (BullMQ) hỗ trợ theo dõi qua SSE (/artworks/job/:id/progress).
+- Tạo trang /artworks/[id]/review dành cho artwork có status ACTION_REQUIRED hoặc IN_REVIEW. Hiển thị ảnh bị lỗi với viền đỏ và lý do. Có modal gửi ticket khiếu nại qua API /reports.
+- Khôi phục @Get(':id/related') trong backend (artworks controller) để tránh match nhầm route ID gây lỗi 404 cho Related Artwork component trong Artwork Detail.
+
+**Decision:**
+- **Tại sao Discover trắng bóc?** Hệ thống Discover hiện tại chỉ lọc và hiển thị các artwork có status PUBLISHED. Vì ta đang test luồng mới với queue PROCESSING/FAILED/ACTION_REQUIRED, Database cục bộ chưa có artwork PUBLISHED mới nào, nên API trả về []. Khi Publish thành công, Discover sẽ hiển thị bình thường (có Hero, Featured Promoted, Ranking, và Rising Stars theo like/view).

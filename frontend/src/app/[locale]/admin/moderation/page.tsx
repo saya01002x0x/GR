@@ -27,6 +27,7 @@ import {
   IconAlertTriangle,
   IconCheck,
   IconClock,
+  IconGitCompare,
   IconHistory,
   IconInfoCircle,
   IconShieldOff,
@@ -44,10 +45,113 @@ import {
 const REASON_CONFIG: Record<string, { label: string; color: string }> = {
   SPAM: { label: 'Spam', color: 'orange' },
   NSFW: { label: 'NSFW', color: 'red' },
+  DUPLICATE: { label: 'Duplicate', color: 'yellow' },
   COPYRIGHT: { label: 'Bản quyền', color: 'violet' },
   HARASSMENT: { label: 'Quấy rối', color: 'pink' },
   OTHER: { label: 'Khác', color: 'gray' },
 };
+
+type DuplicateMatch = {
+  sourceImage: {
+    id: string;
+    url: string;
+    thumbnailUrl: string | null;
+    status?: string;
+  };
+  originalImage: {
+    id: string;
+    url: string;
+    thumbnailUrl: string | null;
+    artwork: {
+      id: string;
+      title: string;
+      author: { username: string; displayName: string | null };
+    };
+  } | null;
+  distance: number | null;
+  source: 'SYSTEM' | 'REPORT';
+};
+
+function DuplicateComparisonPanel({ matches }: { matches: DuplicateMatch[] }) {
+  if (matches.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      <Divider label="Duplicate comparison" labelPosition="left" />
+      <Stack gap="sm">
+        {matches.map(match => (
+          <Paper key={match.sourceImage.id} p="sm" radius="md" withBorder>
+            <Group gap="xs" mb="sm">
+              <ThemeIcon color="yellow" variant="light" size="sm">
+                <IconGitCompare size={14} />
+              </ThemeIcon>
+              <Text size="sm" fw={600}>
+                {match.source === 'SYSTEM' ? 'System detected duplicate' : 'Closest match for duplicate report'}
+              </Text>
+              {match.distance !== null && (
+                <Badge size="xs" color="yellow" variant="light">
+                  distance:
+                  {' '}
+                  {match.distance}
+                </Badge>
+              )}
+            </Group>
+
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+              <Stack gap={6}>
+                <Text size="xs" fw={700} c="red.7">Reported image</Text>
+                <Image
+                  src={match.sourceImage.thumbnailUrl || match.sourceImage.url}
+                  h={260}
+                  radius="md"
+                  fit="contain"
+                  bg="gray.0"
+                  alt="Reported duplicate candidate"
+                  fallbackSrc="https://placehold.co/420x260?text=No+Image"
+                />
+              </Stack>
+
+              <Stack gap={6}>
+                <Text size="xs" fw={700} c="green.7">Original / matched image</Text>
+                {match.originalImage
+                  ? (
+                      <>
+                        <Image
+                          src={match.originalImage.thumbnailUrl || match.originalImage.url}
+                          h={260}
+                          radius="md"
+                          fit="contain"
+                          bg="gray.0"
+                          alt="Original matched artwork"
+                          fallbackSrc="https://placehold.co/420x260?text=No+Image"
+                        />
+                        <Text size="xs" c="dimmed" lineClamp={2}>
+                          {match.originalImage.artwork.title}
+                          {' '}
+                          by
+                          {' '}
+                          {match.originalImage.artwork.author.displayName || match.originalImage.artwork.author.username}
+                        </Text>
+                      </>
+                    )
+                  : (
+                      <Paper h={260} radius="md" withBorder bg="gray.0">
+                        <Stack h="100%" align="center" justify="center" gap={4}>
+                          <IconInfoCircle size={22} color="var(--mantine-color-dimmed)" />
+                          <Text size="xs" c="dimmed">Original image reference is missing</Text>
+                        </Stack>
+                      </Paper>
+                    )}
+              </Stack>
+            </SimpleGrid>
+          </Paper>
+        ))}
+      </Stack>
+    </>
+  );
+}
 
 type ResolvedReport = {
   id: string;
@@ -359,6 +463,8 @@ function PendingTab() {
                     </Stack>
                   </>
                 )}
+
+                <DuplicateComparisonPanel matches={detailData.duplicateMatches ?? []} />
 
                 <Divider label={`${detailData.reports.length} reports pending moderation`} labelPosition="left" />
 

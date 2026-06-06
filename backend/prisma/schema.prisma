@@ -97,22 +97,25 @@ model Artwork {
 }
 
 model ArtworkImage {
-  id           String                      @id @default(uuid())
-  url          String
-  order        Int                         @default(0)
-  width        Int?
-  height       Int?
-  createdAt    DateTime                    @default(now()) @map("created_at")
-  artworkId    String                      @map("artwork_id")
-  aspectRatio  Float?                      @map("aspect_ratio")
-  thumbnailUrl String?                     @map("thumbnail_url")
-  blurredUrl   String?                     @map("blurred_url")
-  phash        String?                     @map("phash")
-  embedding    Unsupported("vector(768)")? @map("embedding")
-  artwork      Artwork                     @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  id            String                      @id @default(uuid())
+  url           String
+  order         Int                         @default(0)
+  width         Int?
+  height        Int?
+  status        ImageStatus                 @default(PENDING)
+  errorMetadata Json?                       @map("error_metadata")
+  createdAt     DateTime                    @default(now()) @map("created_at")
+  artworkId     String                      @map("artwork_id")
+  aspectRatio   Float?                      @map("aspect_ratio")
+  thumbnailUrl  String?                     @map("thumbnail_url")
+  blurredUrl    String?                     @map("blurred_url")
+  phash         String?                     @map("phash")
+  embedding     Unsupported("vector(768)")? @map("embedding")
+  artwork       Artwork                     @relation(fields: [artworkId], references: [id], onDelete: Cascade)
 
   @@index([artworkId])
   @@index([phash])
+  @@index([status])
   @@map("artwork_images")
 }
 
@@ -229,12 +232,18 @@ enum ArtworkStatus {
   PROCESSING
   FAILED
   HIDDEN
+  ACTION_REQUIRED
+  IN_REVIEW
 }
 
 enum ContentRating {
   SAFE
-  R18
-  R18G
+}
+
+enum ImageStatus {
+  PENDING
+  PROCESSED
+  FAILED
 }
 
 enum ArtworkVisibility {
@@ -266,6 +275,7 @@ model Report {
 enum ReportReason {
   SPAM
   NSFW
+  DUPLICATE
   COPYRIGHT
   HARASSMENT
   OTHER

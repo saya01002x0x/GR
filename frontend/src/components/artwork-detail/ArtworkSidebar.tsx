@@ -17,9 +17,10 @@ import {
 import {
   IconCalendar,
   IconEye,
+  IconUpload,
   IconUserPlus,
 } from '@tabler/icons-react';
-
+import { useLocale } from 'next-intl';
 import Link from 'next/link';
 
 type ArtworkSidebarProps = {
@@ -28,6 +29,8 @@ type ArtworkSidebarProps = {
 
 export function ArtworkSidebar({ artwork }: ArtworkSidebarProps) {
   const { isSignedIn } = useAuth();
+  const locale = useLocale();
+  const uploadHref = `/${locale}/upload`;
 
   return (
     <Box
@@ -62,14 +65,28 @@ export function ArtworkSidebar({ artwork }: ArtworkSidebarProps) {
             </Box>
           </Group>
         </Link>
-        <Button
-          fullWidth
-          radius="md"
-          leftSection={<IconUserPlus size={18} />}
-          disabled={!isSignedIn}
-        >
-          {isSignedIn ? 'Follow Artist' : 'Signin to follow'}
-        </Button>
+        {artwork.isOwner
+          ? (
+              <Button
+                component={Link}
+                href={uploadHref}
+                fullWidth
+                radius="md"
+                leftSection={<IconUpload size={18} />}
+              >
+                Upload Work
+              </Button>
+            )
+          : (
+              <Button
+                fullWidth
+                radius="md"
+                leftSection={<IconUserPlus size={18} />}
+                disabled={!isSignedIn}
+              >
+                {isSignedIn ? 'Follow Artist' : 'Signin to follow'}
+              </Button>
+            )}
       </Card>
 
       {/* Metadata Card */}

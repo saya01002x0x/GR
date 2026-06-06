@@ -11,7 +11,9 @@ import {
   Group,
   Image,
   LoadingOverlay,
+  Modal,
   Paper,
+  Progress,
   Radio,
   Select,
   Stack,
@@ -49,10 +51,14 @@ type UploadForm = {
   title: string;
   description: string;
   tags: string[];
-  rating: 'SAFE' | 'R18' | 'R18G';
+  rating: 'SAFE';
   isAI: boolean;
   visibility: 'PUBLIC' | 'TIER_GATED';
   requiredTierId: string;
+};
+
+type TagSearchResponse = {
+  data?: Array<{ name: string }>;
 };
 
 export default function UploadPage() {
@@ -60,8 +66,13 @@ export default function UploadPage() {
   const { getToken } = useAuth();
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progressPercent, setProgressPercent] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
   const [watermarkSettings, setWatermarkSettings] = useState<WatermarkSettings>(DEFAULT_WATERMARK_SETTINGS);
   const [wmOverrides, setWmOverrides] = useState<Map<number, boolean>>(() => new Map());
+  const [tagSearch, setTagSearch] = useState('');
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
 
   const { data: userProfile } = useUserProfile();
   const isArtist = userProfile?.isArtist;
@@ -96,6 +107,22 @@ export default function UploadPage() {
       previews.forEach(url => URL.revokeObjectURL(url));
     };
   }, [previews]);
+
+  // Debounced tag search - fetch suggestions from API
+  useEffect(() => {
+    if (tagSearch.length < 2) {
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.get<TagSearchResponse>(`/artworks/tags/search?q=${encodeURIComponent(tagSearch)}`);
+        setTagSuggestions(res.data?.map(t => t.name) || []);
+      } catch {
+        setTagSuggestions([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [tagSearch]);
 
   const handleDrop = useCallback((acceptedFiles: File[]) => {
     // Append new files to existing ones (max 20 images)
@@ -157,7 +184,7 @@ export default function UploadPage() {
       formData.append('title', values.title);
       formData.append('description', values.description);
       formData.append('tags', JSON.stringify(values.tags.map(t => t.trim().toLowerCase())));
-      formData.append('rating', values.rating);
+      formData.append('rating', 'SAFE');
       formData.append('isAI', String(values.isAI));
       formData.append('visibility', values.visibility);
       if (values.visibility === 'TIER_GATED' && values.requiredTierId) {
@@ -189,25 +216,72 @@ export default function UploadPage() {
       const data = await res.json();
 
       if (res.ok) {
-        notifications.show({
-          title: 'Thành công! 🎉',
-          message: 'Artwork của bạn đã được đăng tải',
-          color: 'green',
-          icon: <IconCheck size={16} />,
-        });
-        router.push('/dashboard/works');
+        // Start listening to SSE
+        setIsProcessing(true);
+        setProgressMessage('Đang tải dữ liệu lên hệ thống...');
+        setProgressPercent(0);
+
+        const evtSource = new EventSource(
+          `${process.env.NEXT_PUBLIC_API_URL}/artworks/job/${data.data.jobId}/progress`,
+        );
+
+        evtSource.onmessage = (event) => {
+          const payload = JSON.parse(event.data);
+          setProgressPercent(payload.percent || 0);
+          setProgressMessage(payload.message || 'Đang xử lý...');
+
+          if (payload.state === 'completed') {
+            evtSource.close();
+            setIsProcessing(false);
+            if (payload.hasFailures) {
+              notifications.show({
+                title: 'Hoàn tất có lỗi',
+                message: `Đã xử lý xong, nhưng có một số ảnh bị lỗi. Vui lòng kiểm tra lại.`,
+                color: 'orange',
+                icon: <IconAlertCircle size={16} />,
+              });
+              router.push('/dashboard/works'); // Redirect to review page later
+            } else {
+              notifications.show({
+                title: 'Thành công! 🎉',
+                message: 'Artwork của bạn đã được xuất bản hoàn toàn',
+                color: 'green',
+                icon: <IconCheck size={16} />,
+              });
+              router.push('/dashboard/works');
+            }
+          } else if (payload.state === 'failed') {
+            evtSource.close();
+            setIsProcessing(false);
+            setLoading(false);
+            notifications.show({
+              title: 'Lỗi xử lý',
+              message: payload.message || 'Tiến trình xử lý ảnh thất bại',
+              color: 'red',
+              icon: <IconAlertCircle size={16} />,
+            });
+          }
+        };
+
+        evtSource.onerror = () => {
+          evtSource.close();
+          // Fallback if SSE disconnects
+          setIsProcessing(false);
+          router.push('/dashboard/works');
+        };
+
+        // Don't setLoading(false) here, let the SSE handle the final state
       } else {
         throw new Error(data.message || 'Upload failed');
       }
     } catch (error) {
+      setLoading(false);
       notifications.show({
         title: 'Lỗi upload',
         message: error instanceof Error ? error.message : 'Đã xảy ra lỗi',
         color: 'red',
         icon: <IconAlertCircle size={16} />,
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -233,7 +307,31 @@ export default function UploadPage() {
 
   return (
     <Container size="md" py="xl" pos="relative">
-      <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
+      <LoadingOverlay visible={loading && !isProcessing} overlayProps={{ blur: 2 }} />
+
+      <Modal
+        opened={isProcessing}
+        onClose={() => {}}
+        withCloseButton={false}
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        centered
+        title={(
+          <Title order={3} fw={700}>
+            Đang xử lý Artwork...
+          </Title>
+        )}
+      >
+        <Stack gap="md" py="md">
+          <Text size="sm" c="dimmed">
+            {progressMessage}
+          </Text>
+          <Progress value={progressPercent} size="xl" radius="xl" striped animated />
+          <Text size="xs" ta="center" c="dimmed">
+            Vui lòng không đóng trang này cho đến khi hoàn tất.
+          </Text>
+        </Stack>
+      </Modal>
 
       <Box mb="xl">
         <Title order={1} fw={800}>
@@ -383,9 +481,13 @@ export default function UploadPage() {
               <TagsInput
                 label="Tags"
                 placeholder="Add tags (press Enter)"
-                description="Minimum 1 tag required. Suggested: #anime, #landscape, #portrait"
-                disabled={loading}
+                description="Minimum 1 tag required. Type to search existing tags."
+                maxTags={20}
+                data={tagSearch.length >= 2 ? tagSuggestions : []}
+                searchValue={tagSearch}
+                onSearchChange={setTagSearch}
                 {...form.getInputProps('tags')}
+                disabled={loading}
               />
             </Stack>
           </Paper>
@@ -402,24 +504,15 @@ export default function UploadPage() {
             />
           </Paper>
 
-          {/* Content Rating */}
+          {/* AI Label */}
           <Paper p="xl" radius="lg" withBorder>
             <Title order={4} mb="md">
-              Content Rating
+              Content Options
             </Title>
-
-            <Radio.Group {...form.getInputProps('rating')}>
-              <Stack gap="sm">
-                <Radio value="SAFE" label="Safe - General audience" disabled={loading} />
-                <Radio value="R18" label="R-18 / NSFW - Adult content" disabled={loading} />
-                <Radio value="R18G" label="R-18G / Gore - Graphic violent content" disabled={loading} />
-              </Stack>
-            </Radio.Group>
 
             <Switch
               label="AI Generated"
               description="Created with AI tools"
-              mt="lg"
               disabled={loading}
               {...form.getInputProps('isAI', { type: 'checkbox' })}
               thumbIcon={<IconRobot size={12} />}

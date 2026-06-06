@@ -91,6 +91,16 @@ type PendingReport = {
   createdAt: string;
 };
 
+type ModerationImage = {
+  id: string;
+  url: string;
+  thumbnailUrl: string | null;
+  status?: string;
+  errorMetadata?: Record<string, unknown> | null;
+  order?: number;
+  phash?: string | null;
+};
+
 type FlaggedArtwork = {
   id: string;
   title: string;
@@ -101,7 +111,7 @@ type FlaggedArtwork = {
     warningCount: number;
     isBanned: boolean;
   };
-  images: { thumbnailUrl: string | null; url: string }[];
+  images: ModerationImage[];
   _count: { reports: number };
   reports: PendingReport[];
 };
@@ -116,6 +126,18 @@ type DetailedArtwork = Omit<FlaggedArtwork, 'author' | 'reports'> & {
     warnings: { id: string; reason: string; expiresAt: string; createdAt: string }[];
   };
   reports: DetailedReport[];
+  duplicateMatches: {
+    sourceImage: ModerationImage;
+    originalImage: (ModerationImage & {
+      artwork: {
+        id: string;
+        title: string;
+        author: { username: string; displayName: string | null };
+      };
+    }) | null;
+    distance: number | null;
+    source: 'SYSTEM' | 'REPORT';
+  }[];
 };
 
 type ResolvedReport = {

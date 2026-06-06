@@ -115,3 +115,20 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
   const { data: userProfile } = useUserProfile(); // ID: 123e4567-e89b-12d3...
   `
 - **Ứng dụng:** Tránh lỗi so sánh ID (isOwner) giữa Frontend và Backend. Cần dùng userProfile?.id khi so sánh với khóa chính (ID) của dữ liệu trả về từ DB (như comment.user.id).
+
+---
+
+#### Lấy Route Params trong Client Component (useParams)
+- **Là gì:** Hook của Next.js App Router (`next/navigation`) dùng để lấy các dynamic segment từ URL trực tiếp bên trong Client Component.
+- **Cách dùng:**
+  ```tsx
+  'use client';
+  import { useParams } from 'next/navigation';
+
+  export default function Page() {
+    const params = useParams();
+    const id = params.id as string;
+    return <div>{id}</div>;
+  }
+  ```
+- **Ứng dụng:** Được dùng trong `/artworks/[id]/review/page.tsx` để lấy tham số `id` và truyền vào `useArtwork(id)` để fetch dữ liệu từ Backend.

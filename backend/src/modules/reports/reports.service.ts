@@ -3,9 +3,18 @@
  * Handle report CRUD operations
  */
 
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { ReportReason, ReportStatus, Prisma } from '@prisma/client';
+import {
+  ArtworkStatus,
+  ReportReason,
+  ReportStatus,
+  Prisma,
+} from '@prisma/client';
 
 @Injectable()
 export class ReportsService {
@@ -15,7 +24,24 @@ export class ReportsService {
     reporterId: string,
     data: { reason: string; description?: string; artworkId: string },
   ) {
-    return this.prisma.report.create({
+    const artwork = await this.prisma.artwork.findUnique({
+      where: { id: data.artworkId },
+      select: { id: true, title: true, authorId: true, status: true },
+    });
+
+    if (!artwork) {
+      throw new NotFoundException('Artwork not found');
+    }
+
+    const isAppeal = artwork.authorId === reporterId;
+    if (isAppeal && artwork.status === ArtworkStatus.IN_REVIEW) {
+      throw new ConflictException(
+        'This artwork is already waiting for moderator review',
+      );
+    }
+
+    // 1. Create the report
+    const report = await this.prisma.report.create({
       data: {
         reason: data.reason as ReportReason,
         description: data.description,
@@ -23,9 +49,21 @@ export class ReportsService {
         reporterId,
       },
       include: {
-        artwork: { select: { id: true, title: true } },
+        artwork: {
+          select: { id: true, title: true, authorId: true, status: true },
+        },
       },
     });
+
+    // 2. If this is an appeal (reporter is author, and status is ACTION_REQUIRED), update artwork status
+    if (isAppeal && artwork.status === ArtworkStatus.ACTION_REQUIRED) {
+      await this.prisma.artwork.update({
+        where: { id: data.artworkId },
+        data: { status: ArtworkStatus.IN_REVIEW },
+      });
+    }
+
+    return report;
   }
 
   async findAll(options: {

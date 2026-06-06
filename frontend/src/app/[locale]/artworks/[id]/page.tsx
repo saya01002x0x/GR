@@ -28,6 +28,7 @@ function transformArtworkForSidebar(artwork: APIArtworkDetail) {
     }),
     description: artwork.description || '',
     tags: artwork.tags.map(t => `#${t.tag.name}`),
+    isOwner: artwork.access?.isOwner ?? false,
     artist: {
       id: artwork.author.id,
       name: artwork.author.displayName || artwork.author.username,
