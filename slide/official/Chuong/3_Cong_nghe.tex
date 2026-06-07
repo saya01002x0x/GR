@@ -1,0 +1,303 @@
+\section{Nền tảng Backend và cơ sở dữ liệu}
+
+\subsection{Kiến trúc NestJS Framework}
+
+NestJS là framework backend cho Node.js được thiết kế xoay quanh TypeScript, decorator, dependency injection và tư duy module hóa \cite{nestjsdocs}. Trong hệ thống đề xuất, NestJS không chỉ đóng vai trò lớp API nhận request từ frontend, mà còn là bộ khung tổ chức toàn bộ nghiệp vụ server-side: xác thực, phân quyền, quản lý người dùng, quản lý tác phẩm, xử lý ảnh, tìm kiếm, thanh toán, thống kê và quản trị. Điểm phù hợp của NestJS đối với đồ án nằm ở chỗ framework này tạo ra ranh giới rõ giữa controller, service, provider, module và guard, giúp hệ thống có thể phát triển theo modular monolith thay vì trộn toàn bộ logic nghiệp vụ trong một lớp ứng dụng duy nhất.
+
+Khái niệm trung tâm đầu tiên của NestJS là \textit{module}. Một module gom nhóm các controller và provider có liên quan về mặt nghiệp vụ. Trong codebase, \texttt{AppModule} là module gốc và nhập các module con như \texttt{AuthModule}, \texttt{UsersModule}, \texttt{ArtworksModule}, \texttt{QueueModule}, \texttt{SearchModule}, \texttt{StatsModule}, \texttt{ReportsModule}, \texttt{AdminModule}, \texttt{PaymentsModule}, \texttt{DuplicateDetectionModule} và \texttt{AiSearchModule}. Cách chia này phản ánh trực tiếp cấu trúc domain của nền tảng chia sẻ ảnh. Ví dụ, \texttt{ArtworksModule} chịu trách nhiệm các nghiệp vụ xoay quanh tác phẩm; \texttt{QueueModule} chịu trách nhiệm hàng đợi xử lý ảnh; \texttt{SearchModule} chịu trách nhiệm lập chỉ mục và tìm kiếm toàn văn; \texttt{AiSearchModule} chịu trách nhiệm sinh và truy vấn vector embedding. Như vậy, mặc dù ứng dụng vẫn được triển khai như một monolith, mỗi miền nghiệp vụ vẫn có ranh giới mã nguồn và phụ thuộc rõ ràng.
+
+Khái niệm trung tâm thứ hai là \textit{provider}. Provider trong NestJS thường là service hoặc factory có thể được container dependency injection khởi tạo và tiêm vào các thành phần khác. Ví dụ, \texttt{PrismaService} được khai báo trong \texttt{PrismaModule} và có thể được sử dụng bởi nhiều service nghiệp vụ để truy cập cơ sở dữ liệu. Tương tự, Redis client được tạo trong \texttt{RedisModule} thông qua một injection token \texttt{REDIS\_CLIENT}, sau đó được tiêm vào các service cần cache hoặc buffer. Cơ chế dependency injection này giúp tách phần khởi tạo tài nguyên khỏi phần sử dụng tài nguyên. Khi một service như \texttt{AiSearchService} cần cả \texttt{PrismaService}, \texttt{EmbeddingService} và Redis client, các phụ thuộc được khai báo rõ trong constructor thay vì tự khởi tạo thủ công, làm giảm coupling và tăng khả năng kiểm thử.
+
+Khái niệm thứ ba là \textit{controller}. Controller định nghĩa các endpoint HTTP và ánh xạ request tới service tương ứng. Trong một nền tảng chia sẻ ảnh, controller cần xử lý các nhóm API như đăng tải tác phẩm, lấy danh sách tác phẩm, tìm kiếm, tạo report, quản lý thanh toán hoặc thao tác admin. NestJS tách controller khỏi service để controller chỉ đảm nhiệm xử lý request/response, validate tham số, gắn guard, còn service thực thi nghiệp vụ. Sự phân tách này đặc biệt quan trọng trong các luồng phức tạp như đăng tải ảnh: controller nhận file metadata và yêu cầu tạo tác phẩm, nhưng các bước xử lý nặng như kiểm duyệt, sinh thumbnail và lập chỉ mục được đẩy sang worker thông qua service hàng đợi.
+
+Khái niệm thứ tư là \textit{guard}. Guard quyết định một request có được phép đi tiếp hay không. Hệ thống sử dụng Clerk để xác thực người dùng, do đó backend định nghĩa \texttt{ClerkStrategy} để xác minh JWT và \texttt{ClerkGuard} để bảo vệ route. Khi token hợp lệ, strategy lấy định danh \texttt{clerkId}, gọi Clerk API để lấy hồ sơ người dùng và thực hiện lazy sync vào bảng \texttt{users}. Cách tiếp cận này giải quyết được hai yêu cầu đồng thời: hệ thống không phải tự xây dựng toàn bộ cơ chế đăng nhập, nhưng vẫn có bản ghi người dùng nội bộ để lưu vai trò, trạng thái cấm, \texttt{stripeCustomerId}, tương tác và quan hệ subscription. Đối với các route quản trị, hệ thống có thể kết hợp \texttt{ClerkGuard} với guard phân quyền theo vai trò như \texttt{MODERATOR}, \texttt{ADMIN} hoặc \texttt{SUPER\_ADMIN}.
+
+Ở mức kiến trúc, NestJS cho phép hệ thống áp dụng nguyên tắc đảo ngược phụ thuộc. Các module cấp cao như \texttt{ArtworksModule} không cần biết chi tiết cách Redis kết nối, cách Prisma mở connection pool hay cách Stripe khởi tạo client; chúng chỉ phụ thuộc vào interface hành vi do provider cung cấp. Với đồ án này, đặc điểm đó rất quan trọng vì các thành phần bên ngoài khá đa dạng: PostgreSQL, Redis, Meilisearch, Clerk, Stripe, storage và worker AI. Nếu các phụ thuộc này bị gọi trực tiếp rải rác trong controller, hệ thống sẽ khó bảo trì, khó thay thế và khó kiểm thử. Ngược lại, khi được tổ chức thành provider, việc cấu hình môi trường, thay đổi implementation hoặc mock trong unit test trở nên có kiểm soát hơn.
+
+\subsection{Prisma ORM}
+
+Prisma là ORM hiện đại cho TypeScript, cung cấp lược đồ khai báo, client sinh mã tự động và cơ chế migration cho cơ sở dữ liệu quan hệ \cite{prismadocs}. Trong hệ thống đề xuất, Prisma đóng vai trò cầu nối giữa mô hình dữ liệu PostgreSQL và mã nguồn NestJS. File \texttt{schema.prisma} định nghĩa các model như \texttt{User}, \texttt{Artwork}, \texttt{ArtworkImage}, \texttt{Tag}, \texttt{Comment}, \texttt{Like}, \texttt{Collection}, \texttt{Report}, \texttt{ArtistTier}, \texttt{TierSubscription}, \texttt{Subscription}, \texttt{Payment} và \texttt{Payout}. Mỗi model không chỉ định nghĩa trường dữ liệu mà còn mô tả quan hệ, chỉ mục, khóa duy nhất và ánh xạ tên cột sang cơ sở dữ liệu vật lý.
+
+Ưu điểm chính của Prisma trong hệ thống là tính an toàn kiểu. Khi schema khai báo \texttt{User.role} thuộc enum \texttt{UserRole}, TypeScript client sinh ra sẽ giúp service chỉ truyền các giá trị hợp lệ như \texttt{USER}, \texttt{MODERATOR}, \texttt{ADMIN} hoặc \texttt{SUPER\_ADMIN}. Khi \texttt{Artwork.status} thuộc enum \texttt{ArtworkStatus}, các trạng thái như \texttt{PROCESSING}, \texttt{PUBLISHED}, \texttt{FAILED}, \texttt{ACTION\_REQUIRED} được kiểm soát ở tầng mã nguồn. Điều này làm giảm lỗi do truyền chuỗi tự do, đặc biệt trong các workflow có nhiều trạng thái như xử lý ảnh.
+
+Prisma cũng hỗ trợ truy vấn quan hệ rõ ràng thông qua \texttt{include} và \texttt{select}. Ví dụ, khi lập chỉ mục một tác phẩm vào Meilisearch, service cần lấy thông tin tác phẩm, tác giả và tag. Với Prisma, truy vấn có thể biểu diễn trực tiếp dưới dạng lấy \texttt{artwork} kèm \texttt{author} và \texttt{tags.include.tag}. Cách viết này giúp mã nguồn gần với mô hình domain hơn so với việc tự nối bảng bằng SQL trong mọi trường hợp.
+
+Tuy nhiên, hệ thống cũng cho thấy một giới hạn thực tế của ORM: không phải mọi kiểu dữ liệu đặc thù của PostgreSQL đều được Prisma hỗ trợ như kiểu gốc. Cột \texttt{embedding} trong bảng \texttt{artwork\_images} được khai báo là \texttt{Unsupported("vector(512)")}. Điều này có nghĩa Prisma vẫn quản lý được model tổng thể, nhưng các thao tác đọc/ghi vector cần dùng raw SQL. Trong \texttt{AiSearchService}, hệ thống lưu embedding bằng câu lệnh:
+
+\begin{lstlisting}[language=SQL,caption={Cập nhật vector embedding trong PostgreSQL}]
+UPDATE artwork_images
+SET embedding = $1::vector, has_embedding = true
+WHERE id = $2
+\end{lstlisting}
+
+Tương tự, truy vấn tìm kiếm vector sử dụng toán tử khoảng cách của \texttt{pgvector} nên cũng được thực hiện bằng \texttt{\$queryRawUnsafe}. Đây là một lựa chọn thực dụng: dùng Prisma cho phần lớn dữ liệu quan hệ để tận dụng type safety, nhưng dùng SQL trực tiếp cho các thao tác cần khả năng đặc thù của cơ sở dữ liệu.
+
+\subsection{PostgreSQL và mô hình dữ liệu quan hệ}
+
+PostgreSQL là hệ quản trị cơ sở dữ liệu quan hệ mã nguồn mở có độ ổn định cao, hỗ trợ transaction, chỉ mục đa dạng, kiểu dữ liệu mở rộng và cơ chế extension \cite{postgresdocs}. Trong hệ thống chia sẻ ảnh, PostgreSQL được chọn làm nguồn dữ liệu chính vì dữ liệu nghiệp vụ có quan hệ chặt chẽ và yêu cầu tính nhất quán cao. Một tác phẩm thuộc về một tác giả, có nhiều ảnh, nhiều tag, nhiều bình luận, nhiều lượt thích, nhiều bookmark và có thể liên quan đến report hoặc tier nội dung. Các quan hệ này phù hợp với mô hình quan hệ hơn so với lưu trữ tài liệu phi cấu trúc thuần túy.
+
+Model \texttt{User} là trung tâm của hệ thống định danh. Bản ghi người dùng lưu \texttt{clerkId} để liên kết với Clerk, email, username, thông tin hồ sơ, vai trò, trạng thái artist, trạng thái cấm và \texttt{stripeCustomerId}. Từ \texttt{User}, hệ thống mở rộng sang các quan hệ xã hội như \texttt{Follow}, \texttt{Like}, \texttt{Comment}, \texttt{Collection}, đồng thời mở rộng sang các quan hệ kinh tế như \texttt{Subscription}, \texttt{ArtistTier}, \texttt{TierSubscription}, \texttt{Payment} và \texttt{Payout}. Thiết kế này cho phép một người dùng vừa là người xem, vừa có thể trở thành artist, vừa có thể là subscriber của artist khác.
+
+Model \texttt{Artwork} biểu diễn đơn vị nội dung chính. Một tác phẩm có tiêu đề, mô tả, loại, trạng thái, rating, thông tin AI, bộ đếm lượt xem/lượt thích/lượt bình luận, lớp tỷ lệ ảnh, độ phân giải lớn nhất, cờ độ phân giải cao, visibility và tier yêu cầu. Trạng thái \texttt{PROCESSING} hoặc \texttt{ACTION\_REQUIRED} cho phép hệ thống biểu diễn các giai đoạn trung gian thay vì chỉ có hai trạng thái đăng hoặc không đăng. Điều này phù hợp với pipeline xử lý ảnh bất đồng bộ, nơi tác phẩm có thể được tạo trước khi ảnh hoàn tất kiểm duyệt.
+
+Model \texttt{ArtworkImage} lưu dữ liệu ở cấp ảnh. Đây là điểm quan trọng vì một tác phẩm có thể chứa nhiều ảnh và mỗi ảnh có thể có kết quả xử lý khác nhau. Các trường \texttt{originalUrl}, \texttt{url}, \texttt{thumbnailUrl}, \texttt{blurredUrl}, \texttt{width}, \texttt{height}, \texttt{aspectRatio}, \texttt{status} và \texttt{errorMetadata} cho phép hệ thống lưu đầy đủ các biến thể ảnh và lỗi kiểm duyệt. Trường \texttt{phash} phục vụ phát hiện trùng lặp, còn \texttt{embedding} phục vụ tìm kiếm ngữ nghĩa. Việc đặt \texttt{phash} và \texttt{embedding} ở cấp ảnh thay vì cấp tác phẩm là hợp lý vì một tác phẩm nhiều ảnh có thể chứa các ảnh với nội dung thị giác hoàn toàn khác nhau.
+
+PostgreSQL cũng hỗ trợ transaction, và hệ thống tận dụng điều này trong bước lưu kết quả xử lý ảnh. Worker tạo nhiều bản ghi \texttt{ArtworkImage} và cập nhật trạng thái \texttt{Artwork} trong cùng một transaction. Nếu một phần ghi dữ liệu thất bại, transaction có thể rollback để tránh trạng thái nửa vời, ví dụ tác phẩm đã chuyển sang \texttt{PUBLISHED} nhưng ảnh chưa được ghi đủ. Trong các hệ thống đa phương tiện, tính nguyên tử ở bước cập nhật metadata là cần thiết vì file storage, search index và database không luôn có transaction phân tán với nhau.
+
+\section{Nền tảng Frontend và State Management}
+
+\subsection{Next.js App Router}
+
+Next.js là framework React hỗ trợ rendering phía server, routing theo file system, tối ưu bundle, server actions, API route và nhiều cơ chế tối ưu trải nghiệm web \cite{nextjsdocs}. Hệ thống frontend sử dụng Next.js App Router, thể hiện qua thư mục \texttt{frontend/src/app} với các route như \texttt{discover}, \texttt{search}, \texttt{upload}, \texttt{dashboard}, \texttt{admin}, \texttt{artworks/[id]}, \texttt{artists/[username]} và \texttt{checkout}. App Router tổ chức giao diện theo cây layout lồng nhau, cho phép mỗi vùng route có layout, loading, error boundary và metadata riêng.
+
+Một điểm cốt lõi của App Router là phân biệt Server Components và Client Components. Server Components được render trên server, có thể truy cập dữ liệu server-side và không gửi toàn bộ logic component xuống trình duyệt. Điều này giúp giảm kích thước JavaScript phía client và phù hợp với các trang chủ yếu hiển thị dữ liệu như trang chi tiết tác phẩm hoặc trang hồ sơ artist. Ngược lại, Client Components được đánh dấu bằng chỉ thị \texttt{'use client'} và cần thiết khi component sử dụng state phía trình duyệt, effect, event handler, context hoặc thư viện phụ thuộc vào DOM. Trong codebase, các provider như \texttt{MantineProvider} và \texttt{QueryProvider} là Client Components vì chúng thiết lập context React, quản lý cache phía client và xử lý tương tác giao diện.
+
+Root layout của frontend đặt ngôn ngữ mặc định, thiết lập script màu sắc Mantine trước khi render và bao bọc nội dung bằng các provider ở layout theo locale. Layout \texttt{[locale]/layout.tsx} sử dụng \texttt{ClerkProvider}, \texttt{MantineProvider}, \texttt{QueryProvider} và \texttt{NextIntlClientProvider}. Cách tổ chức này cho phép mọi route con cùng chia sẻ xác thực, theme, cache truy vấn và quốc tế hóa. Đồng thời, việc đặt route theo \texttt{[locale]} giúp hệ thống có thể mở rộng giao diện đa ngôn ngữ mà không phải nhân bản toàn bộ cấu trúc trang.
+
+Middleware của frontend sử dụng Clerk middleware kết hợp \texttt{next-intl}. Các route như \texttt{/dashboard} và \texttt{/admin} được bảo vệ bằng \texttt{createRouteMatcher}. Khi người dùng đã đăng nhập, middleware gọi API backend \texttt{/users/me} với Bearer token để kiểm tra trạng thái cấm; nếu người dùng bị ban, request được chuyển hướng sang trang \texttt{/ban}. Cách kiểm tra này thể hiện sự phối hợp giữa xác thực bên ngoài và trạng thái nghiệp vụ nội bộ: Clerk xác nhận danh tính, còn backend quyết định chính sách nền tảng như cấm tài khoản.
+
+\subsection{Mantine UI}
+
+Mantine là thư viện UI React cung cấp component, hook, theme và hệ thống style nhất quán. Trong hệ thống, Mantine được dùng để xây dựng giao diện có tính ứng dụng cao: bảng quản trị, form upload, điều khiển lọc, progress bar, modal, notification, layout và các thành phần tương tác. File \texttt{MantineProvider.tsx} định nghĩa theme riêng cho hệ thống, trong đó màu chính là dải rose/pink, font chữ là Plus Jakarta Sans, các mức radius được chuẩn hóa và \texttt{respectReducedMotion} được bật để tôn trọng thiết lập giảm chuyển động của người dùng.
+
+Về mặt kỹ thuật, Mantine giúp giảm chi phí xây dựng lại các primitive giao diện thường gặp như input, select, table, tabs, modal và notification. Điều này đặc biệt có ý nghĩa trong các trang nghiệp vụ như admin moderation, dashboard membership hoặc upload artwork, nơi độ chính xác và khả năng thao tác quan trọng hơn trang trí. Khi hệ thống có nhiều vai trò người dùng, việc duy trì một hệ UI thống nhất cũng làm giảm sai khác trải nghiệm giữa khu vực công khai, dashboard artist và trang quản trị.
+
+\subsection{Zustand và phân loại trạng thái frontend}
+
+Trong ứng dụng web hiện đại, không phải mọi trạng thái đều có cùng bản chất. Có thể phân biệt tối thiểu ba nhóm: trạng thái server, trạng thái URL và trạng thái UI cục bộ. Trạng thái server là dữ liệu lấy từ backend như danh sách tác phẩm, thông tin user, subscription hoặc kết quả tìm kiếm; nhóm này phù hợp với TanStack Query vì cần cache, stale time, retry và invalidation. Trạng thái URL là tham số truy vấn như từ khóa, bộ lọc, trang hoặc sort; nhóm này nên nằm trong URL để có thể chia sẻ và reload. Trạng thái UI cục bộ là những thông tin như sidebar đang mở hay đóng, modal nào đang bật, hoặc trạng thái loading nội bộ; nhóm này phù hợp với store nhẹ như Zustand.
+
+Zustand là thư viện state management tối giản cho React. Trong codebase, \texttt{useUIStore} định nghĩa các trạng thái \texttt{sidebarOpen}, \texttt{activeModal} và \texttt{isLoading}, đồng thời sử dụng middleware \texttt{persist} để lưu một phần state vào local storage. So với các mô hình state management nặng, Zustand phù hợp với nhu cầu của hệ thống vì nó không áp đặt boilerplate phức tạp, không yêu cầu reducer toàn cục và dễ chia nhỏ store theo miền giao diện. Trong ngữ cảnh đồ án, Zustand được dùng cho trạng thái UI, còn dữ liệu nghiệp vụ vẫn được lấy và đồng bộ qua API để tránh tạo hai nguồn sự thật cho cùng một loại dữ liệu.
+
+\section{Lý thuyết về trí tuệ nhân tạo và thuật toán}
+
+\subsection{Mô hình CLIP và học biểu diễn đa phương thức}
+
+CLIP, viết tắt của Contrastive Language-Image Pretraining, là một mô hình học biểu diễn đa phương thức do OpenAI đề xuất, có khả năng đưa ảnh và văn bản vào cùng một không gian vector \cite{clip2021}. Ý tưởng cốt lõi của CLIP là thay vì huấn luyện một mô hình phân loại ảnh với tập nhãn cố định, mô hình được huấn luyện trên các cặp ảnh-văn bản ở quy mô lớn. Mỗi ảnh đi qua một Image Encoder, mỗi mô tả văn bản đi qua một Text Encoder. Hai encoder này tạo ra hai vector embedding cùng chiều, sau đó được huấn luyện sao cho ảnh và câu mô tả đúng của nó nằm gần nhau, còn ảnh và các câu không tương ứng nằm xa nhau trong không gian embedding.
+
+Về kiến trúc, Image Encoder có thể là mạng CNN hoặc Vision Transformer, còn Text Encoder thường là Transformer xử lý chuỗi token. Giả sử một batch huấn luyện gồm \(N\) cặp ảnh-văn bản \(\{(I_i, T_i)\}_{i=1}^{N}\). Image Encoder \(f_{\theta}\) ánh xạ ảnh \(I_i\) thành vector:
+
+\[
+\mathbf{v}_i = \frac{f_{\theta}(I_i)}{\left\lVert f_{\theta}(I_i) \right\rVert_2}
+\]
+
+Text Encoder \(g_{\phi}\) ánh xạ văn bản \(T_i\) thành vector:
+
+\[
+\mathbf{t}_i = \frac{g_{\phi}(T_i)}{\left\lVert g_{\phi}(T_i) \right\rVert_2}
+\]
+
+Việc chuẩn hóa L2 đưa các vector về mặt cầu đơn vị, nhờ đó tích vô hướng giữa hai vector tương đương với cosine similarity. Độ tương đồng giữa ảnh \(i\) và văn bản \(j\) được tính bởi:
+
+\[
+s_{ij} = \frac{\mathbf{v}_i^\top \mathbf{t}_j}{\tau}
+\]
+
+Trong đó \(\tau\) là tham số nhiệt độ, điều chỉnh độ sắc nét của phân phối xác suất. Với mỗi ảnh, văn bản đúng là \(T_i\); với mỗi văn bản, ảnh đúng là \(I_i\). Hàm mất mát contrastive hai chiều có thể viết như sau:
+
+\begin{equation}
+\mathcal{L}_{I \rightarrow T}
+= -\frac{1}{N}\sum_{i=1}^{N}
+\log
+\frac{\exp(s_{ii})}
+{\sum_{j=1}^{N}\exp(s_{ij})}
+\end{equation}
+
+\begin{equation}
+\mathcal{L}_{T \rightarrow I}
+= -\frac{1}{N}\sum_{i=1}^{N}
+\log
+\frac{\exp(s_{ii})}
+{\sum_{j=1}^{N}\exp(s_{ji})}
+\end{equation}
+
+\begin{equation}
+\mathcal{L}_{CLIP}
+= \frac{1}{2}\left(\mathcal{L}_{I \rightarrow T} + \mathcal{L}_{T \rightarrow I}\right)
+\end{equation}
+
+Cách huấn luyện này biến bài toán học biểu diễn thành bài toán phân biệt cặp đúng trong batch. Với mỗi ảnh, mô hình phải chọn đúng mô tả trong \(N\) mô tả; với mỗi mô tả, mô hình phải chọn đúng ảnh trong \(N\) ảnh. Khi \(N\) lớn, số lượng cặp âm trong mỗi batch tăng, buộc mô hình học các đặc trưng ngữ nghĩa bền vững hơn thay vì chỉ học nhãn cố định.
+
+Trong hệ thống đề xuất, tinh thần của CLIP được sử dụng cho tìm kiếm ngữ nghĩa và tìm kiếm bằng phác thảo. Mỗi ảnh sau xử lý được sinh embedding 512 chiều và lưu trong cột \texttt{embedding} của bảng \texttt{artwork\_images}. Khi người dùng nhập truy vấn văn bản hoặc cung cấp ảnh phác thảo, hệ thống sinh embedding truy vấn trong cùng không gian vector, sau đó so sánh với embedding ảnh đã lưu. Độ tương đồng cosine giữa hai vector \(\mathbf{x}\) và \(\mathbf{y}\) được định nghĩa:
+
+\begin{equation}
+\operatorname{cosine}(\mathbf{x}, \mathbf{y})
+= \frac{\mathbf{x}^\top \mathbf{y}}
+{\left\lVert \mathbf{x} \right\rVert_2 \left\lVert \mathbf{y} \right\rVert_2}
+= \frac{\sum_{k=1}^{d} x_k y_k}
+{\sqrt{\sum_{k=1}^{d}x_k^2}\sqrt{\sum_{k=1}^{d}y_k^2}}
+\end{equation}
+
+Với \(d = 512\), mỗi ảnh được biểu diễn bởi một điểm trong không gian 512 chiều. Hai ảnh hoặc một ảnh và một truy vấn văn bản càng gần nhau về ngữ nghĩa thì cosine similarity càng lớn. Trong codebase, truy vấn SQL dùng toán tử khoảng cách cosine \texttt{<=>} của \texttt{pgvector}, sau đó chuyển khoảng cách thành độ tương đồng bằng biểu thức \(1 - distance\). Cách làm này phù hợp với mô hình CLIP vì embedding đã được thiết kế để so sánh trong một không gian chung giữa ảnh và ngôn ngữ.
+
+\subsection{Mô hình NSFWJS và phân loại hình ảnh}
+
+NSFWJS là thư viện phân loại ảnh nhạy cảm chạy trên TensorFlow.js. Về bản chất, bài toán NSFW là một bài toán phân loại hình ảnh đa lớp. Đầu vào là ảnh \(I\), đầu ra là phân phối xác suất trên tập nhãn như \texttt{Porn}, \texttt{Hentai}, \texttt{Sexy}, \texttt{Neutral} và \texttt{Drawings}. Nếu gọi mô hình là \(h_{\psi}\), kết quả dự đoán có thể viết:
+
+\[
+\mathbf{p} = h_{\psi}(I), \qquad
+\sum_{c \in \mathcal{C}} p_c = 1
+\]
+
+Trong đó \(\mathcal{C}\) là tập lớp và \(p_c\) là xác suất ảnh thuộc lớp \(c\). Hệ thống tính điểm NSFW bằng cách lấy xác suất của các lớp nhạy cảm nhất, cụ thể là \texttt{Porn} hoặc \texttt{Hentai}, rồi so sánh với ngưỡng cấu hình. Nếu:
+
+\[
+\max(p_{\text{Porn}}, p_{\text{Hentai}}) > \theta_{\text{NSFW}}
+\]
+
+thì ảnh bị đánh dấu vi phạm và tác phẩm chuyển sang trạng thái cần xử lý.
+
+Các mô hình NSFWJS thường dựa trên kiến trúc mạng tích chập nhẹ như MobileNet hoặc MobileNetV2. MobileNetV2 sử dụng depthwise separable convolution, inverted residual và linear bottleneck để giảm số tham số và chi phí tính toán \cite{mobilenetv2}. Thay vì áp dụng convolution đầy đủ trên cả chiều không gian và chiều kênh, depthwise separable convolution tách phép toán thành hai bước: depthwise convolution áp dụng bộ lọc riêng cho từng kênh, sau đó pointwise convolution \(1 \times 1\) trộn thông tin giữa các kênh. Nếu kernel có kích thước \(K \times K\), đầu vào có \(M\) kênh, đầu ra có \(N\) kênh và feature map có kích thước \(D_F \times D_F\), chi phí convolution chuẩn xấp xỉ:
+
+\[
+K^2 \cdot M \cdot N \cdot D_F^2
+\]
+
+Trong khi depthwise separable convolution có chi phí:
+
+\[
+K^2 \cdot M \cdot D_F^2 + M \cdot N \cdot D_F^2
+\]
+
+Tỷ lệ giảm chi phí xấp xỉ:
+
+\[
+\frac{K^2 M D_F^2 + M N D_F^2}{K^2 M N D_F^2}
+= \frac{1}{N} + \frac{1}{K^2}
+\]
+
+Với \(K=3\), mức giảm là đáng kể, giúp mô hình phù hợp với môi trường Node.js/TensorFlow.js CPU như trong hệ thống. Trong pipeline thực tế, ảnh được resize về \(224 \times 224\), loại bỏ alpha channel để tránh sai lệch shape tensor, chuyển thành tensor ba chiều \([H, W, 3]\), sau đó đưa vào \texttt{nsfwModel.classify}. Việc dispose tensor sau khi dự đoán cũng quan trọng vì worker xử lý nhiều ảnh liên tiếp; nếu không giải phóng tensor, bộ nhớ tiến trình Node.js có thể tăng dần và gây mất ổn định.
+
+Về mặt hệ thống, NSFWJS không nên được xem là bộ phán quyết tuyệt đối. Mô hình học máy có thể tạo false positive hoặc false negative, đặc biệt với ảnh nghệ thuật, ảnh manga hoặc hình minh họa có phong cách phi thực. Vì vậy, thiết kế của hệ thống là dùng NSFWJS như bộ lọc tự động tầng đầu. Khi ảnh vượt ngưỡng, hệ thống không xóa ngay dữ liệu, mà tạo ảnh làm mờ, lưu \texttt{errorMetadata} gồm lý do, điểm số và ngưỡng, đồng thời chuyển tác phẩm sang \texttt{ACTION\_REQUIRED}. Quy trình này cân bằng giữa tự động hóa và khả năng can thiệp của con người.
+
+\subsection{Thuật toán pHash và khoảng cách Hamming}
+
+Perceptual Hashing, hay băm nhận thức, là họ thuật toán sinh mã băm dựa trên đặc trưng cảm nhận của ảnh thay vì byte nhị phân. Mục tiêu của pHash là hai ảnh giống nhau về mặt thị giác sẽ có mã hash gần nhau, kể cả khi chúng khác kích thước, mức nén, định dạng hoặc có biến đổi nhỏ. Điều này khác căn bản với băm mật mã, nơi chỉ một thay đổi nhỏ trong tệp cũng làm hash thay đổi gần như hoàn toàn.
+
+Một cách xây dựng pHash phổ biến dựa trên biến đổi cosine rời rạc, Discrete Cosine Transform (DCT). Quy trình tổng quát gồm các bước: chuẩn hóa ảnh về kích thước cố định, chuyển ảnh sang thang xám, áp dụng DCT hai chiều, lấy vùng tần số thấp, tính ngưỡng trung bình hoặc trung vị, sau đó sinh chuỗi bit bằng cách so sánh từng hệ số với ngưỡng. DCT hai chiều của ma trận ảnh \(f(x,y)\) kích thước \(N \times N\) được định nghĩa:
+
+\begin{equation}
+C(u,v) = \alpha(u)\alpha(v)
+\sum_{x=0}^{N-1}\sum_{y=0}^{N-1}
+f(x,y)
+\cos\left[\frac{(2x+1)u\pi}{2N}\right]
+\cos\left[\frac{(2y+1)v\pi}{2N}\right]
+\end{equation}
+
+Trong đó:
+
+\[
+\alpha(0)=\sqrt{\frac{1}{N}}, \qquad
+\alpha(k)=\sqrt{\frac{2}{N}},\ k>0
+\]
+
+Các hệ số DCT ở vùng chỉ số nhỏ biểu diễn thành phần tần số thấp, tương ứng với cấu trúc tổng thể, vùng sáng tối lớn và bố cục chính của ảnh. Các hệ số tần số cao thường chứa chi tiết nhỏ, nhiễu hoặc biến thiên sắc nét. Khi pHash giữ lại vùng tần số thấp, mã hash trở nên bền vững hơn trước nén JPEG, resize hoặc nhiễu nhẹ. Giả sử chọn \(m\) hệ số DCT sau khi bỏ hệ số DC đầu tiên, đặt ngưỡng là trung vị \(\mu\), bit thứ \(i\) của hash được tính:
+
+\[
+b_i =
+\begin{cases}
+1, & C_i > \mu \\
+0, & C_i \leq \mu
+\end{cases}
+\]
+
+Khi đó hash là vector bit \(\mathbf{b} = (b_1, b_2, \ldots, b_m)\). Để so sánh hai ảnh, hệ thống dùng khoảng cách Hamming giữa hai mã hash:
+
+\begin{equation}
+d_H(\mathbf{b}, \mathbf{b}')
+= \sum_{i=1}^{m} \mathbf{1}(b_i \ne b'_i)
+\end{equation}
+
+Khoảng cách Hamming càng nhỏ thì hai ảnh càng giống nhau theo đặc trưng cảm nhận. Trong codebase, \texttt{DuplicateDetectionService} sinh pHash bằng \texttt{sharp-phash}, lấy tất cả pHash hiện có trong bảng \texttt{artwork\_images}, tính khoảng cách bằng \texttt{sharp-phash/distance}, sau đó coi ảnh là trùng lặp nếu khoảng cách nhỏ hơn hoặc bằng ngưỡng. Phương thức \texttt{checkAndReject} sử dụng ngưỡng mặc định nhỏ, ví dụ 5, để phát hiện ảnh gần như giống hệt, còn phương thức tìm trùng lặp có thể dùng ngưỡng lớn hơn để hỗ trợ kiểm duyệt.
+
+Ưu điểm của pHash là đơn giản, nhanh và không yêu cầu huấn luyện mô hình. Tuy nhiên, pHash không giải quyết đầy đủ bài toán đạo nhái ở mức ý tưởng, ví dụ một tác phẩm được vẽ lại với bố cục tương tự nhưng thay đổi nét vẽ đáng kể. Vì vậy, trong hệ thống đề xuất, pHash được sử dụng như lớp phát hiện trùng lặp gần, còn tìm kiếm ngữ nghĩa bằng embedding có thể hỗ trợ phát hiện tương đồng mềm hơn trong các hướng mở rộng sau này.
+
+\subsection{Không gian vector, KNN và pgvector}
+
+Không gian vector đa chiều là nền tảng toán học của tìm kiếm ngữ nghĩa. Mỗi đối tượng như ảnh, văn bản hoặc phác thảo được ánh xạ thành một vector \(\mathbf{x} \in \mathbb{R}^d\), trong đó \(d\) là số chiều embedding. Trong hệ thống, \(d = 512\). Mỗi chiều không nhất thiết có diễn giải trực tiếp như một thuộc tính con người đặt tên, nhưng toàn bộ vector mã hóa một tổ hợp đặc trưng học được từ mô hình. Khi hai vector gần nhau theo một độ đo khoảng cách, hệ thống giả định hai đối tượng tương ứng cũng gần nhau về ngữ nghĩa hoặc thị giác.
+
+Bài toán tìm kiếm lân cận gần nhất KNN được phát biểu như sau. Cho tập vector cơ sở dữ liệu:
+
+\[
+\mathcal{D} = \{\mathbf{x}_1, \mathbf{x}_2, \ldots, \mathbf{x}_n\}, \quad \mathbf{x}_i \in \mathbb{R}^d
+\]
+
+và vector truy vấn \(\mathbf{q} \in \mathbb{R}^d\), cần tìm tập \(K\) vector có khoảng cách nhỏ nhất tới \(\mathbf{q}\):
+
+\begin{equation}
+\operatorname{KNN}(\mathbf{q}, K)
+= \underset{\mathcal{S} \subset \mathcal{D}, |\mathcal{S}|=K}{\arg\min}
+\sum_{\mathbf{x}\in\mathcal{S}} \operatorname{dist}(\mathbf{q}, \mathbf{x})
+\end{equation}
+
+Với embedding CLIP, cosine distance thường được sử dụng:
+
+\[
+\operatorname{dist}_{cos}(\mathbf{q}, \mathbf{x})
+= 1 - \operatorname{cosine}(\mathbf{q}, \mathbf{x})
+\]
+
+Tìm KNN chính xác bằng cách quét tuyến tính toàn bộ \(n\) vector có độ phức tạp \(O(nd)\) cho mỗi truy vấn. Khi \(n\) tăng lên hàng triệu ảnh, cách làm này trở nên tốn kém. Vì vậy, các hệ thống vector search thường dùng Approximate Nearest Neighbor (ANN), chấp nhận sai số nhỏ để đổi lấy tốc độ truy vấn cao hơn.
+
+\texttt{pgvector} là extension của PostgreSQL cho phép lưu vector và truy vấn khoảng cách ngay trong cơ sở dữ liệu quan hệ \cite{pgvectordocs}. \texttt{pgvector} hỗ trợ các toán tử khoảng cách như L2, inner product và cosine. Trong hệ thống, truy vấn sử dụng toán tử \texttt{<=>} để tính cosine distance giữa embedding ảnh và embedding truy vấn. Câu truy vấn lấy ảnh gần nhất cho từng tác phẩm, sau đó sắp xếp theo similarity giảm dần:
+
+\begin{lstlisting}[language=SQL,caption={Truy vấn vector với pgvector}]
+WITH nearest_image_per_artwork AS (
+  SELECT DISTINCT ON (ai.artwork_id)
+    ai.artwork_id,
+    1 - (ai.embedding <=> $1::vector) AS similarity
+  FROM artwork_images ai
+  WHERE ai.embedding IS NOT NULL
+  ORDER BY ai.artwork_id, ai.embedding <=> $1::vector
+)
+SELECT artwork_id, similarity
+FROM nearest_image_per_artwork
+WHERE similarity > $3
+ORDER BY similarity DESC
+LIMIT $2
+\end{lstlisting}
+
+Điểm đáng chú ý là hệ thống tìm ảnh gần nhất ở cấp \texttt{ArtworkImage}, nhưng kết quả trả về ở cấp \texttt{Artwork}. Điều này phù hợp với mô hình dữ liệu nhiều ảnh: chỉ cần một ảnh trong tác phẩm tương đồng với truy vấn thì tác phẩm đó có thể đáng được hiển thị. Sau khi có danh sách \texttt{artwork\_id} và similarity, service hydrate kết quả bằng Prisma để lấy tiêu đề, tác giả, thumbnail, tag và các bộ đếm tương tác.
+
+Về chỉ mục, \texttt{pgvector} hỗ trợ HNSW và IVFFlat. HNSW, viết tắt của Hierarchical Navigable Small World, xây dựng đồ thị nhiều tầng trong đó mỗi vector là một nút và cạnh nối tới các nút lân cận \cite{hnsw2018}. Truy vấn bắt đầu từ tầng trên cùng, di chuyển tham lam tới nút gần truy vấn hơn, rồi đi xuống các tầng thấp hơn để tinh chỉnh kết quả. HNSW thường có tốc độ truy vấn cao và recall tốt, đổi lại chi phí bộ nhớ và thời gian xây dựng chỉ mục lớn hơn. IVFFlat chia không gian vector thành các cụm bằng thuật toán tương tự k-means; khi truy vấn, hệ thống chỉ quét một số cụm gần vector truy vấn thay vì toàn bộ dữ liệu. IVFFlat có chi phí lưu trữ thấp hơn nhưng cần chọn số lượng cụm và số cụm probe phù hợp.
+
+Trong phạm vi đồ án, việc sử dụng \texttt{pgvector} có lợi thế kiến trúc: dữ liệu quan hệ và vector cùng nằm trong PostgreSQL, giảm nhu cầu vận hành thêm một vector database độc lập. Điều này phù hợp với modular monolith và quy mô ban đầu. Khi dữ liệu tăng rất lớn, hệ thống có thể cân nhắc tách vector search sang dịch vụ chuyên dụng, nhưng mô hình hiện tại giúp đơn giản hóa triển khai và vẫn cung cấp được năng lực tìm kiếm ngữ nghĩa cốt lõi.
+
+\section{Các dịch vụ trung gian và hạ tầng xử lý}
+
+\subsection{Message Queue với BullMQ và Redis}
+
+Message Queue là cơ chế tách nơi phát sinh công việc khỏi nơi thực thi công việc. Trong hệ thống đề xuất, API đăng tải tác phẩm không trực tiếp kiểm duyệt và xử lý ảnh trong request. Thay vào đó, API tạo job và đưa vào hàng đợi BullMQ; worker nhận job và thực hiện xử lý nền. BullMQ sử dụng Redis làm backend lưu hàng đợi, trạng thái job, retry, progress và metadata \cite{bullmqdocs}. Mô hình này giải quyết ba vấn đề: giảm thời gian phản hồi của API, cô lập lỗi xử lý ảnh khỏi luồng tương tác chính và cho phép theo dõi tiến độ từng job.
+
+Luồng xử lý ảnh có thể mô tả theo trình tự: người dùng tải ảnh lên, backend tạo bản ghi \texttt{Artwork} ở trạng thái \texttt{PROCESSING}, lưu file tạm vào storage, đẩy \texttt{ProcessArtworkJob} vào queue, worker tải file, tính pHash, kiểm tra NSFW, sinh biến thể ảnh, ghi \texttt{ArtworkImage}, cập nhật trạng thái \texttt{Artwork}, lập chỉ mục Meilisearch và sinh embedding. Mỗi bước có thể cập nhật progress để frontend hiển thị trạng thái xử lý cho người dùng. Nếu một ảnh bị trùng lặp hoặc NSFW, worker không nhất thiết dừng toàn bộ job, mà ghi kết quả lỗi ở cấp ảnh và tiếp tục xử lý các ảnh còn lại.
+
+Redis trong hệ thống không chỉ phục vụ BullMQ. Redis còn được dùng làm cache cho vector embedding truy vấn văn bản trong \texttt{AiSearchService}; khóa cache có dạng gắn với phiên bản embedding để tránh dùng nhầm vector cũ khi thay mô hình. Redis cũng được dùng để chống spam lượt xem bằng cách đặt key debounce theo người dùng hoặc IP trong một khoảng thời gian. Ngoài ra, \texttt{MeilisearchSyncService} dùng Redis Hash như buffer cập nhật chỉ số, gom nhiều thay đổi nhỏ trước khi flush sang Meilisearch. Điều này cho thấy Redis đóng vai trò hạ tầng tốc độ cao cho cả hàng đợi, cache, rate limit và buffer.
+
+Mặc dù Redis hỗ trợ cơ chế publish-subscribe, mô hình BullMQ trong hệ thống gần với producer-consumer queue hơn là pub-sub thuần túy. Producer phát sinh job, Redis lưu job bền vững hơn so với message tạm thời, worker tiêu thụ job và cập nhật trạng thái. So với pub-sub thuần, queue phù hợp hơn với xử lý ảnh vì mỗi job cần được xử lý ít nhất một lần, có retry, có trạng thái thất bại và có thể quan sát tiến độ.
+
+\subsection{Meilisearch và inverted index}
+
+Meilisearch là công cụ tìm kiếm toàn văn nhẹ, tốc độ cao, hỗ trợ typo tolerance, ranking rule, filter, sort và API đơn giản \cite{meilisearchdocs}. Trong hệ thống, Meilisearch đảm nhiệm lớp lexical search cho tác phẩm. Mỗi document trong chỉ mục \texttt{artworks} gồm các trường như \texttt{id}, \texttt{title}, \texttt{description}, \texttt{author}, \texttt{thumbnail}, \texttt{tags}, \texttt{rating}, \texttt{isAI}, \texttt{createdAt}, \texttt{likeCount}, \texttt{viewCount}, \texttt{ratioClass}, \texttt{maxResolution} và \texttt{isHighRes}. Các thuộc tính searchable gồm tiêu đề, tag, tên hiển thị của tác giả và mô tả; các thuộc tính filterable gồm tag, rating, AI flag, tác giả, tỷ lệ ảnh và độ phân giải; các thuộc tính sortable gồm thời gian tạo, lượt thích và lượt xem.
+
+Nền tảng lý thuyết của tìm kiếm toàn văn là inverted index. Thay vì lưu mỗi document rồi quét tất cả document khi có truy vấn, search engine xây dựng ánh xạ từ term sang danh sách document chứa term đó. Nếu gọi \(D\) là tập document và \(V\) là tập token, inverted index lưu:
+
+\[
+\operatorname{postings}(w) = \{d \in D \mid w \in d\}
+\]
+
+Khi người dùng tìm kiếm một từ hoặc cụm từ, hệ thống truy xuất postings list tương ứng, kết hợp chúng theo toán tử truy vấn, sau đó xếp hạng kết quả dựa trên các quy tắc như mức độ khớp từ, khoảng cách từ, thuộc tính chứa từ, độ chính xác và chỉ số phổ biến. Meilisearch bổ sung typo tolerance để xử lý lỗi gõ, điều rất hữu ích trong tìm kiếm tag hoặc tên tác phẩm.
+
+Trong hệ thống, Meilisearch không phải nguồn dữ liệu gốc. PostgreSQL vẫn là source of truth; Meilisearch là chỉ mục phụ để tối ưu tìm kiếm. Vì vậy, sau khi một tác phẩm được xử lý thành công, worker lập chỉ mục document tương ứng. Khi bộ đếm lượt xem hoặc lượt thích thay đổi, hệ thống không cập nhật Meilisearch ngay từng sự kiện nhỏ, mà gom cập nhật qua Redis buffer và flush theo lô. Cách làm này giảm số request tới Meilisearch và tránh gây nghẽn khi tác phẩm có nhiều tương tác.
+
+\subsection{Clerk Auth}
+
+Clerk là dịch vụ xác thực và quản lý người dùng cung cấp đăng nhập, đăng ký, session, token và SDK cho frontend/backend \cite{clerkdocs}. Trong hệ thống, Clerk xử lý phần định danh bên ngoài, còn backend quản lý hồ sơ nghiệp vụ nội bộ. Frontend được bao bọc bởi \texttt{ClerkProvider}; middleware bảo vệ các route như dashboard và admin; backend dùng \texttt{ClerkStrategy} để xác minh Bearer token. Khi token hợp lệ, backend lấy \texttt{sub} làm \texttt{clerkId}, gọi Clerk API lấy email, username và avatar, sau đó gọi \texttt{UsersService.findOrCreateByClerkId}.
+
+Cách thiết kế lazy sync này có ưu điểm là người dùng chỉ được tạo trong database nội bộ khi thực sự truy cập backend. Bản ghi nội bộ sau đó lưu thêm những thuộc tính mà Clerk không quyết định, ví dụ vai trò quản trị, trạng thái artist, cảnh báo, ban, sở thích, \texttt{stripeCustomerId} và các quan hệ xã hội. Tách xác thực khỏi phân quyền nghiệp vụ là nguyên tắc quan trọng: Clerk trả lời câu hỏi ``người này là ai'', còn backend trả lời câu hỏi ``người này được phép làm gì trong nền tảng''.
+
+\subsection{Stripe và quản lý thanh toán}
+
+Stripe là cổng thanh toán cung cấp checkout, subscription, invoice, customer portal và webhook \cite{stripedocs}. Trong hệ thống đề xuất, Stripe được dùng cho hai nhóm nghiệp vụ: subscription nền tảng và subscription theo artist tier. Backend tạo checkout session với metadata chứa \texttt{userId}, \texttt{planId}, \texttt{tierId} hoặc \texttt{artistId}; khi thanh toán hoàn tất, webhook Stripe gửi sự kiện về backend để đồng bộ trạng thái. Các sự kiện như \texttt{checkout.session.completed}, \texttt{invoice.paid}, \texttt{customer.subscription.updated} và \texttt{customer.subscription.deleted} được xử lý để cập nhật subscription nội bộ.
+
+Một điểm quan trọng trong tích hợp thanh toán là không tin cậy hoàn toàn vào redirect phía frontend. Sau khi người dùng thanh toán, trình duyệt có thể bị đóng, mạng có thể lỗi hoặc người dùng không quay lại trang success. Vì vậy, webhook mới là cơ chế đồng bộ đáng tin cậy. Backend dùng chữ ký \texttt{stripe-signature} để xác minh payload webhook, sau đó ánh xạ dữ liệu Stripe sang bảng nội bộ. Với mô hình artist tier, subscription không chỉ biểu diễn quan hệ người dùng với nền tảng, mà còn biểu diễn quan hệ người hâm mộ với một artist cụ thể. Điều này cho phép backend kiểm tra quyền xem nội dung \texttt{TIER\_GATED} dựa trên dữ liệu subscription đã đồng bộ.
+
+Từ góc độ kiến trúc, Stripe được đóng gói trong \texttt{StripeService}, còn logic nghiệp vụ nằm trong \texttt{PaymentsService}. \texttt{StripeService} chịu trách nhiệm gọi API Stripe như tạo checkout session, lấy subscription, tạo customer, tạo billing portal và xác minh webhook. \texttt{PaymentsService} chịu trách nhiệm kiểm tra người dùng, tạo plan hoặc tier, đảm bảo customer tồn tại, cập nhật database và áp dụng quy tắc nghiệp vụ như không cho đổi giá tier khi đã có subscriber đang hoạt động. Sự phân tách này giúp hệ thống không để logic nghiệp vụ phụ thuộc trực tiếp vào API thanh toán ở mọi nơi.

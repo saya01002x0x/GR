@@ -1,0 +1,146 @@
+\documentclass[a4paper,13pt,twoside]{report}
+
+\usepackage{scrextend}
+\changefontsizes{13pt}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[utf8]{vietnam}
+\usepackage{times}
+\usepackage[top=2cm,bottom=2cm,left=3.5cm,right=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{indentfirst}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bm}
+\usepackage{titlesec}
+\usepackage{titletoc}
+\usepackage{chngcntr}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{subcaption}
+\usepackage{algorithm2e}
+\usepackage{listings}
+\usepackage{fancyhdr}
+\usepackage{xurl}
+\usepackage[unicode,hidelinks]{hyperref}
+\usepackage[all]{hypcap}
+\usepackage[backend=bibtex,style=ieee]{biblatex}
+
+\addbibresource{Danh_sach_tai_lieu_tham_khao.bib}
+\input{lstlisting}
+\input{Tu_viet_tat}
+
+\graphicspath{{Hinhve/}}
+\counterwithin{figure}{chapter}
+\counterwithin{table}{chapter}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+
+\onehalfspacing
+\setlength{\parindent}{15pt}
+\setlength{\parskip}{6pt}
+
+\titleformat{\chapter}[hang]{\centering\bfseries}{CHƯƠNG \thechapter.\ }{0pt}{}
+\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
+\titleformat{\section}[hang]{\bfseries}{\thechapter.\arabic{section}\ \ \ }{0pt}{}
+\titlespacing{\section}{0pt}{\parskip}{0.5\parskip}
+\titleformat{\subsection}[hang]{\bfseries}{\thechapter.\arabic{section}.\arabic{subsection}\ \ \ }{0pt}{}
+\titlespacing{\subsection}{30pt}{\parskip}{0.5\parskip}
+\renewcommand\thesubsubsection{\alph{subsubsection}}
+\titleformat{\subsubsection}[hang]{\bfseries}{\alph{subsubsection},\ }{0pt}{}
+\titlespacing{\subsubsection}{50pt}{\parskip}{0.5\parskip}
+
+\titlecontents{chapter}
+  [0.0cm]
+  {\bfseries\vspace{0.3cm}}
+  {{\bfseries CHƯƠNG \thecontentslabel.\ }}
+  {}
+  {\titlerule*[0.3pc]{.}\contentspage}
+\titlecontents{section}
+  [0.0cm]
+  {\vspace{0.15cm}}
+  {\thecontentslabel\ }
+  {}
+  {\titlerule*[0.3pc]{.}\contentspage}
+\titlecontents{subsection}
+  [1.0cm]
+  {\vspace{0.1cm}}
+  {\thecontentslabel\ }
+  {}
+  {\titlerule*[0.3pc]{.}\contentspage}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[RO,RE]{\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[RE,LO]{\leftmark}
+\fancyfoot[RE,LO]{\thepage}
+
+\begin{document}
+
+\input{Bia}
+\input{Bia_lot}
+
+\pagenumbering{roman}
+\input{Chuong/0_2_Loi_cam_on}
+\input{Chuong/0_3_Tom_tat_noi_dung}
+\input{Chuong/0_4_Tom_tat_noi_dung_English}
+
+\renewcommand*\contentsname{MỤC LỤC}
+\tableofcontents
+\newpage
+
+\renewcommand{\listfigurename}{DANH MỤC HÌNH VẼ}
+\listoffigures
+\newpage
+
+\renewcommand{\listtablename}{DANH MỤC BẢNG BIỂU}
+\listoftables
+\newpage
+
+\pagenumbering{arabic}
+\pagestyle{fancy}
+
+\chapter{GIỚI THIỆU ĐỀ TÀI}
+\label{chapter:introduction}
+\input{Chuong/1_Gioi_thieu}
+
+\chapter{KHẢO SÁT VÀ PHÂN TÍCH YÊU CẦU}
+\label{chapter:requirements}
+\input{Chuong/2_Khao_sat}
+
+\chapter{NỀN TẢNG LÝ THUYẾT VÀ CÔNG NGHỆ SỬ DỤNG}
+\label{chapter:technology}
+\input{Chuong/3_Cong_nghe}
+
+\chapter{PHÂN TÍCH THIẾT KẾ, TRIỂN KHAI VÀ ĐÁNH GIÁ HỆ THỐNG}
+\label{chapter:design}
+\input{Chuong/4_Ket_qua_thuc_nghiem}
+
+\chapter{CÁC GIẢI PHÁP VÀ ĐÓNG GÓP NỔI BẬT}
+\label{chapter:contributions}
+\input{Chuong/5_Giai_phap_dong_gop}
+
+\chapter{KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}
+\label{chapter:conclusion}
+\input{Chuong/6_Ket_luan}
+
+\newpage
+\renewcommand\bibname{TÀI LIỆU THAM KHẢO}
+\printbibliography
+\addcontentsline{toc}{chapter}{TÀI LIỆU THAM KHẢO}
+
+\end{document}
