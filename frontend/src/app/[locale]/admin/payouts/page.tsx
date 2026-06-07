@@ -49,8 +49,13 @@ export default function PayoutsPage() {
 
   const payouts = (payoutsData?.data || []) as Payout[];
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  const toNumber = (value: unknown) => {
+    const amount = typeof value === 'number' ? value : Number(value || 0);
+    return Number.isFinite(amount) ? amount : 0;
+  };
+
+  const formatCurrency = (amount: unknown) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(toNumber(amount));
   };
 
   const formatDate = (dateStr: string) => {
@@ -128,7 +133,7 @@ export default function PayoutsPage() {
                 Pending
               </Text>
               <Text fw={700} size="lg">
-                {formatCurrency(payouts.filter(p => p.status === 'PENDING').reduce((sum, p) => sum + p.amount, 0))}
+                {formatCurrency(payouts.filter(p => p.status === 'PENDING').reduce((sum, p) => sum + toNumber(p.amount), 0))}
               </Text>
             </Box>
           </Group>
@@ -141,7 +146,7 @@ export default function PayoutsPage() {
                 Approved
               </Text>
               <Text fw={700} size="lg">
-                {formatCurrency(payouts.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + p.amount, 0))}
+                {formatCurrency(payouts.filter(p => p.status === 'APPROVED').reduce((sum, p) => sum + toNumber(p.amount), 0))}
               </Text>
             </Box>
           </Group>
@@ -183,7 +188,7 @@ export default function PayoutsPage() {
                               radius="xl"
                             />
                             <Text size="sm" fw={500}>
-                              {payout.artist?.displayName || payout.artist?.username}
+                              {payout.artist?.displayName || payout.artist?.username || 'Unknown artist'}
                             </Text>
                           </Group>
                         </Table.Td>

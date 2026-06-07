@@ -122,6 +122,7 @@ export type CheckoutResult = {
 export type RevenueStats = {
   totalRevenue: number;
   monthlyRevenue: number;
+  availableBalance: number;
   pendingPayouts: number;
   totalPayouts: number;
   subscriberCount: number;

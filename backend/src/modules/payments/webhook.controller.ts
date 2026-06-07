@@ -25,6 +25,20 @@ export class WebhookController {
     private readonly stripe: StripeService,
   ) {}
 
+  private getInvoiceSubscriptionId(invoice: Stripe.Invoice & {
+    subscription?: string | { id: string } | null;
+    parent?: {
+      subscription_details?: {
+        subscription?: string | { id: string } | null;
+      } | null;
+    } | null;
+  }) {
+    const subscription = invoice.subscription
+      || invoice.parent?.subscription_details?.subscription;
+
+    return typeof subscription === 'string' ? subscription : subscription?.id;
+  }
+
   @Post('stripe')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Stripe webhook handler' })
@@ -70,6 +84,11 @@ export class WebhookController {
         case 'invoice.paid': {
           const invoice = event.data.object as Stripe.Invoice & {
             subscription?: string | { id: string } | null;
+            parent?: {
+              subscription_details?: {
+                subscription?: string | { id: string } | null;
+              } | null;
+            } | null;
             amount_paid?: number | null;
             currency?: string | null;
           };
@@ -78,7 +97,7 @@ export class WebhookController {
           }
           await this.payments.handleStripeInvoicePaid({
             id: invoice.id,
-            subscription: typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id,
+            subscription: this.getInvoiceSubscriptionId(invoice),
             amount_paid: invoice.amount_paid,
             currency: invoice.currency,
           });

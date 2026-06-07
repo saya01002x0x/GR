@@ -8,6 +8,7 @@ type PlansResponse = { message: string; data: Plan[] };
 type SubscriptionResponse = { message: string; data: Subscription | null };
 type TiersResponse = { message: string; data: ArtistTier[] };
 type PayoutsResponse = { message: string; data: Payout[] };
+type PayoutsApiResponse = PayoutsResponse | Payout[];
 type RevenueResponse = { message: string; data: RevenueStats };
 type CheckoutResponse = { message: string; data: { checkoutUrl: string; sessionId: string } };
 type PortalResponse = { message: string; data: { url: string } };
@@ -271,7 +272,12 @@ export function useAllPayouts(status?: string) {
 
   return useQuery({
     queryKey: ['admin', 'payouts', status],
-    queryFn: () => apiClient.get<PayoutsResponse>(E.admin.payouts.list(status)),
+    queryFn: async () => {
+      const response = await apiClient.get<PayoutsApiResponse>(E.admin.payouts.list(status));
+      return Array.isArray(response)
+        ? { message: 'OK', data: response }
+        : response;
+    },
   });
 }
 

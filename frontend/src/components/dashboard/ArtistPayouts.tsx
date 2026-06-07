@@ -45,6 +45,8 @@ export function ArtistPayouts() {
 
   const payouts = (payoutsData?.data || []) as Payout[];
   const revenue = revenueData?.data as RevenueStats | null;
+  const availableBalance = revenue?.availableBalance || 0;
+  const canRequestPayout = availableBalance >= 10;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -65,6 +67,10 @@ export function ArtistPayouts() {
       notifications.show({ message: 'Minimum payout is $10', color: 'red' });
       return;
     }
+    if (requestAmount > availableBalance) {
+      notifications.show({ message: 'Amount exceeds available balance', color: 'red' });
+      return;
+    }
     try {
       await requestPayout.mutateAsync({ amount: requestAmount, note: requestNote || undefined });
       notifications.show({ message: 'Payout requested successfully', color: 'green' });
@@ -75,8 +81,6 @@ export function ArtistPayouts() {
       notifications.show({ message: 'Failed to request payout', color: 'red' });
     }
   };
-
-  const canRequestPayout = revenue && revenue.pendingPayouts >= 10;
 
   return (
     <Stack gap="xl">
@@ -90,14 +94,13 @@ export function ArtistPayouts() {
               Request payouts from your subscriber earnings.
             </Text>
           </Box>
-          {canRequestPayout && (
-            <Button
-              leftSection={<IconPlus size={16} />}
-              onClick={() => setShowRequestModal(true)}
-            >
-              Request Payout
-            </Button>
-          )}
+          <Button
+            leftSection={<IconPlus size={16} />}
+            onClick={() => setShowRequestModal(true)}
+            disabled={!canRequestPayout}
+          >
+            Request Payout
+          </Button>
         </Group>
       </Box>
 
@@ -138,10 +141,10 @@ export function ArtistPayouts() {
               <IconBucket size={20} color="var(--mantine-color-yellow-6)" />
               <Box>
                 <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-                  Pending Payouts
+                  Available Balance
                 </Text>
                 <Text fw={700} size="lg">
-                  {formatCurrency(revenue?.pendingPayouts || 0)}
+                  {formatCurrency(availableBalance)}
                 </Text>
               </Box>
             </Group>
@@ -258,7 +261,7 @@ export function ArtistPayouts() {
                   Available Balance
                 </Text>
                 <Text size="xl" fw={700}>
-                  {formatCurrency(revenue?.pendingPayouts || 0)}
+                  {formatCurrency(availableBalance)}
                 </Text>
               </Box>
 
@@ -266,7 +269,7 @@ export function ArtistPayouts() {
                 label="Amount (USD)"
                 placeholder="Enter amount"
                 min={10}
-                max={revenue?.pendingPayouts || 0}
+                max={availableBalance}
                 value={requestAmount}
                 onChange={val => setRequestAmount(Number(val))}
                 disabled={!canRequestPayout}

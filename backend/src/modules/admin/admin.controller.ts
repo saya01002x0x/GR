@@ -283,14 +283,16 @@ export class AdminController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'List all payouts (Admin+)' })
   async getAllPayouts(@Query('status') status?: string) {
-    return this.adminService.getAllPayouts(status);
+    const data = await this.adminService.getAllPayouts(status);
+    return { message: 'OK', data };
   }
 
   @Patch('payouts/:payoutId/approve')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Approve a payout (Admin+)' })
   async approvePayout(@CurrentUser() actor: User, @Param('payoutId') payoutId: string) {
-    return this.adminService.approvePayout(payoutId, actor.id);
+    const data = await this.adminService.approvePayout(payoutId, actor.id);
+    return { message: 'Payout approved', data };
   }
 
   @Patch('payouts/:payoutId/reject')
@@ -301,13 +303,15 @@ export class AdminController {
     @Param('payoutId') payoutId: string,
     @Body() body: { reason: string },
   ) {
-    return this.adminService.rejectPayout(payoutId, actor.id, body.reason);
+    const data = await this.adminService.rejectPayout(payoutId, actor.id, body.reason);
+    return { message: 'Payout rejected', data };
   }
 
   @Patch('payouts/:payoutId/mark-paid')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Mark payout as paid (Admin+)' })
   async markPayoutPaid(@CurrentUser() actor: User, @Param('payoutId') payoutId: string) {
-    return this.adminService.markPayoutAsPaid(payoutId, actor.id);
+    const data = await this.adminService.markPayoutAsPaid(payoutId, actor.id);
+    return { message: 'Payout marked as paid', data };
   }
 }

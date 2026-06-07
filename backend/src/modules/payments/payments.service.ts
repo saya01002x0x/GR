@@ -399,7 +399,7 @@ export class PaymentsService {
     });
 
     if (existing) {
-      return this.prisma.tierSubscription.update({
+      const subscription = await this.prisma.tierSubscription.update({
         where: { id: existing.id },
         data: {
           status: params.status,
@@ -407,9 +407,13 @@ export class PaymentsService {
           cancelAtPeriodEnd: params.cancelAtPeriodEnd ?? false,
         },
       });
+
+      await this.ensureInitialTierSubscriptionPayment(subscription.id);
+
+      return subscription;
     }
 
-    return this.prisma.tierSubscription.create({
+    const subscription = await this.prisma.tierSubscription.create({
       data: {
         tierId: params.tierId,
         subscriberId: params.subscriberId,
@@ -421,6 +425,68 @@ export class PaymentsService {
         cancelAtPeriodEnd: params.cancelAtPeriodEnd ?? false,
       },
     });
+
+    await this.ensureInitialTierSubscriptionPayment(subscription.id);
+
+    return subscription;
+  }
+
+  private async ensureInitialTierSubscriptionPayment(tierSubscriptionId: string) {
+    const tierSubscription = await this.prisma.tierSubscription.findUnique({
+      where: { id: tierSubscriptionId },
+      include: { tier: true },
+    });
+
+    if (!tierSubscription || tierSubscription.status !== 'ACTIVE') {
+      return null;
+    }
+
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: {
+        tierSubscriptionId,
+        type: 'TIER_SUBSCRIPTION',
+        status: 'COMPLETED',
+      },
+    });
+
+    if (existingPayment) {
+      return existingPayment;
+    }
+
+    return this.prisma.payment.create({
+      data: {
+        userId: tierSubscription.subscriberId,
+        provider: 'STRIPE',
+        providerTransactionId: `subscription:${tierSubscription.providerSubId}:initial`,
+        amount: Number(tierSubscription.tier.price),
+        currency: tierSubscription.tier.currency,
+        type: 'TIER_SUBSCRIPTION',
+        status: 'COMPLETED',
+        tierSubscriptionId: tierSubscription.id,
+      },
+    });
+  }
+
+  private async ensureMissingTierSubscriptionPaymentsForArtist(artistId: string) {
+    const subscriptions = await this.prisma.tierSubscription.findMany({
+      where: {
+        artistId,
+        status: 'ACTIVE',
+        payments: {
+          none: {
+            type: 'TIER_SUBSCRIPTION',
+            status: 'COMPLETED',
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    await Promise.all(
+      subscriptions.map(subscription =>
+        this.ensureInitialTierSubscriptionPayment(subscription.id),
+      ),
+    );
   }
 
   async cancelMyTierSubscription(subscriberId: string, tierId: string) {
@@ -457,6 +523,8 @@ export class PaymentsService {
   // ==================== PAYOUTS ====================
 
   async requestPayout(artistId: string, amount: number, note?: string) {
+    await this.ensureMissingTierSubscriptionPaymentsForArtist(artistId);
+
     const pendingPayouts = await this.prisma.payout.findMany({
       where: { artistId, status: { in: ['PENDING', 'APPROVED'] } },
     });
@@ -472,8 +540,13 @@ export class PaymentsService {
       _sum: { amount: true },
     });
 
+    const paidPayouts = await this.prisma.payout.findMany({
+      where: { artistId, status: 'PAID' },
+    });
+
+    const paidTotal = paidPayouts.reduce((sum, p) => sum + Number(p.amount), 0);
     const totalRevenue = Number(revenue._sum.amount || 0);
-    const availableAmount = totalRevenue - pendingTotal - totalRevenue * this.commissionRate;
+    const availableAmount = Math.max(totalRevenue - pendingTotal - paidTotal, 0);
 
     if (amount > availableAmount) {
       throw new BadRequestException(
@@ -481,7 +554,7 @@ export class PaymentsService {
       );
     }
 
-    const fee = amount * 0; // No fee for now
+    const fee = amount * this.commissionRate;
     const netAmount = amount - fee;
 
     return this.prisma.payout.create({
@@ -503,6 +576,8 @@ export class PaymentsService {
   }
 
   async getArtistRevenue(artistId: string) {
+    await this.ensureMissingTierSubscriptionPaymentsForArtist(artistId);
+
     const totalRevenue = await this.prisma.payment.aggregate({
       where: {
         type: 'TIER_SUBSCRIPTION',
@@ -526,21 +601,26 @@ export class PaymentsService {
 
     const pendingPayouts = await this.prisma.payout.aggregate({
       where: { artistId, status: { in: ['PENDING', 'APPROVED'] } },
-      _sum: { netAmount: true },
+      _sum: { amount: true, netAmount: true },
     });
 
     const totalPayouts = await this.prisma.payout.aggregate({
       where: { artistId, status: 'PAID' },
-      _sum: { netAmount: true },
+      _sum: { amount: true, netAmount: true },
     });
 
     const subscriberCount = await this.prisma.tierSubscription.count({
       where: { artistId, status: 'ACTIVE' },
     });
 
+    const grossRevenue = Number(totalRevenue._sum.amount || 0);
+    const pendingGrossPayouts = Number(pendingPayouts._sum.amount || 0);
+    const paidGrossPayouts = Number(totalPayouts._sum.amount || 0);
+
     return {
-      totalRevenue: Number(totalRevenue._sum.amount || 0),
+      totalRevenue: grossRevenue,
       monthlyRevenue: Number(monthlyRevenue._sum.amount || 0),
+      availableBalance: Math.max(grossRevenue - pendingGrossPayouts - paidGrossPayouts, 0),
       pendingPayouts: Number(pendingPayouts._sum.netAmount || 0),
       totalPayouts: Number(totalPayouts._sum.netAmount || 0),
       subscriberCount,
@@ -706,14 +786,92 @@ export class PaymentsService {
           subscription:
             typeof stripeInvoice.subscription === 'string'
               ? stripeInvoice.subscription
-              : stripeInvoice.subscription?.id,
+              : stripeInvoice.subscription?.id || subscription.id,
           amount_paid: stripeInvoice.amount_paid,
           currency: stripeInvoice.currency,
+        });
+      }
+    } else if (syncedSubscription) {
+      const amountTotal = typeof session.amount_total === 'number'
+        ? session.amount_total
+        : null;
+      const currency = typeof session.currency === 'string'
+        ? session.currency
+        : 'usd';
+
+      if (amountTotal && amountTotal > 0) {
+        await this.handleCheckoutSessionPayment({
+          sessionId: session.id,
+          amountTotal,
+          currency,
+          subscriptionId: syncedSubscription.id,
+          isTierSubscription: metadata.type === 'ARTIST_TIER',
         });
       }
     }
 
     return syncedSubscription;
+  }
+
+  private async handleCheckoutSessionPayment(params: {
+    sessionId: string;
+    amountTotal: number;
+    currency: string;
+    subscriptionId: string;
+    isTierSubscription: boolean;
+  }) {
+    const providerTransactionId = `checkout:${params.sessionId}`;
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: { providerTransactionId },
+    });
+
+    if (existingPayment) {
+      return existingPayment;
+    }
+
+    if (params.isTierSubscription) {
+      const tierSubscription = await this.prisma.tierSubscription.findUnique({
+        where: { id: params.subscriptionId },
+      });
+
+      if (!tierSubscription) {
+        return null;
+      }
+
+      return this.prisma.payment.create({
+        data: {
+          userId: tierSubscription.subscriberId,
+          provider: 'STRIPE',
+          providerTransactionId,
+          amount: Number(params.amountTotal / 100),
+          currency: params.currency.toUpperCase(),
+          type: 'TIER_SUBSCRIPTION',
+          status: 'COMPLETED',
+          tierSubscriptionId: tierSubscription.id,
+        },
+      });
+    }
+
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: params.subscriptionId },
+    });
+
+    if (!subscription) {
+      return null;
+    }
+
+    return this.prisma.payment.create({
+      data: {
+        userId: subscription.userId,
+        provider: 'STRIPE',
+        providerTransactionId,
+        amount: Number(params.amountTotal / 100),
+        currency: params.currency.toUpperCase(),
+        type: 'SUBSCRIPTION',
+        status: 'COMPLETED',
+        subscriptionId: subscription.id,
+      },
+    });
   }
 
   async handleStripeInvoicePaid(invoice: {
@@ -726,7 +884,7 @@ export class PaymentsService {
       return null;
     }
 
-    const [platformSubscription, tierSubscription] = await Promise.all([
+    let [platformSubscription, tierSubscription] = await Promise.all([
       this.prisma.subscription.findFirst({
         where: { providerSubId: invoice.subscription },
       }),
@@ -736,7 +894,27 @@ export class PaymentsService {
     ]);
 
     if (!platformSubscription && !tierSubscription) {
-      return null;
+      const stripeSubscription = await this.stripe.retrieveSubscription(invoice.subscription);
+      await this.handleStripeSubscriptionUpdate({
+        id: stripeSubscription.id,
+        status: stripeSubscription.status,
+        cancel_at_period_end: stripeSubscription.cancel_at_period_end,
+        current_period_end: stripeSubscription.current_period_end,
+        metadata: stripeSubscription.metadata,
+      });
+
+      [platformSubscription, tierSubscription] = await Promise.all([
+        this.prisma.subscription.findFirst({
+          where: { providerSubId: invoice.subscription },
+        }),
+        this.prisma.tierSubscription.findFirst({
+          where: { providerSubId: invoice.subscription },
+        }),
+      ]);
+
+      if (!platformSubscription && !tierSubscription) {
+        return null;
+      }
     }
 
     const existingPayment = await this.prisma.payment.findFirst({
@@ -750,6 +928,31 @@ export class PaymentsService {
     const targetUserId = platformSubscription?.userId || tierSubscription?.subscriberId;
     if (!targetUserId) {
       return null;
+    }
+
+    const existingCheckoutPayment = await this.prisma.payment.findFirst({
+      where: {
+        provider: 'STRIPE',
+        status: 'COMPLETED',
+        OR: [
+          { providerTransactionId: { startsWith: 'checkout:' } },
+          { providerTransactionId: { startsWith: 'subscription:' } },
+        ],
+        ...(platformSubscription
+          ? { subscriptionId: platformSubscription.id }
+          : { tierSubscriptionId: tierSubscription?.id }),
+      },
+    });
+
+    if (existingCheckoutPayment) {
+      return this.prisma.payment.update({
+        where: { id: existingCheckoutPayment.id },
+        data: {
+          providerTransactionId: invoice.id,
+          amount: Number((invoice.amount_paid || 0) / 100),
+          currency: (invoice.currency || 'usd').toUpperCase(),
+        },
+      });
     }
 
     return this.prisma.payment.create({
