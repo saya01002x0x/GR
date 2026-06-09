@@ -274,3 +274,15 @@ docs/howto/
 slide/20212021
 slide/template_1.docx
 slide/SOICT_DATN_Application_VIE_Template
+*.bib
+*.aux
+*.bbl
+*.fdb_latexmk
+*.fls
+*.out
+*.blg
+*.lof
+*.lot
+*.run.xml
+*.gz
+*.toc
