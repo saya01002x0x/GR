@@ -19,6 +19,8 @@ import {
 } from '../../search/search.service';
 import { DuplicateDetectionService } from '../../duplicate-detection/duplicate-detection.service';
 import { EmbeddingService } from '../../ai-search/embedding.service';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 import sharp from 'sharp';
 
 /** Per-image processing result used internally */
@@ -51,6 +53,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
     private readonly searchService: SearchService,
     private readonly duplicateDetection: DuplicateDetectionService,
     private readonly embeddingService: EmbeddingService,
+    private readonly notificationsService: NotificationsService,
   ) {
     super();
   }
@@ -450,6 +453,13 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
         );
       }
 
+      // Step 5: Notify followers
+      if (finalStatus === 'PUBLISHED') {
+        this.notifyFollowers(userId, artworkId).catch(err => 
+          this.logger.error(`Failed to notify followers for artwork ${artworkId}: ${err.message}`)
+        );
+      }
+
       // Final progress update
       await job.updateProgress({
         phase: 'complete',
@@ -528,6 +538,34 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
 
       } catch (err: any) {
         this.logger.error(`Failed to generate embedding for image ${img.id}: ${err.message}`);
+      }
+    }
+  }
+
+  private async notifyFollowers(artistId: string, artworkId: string) {
+    const artist = await this.prisma.user.findUnique({ where: { id: artistId }, select: { displayName: true, username: true } });
+    if (!artist) return;
+
+    const artwork = await this.prisma.artwork.findUnique({ where: { id: artworkId }, select: { title: true } });
+    if (!artwork) return;
+
+    const followers = await this.prisma.follow.findMany({
+      where: { followingId: artistId },
+      select: { followerId: true },
+    });
+
+    const artistName = artist.displayName || artist.username;
+
+    // We can do this sequentially or in chunks. Sequential is fine for small count.
+    for (const { followerId } of followers) {
+      const shouldNotify = await this.notificationsService.shouldNotify(followerId, 'newArtworkWeb');
+      if (shouldNotify) {
+        await this.notificationsService.createNotification(followerId, {
+          type: NotificationType.NEW_ARTWORK,
+          title: 'New Artwork',
+          content: `${artistName} just published "${artwork.title}"`,
+          metadata: { artworkId, artistId },
+        }).catch(() => {});
       }
     }
   }

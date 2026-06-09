@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Notifications Controller
  * API endpoints for user notification bell
  */
@@ -11,6 +11,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Body,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
@@ -60,5 +61,17 @@ export class NotificationsController {
   @ApiOperation({ summary: 'Delete a notification' })
   async deleteNotification(@CurrentUser() user: User, @Param('id') id: string) {
     return this.notificationsService.delete(id, user.id);
+  }
+
+  @Get('preferences')
+  @ApiOperation({ summary: 'Get notification preferences' })
+  async getPreferences(@CurrentUser() user: User) {
+    return this.notificationsService.getPreferences(user.id);
+  }
+
+  @Patch('preferences')
+  @ApiOperation({ summary: 'Update notification preferences' })
+  async updatePreferences(@CurrentUser() user: User, @Body() body: any) {
+    return this.notificationsService.updatePreferences(user.id, body);
   }
 }

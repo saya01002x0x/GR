@@ -158,6 +158,14 @@ export class UsersService {
     const accessibleTierIds = new Set(accessibleTierIdsList);
     const isOwner = viewerId === artist.id;
 
+    let isFollowing = false;
+    if (viewerId && !isOwner) {
+      const follow = await this.prisma.follow.findUnique({
+        where: { followerId_followingId: { followerId: viewerId, followingId: artist.id } },
+      });
+      isFollowing = !!follow;
+    }
+
     const counts = await Promise.all([
       this.prisma.artwork.count({
         where: {
@@ -195,6 +203,7 @@ export class UsersService {
     return {
       ...artist,
       isOwner,
+      isFollowing,
       tiers: activeTiers.map(tier => ({
         ...tier,
         memberCount: tier._count.subscriptions,

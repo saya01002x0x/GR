@@ -9,9 +9,11 @@ import { BullModule } from '@nestjs/bullmq';
 import { CommentsService } from './comments.service';
 import { CommentsController } from './comments.controller';
 import { STATS_QUEUE_NAME } from '../stats/stats.constants';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
+    NotificationsModule,
     BullModule.registerQueue({
       name: STATS_QUEUE_NAME,
     }),

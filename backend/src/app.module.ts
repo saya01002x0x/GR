@@ -34,6 +34,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { DuplicateDetectionModule } from './modules/duplicate-detection/duplicate-detection.module';
 import { AiSearchModule } from './modules/ai-search/ai-search.module';
 import { RecommendationsModule } from './modules/recommendations/recommendations.module';
+import { FollowsModule } from './modules/follows/follows.module';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { RecommendationsModule } from './modules/recommendations/recommendations
     DuplicateDetectionModule,
     AiSearchModule,
     RecommendationsModule,
+    FollowsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

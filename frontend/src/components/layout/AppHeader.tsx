@@ -101,6 +101,29 @@ export function AppHeader() {
             </Text>
           </Box>
 
+          <Group gap="sm" visibleFrom="sm" ml="md">
+            <Button
+              component={Link}
+              href="/discover"
+              variant="subtle"
+              color="dark"
+              fw={600}
+            >
+              Discover
+            </Button>
+            {isSignedIn && (
+              <Button
+                component={Link}
+                href="/feed"
+                variant="subtle"
+                color="dark"
+                fw={600}
+              >
+                Feed
+              </Button>
+            )}
+          </Group>
+
           <Box flex={1} maw={400} visibleFrom="md">
             <Suspense fallback={<Box h={36} />}>
               <SearchBar

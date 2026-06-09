@@ -2,86 +2,50 @@
 
 import {
   Box,
-  Button,
   Card,
   Grid,
   Group,
+  Loader,
   Stack,
   Switch,
   Text,
   Title,
 } from '@mantine/core';
-import { IconMail, IconWorld } from '@tabler/icons-react';
-import { useState } from 'react';
-
-type NotificationData = {
-  activity: {
-    newFollowers: { email: boolean; web: boolean };
-    artworkLikes: { email: boolean; web: boolean };
-    comments: { email: boolean; web: boolean };
-    mentions: { email: boolean; web: boolean };
-  };
-  updates: {
-    weeklyNewsletter: boolean;
-    productUpdates: boolean;
-  };
-};
-
-const defaultData: NotificationData = {
-  activity: {
-    newFollowers: { email: true, web: true },
-    artworkLikes: { email: false, web: true },
-    comments: { email: true, web: true },
-    mentions: { email: false, web: true },
-  },
-  updates: {
-    weeklyNewsletter: true,
-    productUpdates: true,
-  },
-};
-
-type ActivityKey = keyof NotificationData['activity'];
-
-const activityItems: { key: ActivityKey; label: string; description: string }[] = [
-  { key: 'newFollowers', label: 'New Followers', description: 'When someone starts following your profile.' },
-  { key: 'artworkLikes', label: 'Artwork Likes', description: 'When someone likes one of your illustrations.' },
-  { key: 'comments', label: 'Comments', description: 'When someone comments on your work.' },
-  { key: 'mentions', label: 'Mentions & Tags', description: 'When you are mentioned in a description or comment.' },
-];
+import { IconWorld } from '@tabler/icons-react';
+import { useNotificationPreferences } from '@/api/hooks';
 
 export function NotificationSettings() {
-  const [data, setData] = useState<NotificationData>(defaultData);
+  const { preferences, isLoading, updatePreferences, isUpdating } = useNotificationPreferences();
 
-  const updateActivity = (key: ActivityKey, type: 'email' | 'web', value: boolean) => {
-    setData(prev => ({
-      ...prev,
-      activity: {
-        ...prev.activity,
-        [key]: { ...prev.activity[key], [type]: value },
-      },
-    }));
+  if (isLoading) {
+    return <Box ta="center" py="xl"><Loader /></Box>;
+  }
+
+  const prefs = preferences || {
+    followWeb: true,
+    likeWeb: true,
+    commentWeb: true,
+    mentionWeb: true,
+    newArtworkWeb: true,
+    weeklyNewsletter: true,
+    productUpdates: true,
   };
 
-  const updateUpdates = (key: keyof NotificationData['updates'], value: boolean) => {
-    setData(prev => ({
-      ...prev,
-      updates: { ...prev.updates, [key]: value },
-    }));
+  const updatePrefs = (key: string, value: boolean) => {
+    updatePreferences({ [key]: value });
   };
 
   return (
     <Stack gap="xl">
-      {/* Page Header */}
       <Box pb="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
         <Title order={2} mb="xs">
           Notification Settings
         </Title>
         <Text c="dimmed" size="sm">
-          Choose what you want to be notified about and how you receive alerts.
+          Choose what you want to be notified about.
         </Text>
       </Box>
 
-      {/* Activity Notifications */}
       <Card withBorder radius="lg" p="lg">
         <Box mb="lg">
           <Title order={4} mb="xs">
@@ -92,72 +56,51 @@ export function NotificationSettings() {
           </Text>
         </Box>
 
-        {/* Header Row */}
         <Grid pb="sm" mb="sm" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
-          <Grid.Col span={8}>
+          <Grid.Col span={9}>
             <Text size="xs" fw={700} c="dimmed" tt="uppercase">
               Type
             </Text>
           </Grid.Col>
-          <Grid.Col span={2}>
-            <Group justify="center" gap={4}>
-              <IconMail size={14} color="var(--mantine-color-gray-5)" />
-              <Text size="xs" fw={700} c="dimmed" tt="uppercase" visibleFrom="sm">
-                Email
-              </Text>
-            </Group>
-          </Grid.Col>
-          <Grid.Col span={2}>
+          <Grid.Col span={3}>
             <Group justify="center" gap={4}>
               <IconWorld size={14} color="var(--mantine-color-gray-5)" />
               <Text size="xs" fw={700} c="dimmed" tt="uppercase" visibleFrom="sm">
-                Web
+                Web Push
               </Text>
             </Group>
           </Grid.Col>
         </Grid>
 
-        {/* Notification Rows */}
         <Stack gap={0}>
-          {activityItems.map((item, index) => (
+          {[
+            { key: 'followWeb', label: 'New Followers', desc: 'When someone starts following your profile.' },
+            { key: 'likeWeb', label: 'Artwork Likes', desc: 'When someone likes one of your illustrations.' },
+            { key: 'commentWeb', label: 'Comments', desc: 'When someone comments on your work.' },
+            { key: 'mentionWeb', label: 'Mentions & Tags', desc: 'When you are mentioned.' },
+            { key: 'newArtworkWeb', label: 'New Artworks', desc: 'When someone you follow uploads new artwork.' },
+          ].map((item, index, arr) => (
             <Grid
               key={item.key}
               py="md"
               px="xs"
               style={{
-                borderBottom: index < activityItems.length - 1 ? '1px solid var(--mantine-color-gray-1)' : undefined,
+                borderBottom: index < arr.length - 1 ? '1px solid var(--mantine-color-gray-1)' : undefined,
                 borderRadius: 'var(--mantine-radius-sm)',
-                transition: 'background-color 0.15s',
-              }}
-              styles={{
-                root: {
-                  '&:hover': {
-                    backgroundColor: 'var(--mantine-color-gray-0)',
-                  },
-                },
               }}
             >
-              <Grid.Col span={8}>
+              <Grid.Col span={9}>
                 <Text fw={500} size="sm">{item.label}</Text>
-                <Text size="xs" c="dimmed" mt={2}>{item.description}</Text>
+                <Text size="xs" c="dimmed" mt={2}>{item.desc}</Text>
               </Grid.Col>
-              <Grid.Col span={2}>
+              <Grid.Col span={3}>
                 <Group justify="center" h="100%" align="center">
                   <Switch
                     size="sm"
-                    checked={data.activity[item.key].email}
-                    onChange={e => updateActivity(item.key, 'email', e.currentTarget.checked)}
+                    checked={(prefs as any)[item.key]}
+                    onChange={e => updatePrefs(item.key, e.currentTarget.checked)}
                     color="primary"
-                  />
-                </Group>
-              </Grid.Col>
-              <Grid.Col span={2}>
-                <Group justify="center" h="100%" align="center">
-                  <Switch
-                    size="sm"
-                    checked={data.activity[item.key].web}
-                    onChange={e => updateActivity(item.key, 'web', e.currentTarget.checked)}
-                    color="primary"
+                    disabled={isUpdating}
                   />
                 </Group>
               </Grid.Col>
@@ -166,57 +109,39 @@ export function NotificationSettings() {
         </Stack>
       </Card>
 
-      {/* Updates & News */}
       <Card withBorder radius="lg" p="lg">
         <Box mb="lg">
           <Title order={4} mb="xs">
             Updates & News
           </Title>
-          <Text c="dimmed" size="sm">
-            Stay up to date with ArtShare.
-          </Text>
         </Box>
-
         <Stack gap="md">
-          <Group
-            justify="space-between"
-            py="sm"
-            style={{ borderBottom: '1px solid var(--mantine-color-gray-1)' }}
-          >
+          <Group justify="space-between" py="sm" style={{ borderBottom: '1px solid var(--mantine-color-gray-1)' }}>
             <Box>
               <Text fw={500}>Weekly Newsletter</Text>
-              <Text size="sm" c="dimmed">Best artwork of the week, curated for you.</Text>
+              <Text size="sm" c="dimmed">Best artwork of the week.</Text>
             </Box>
             <Switch
-              checked={data.updates.weeklyNewsletter}
-              onChange={e => updateUpdates('weeklyNewsletter', e.currentTarget.checked)}
+              checked={prefs.weeklyNewsletter}
+              onChange={e => updatePrefs('weeklyNewsletter', e.currentTarget.checked)}
               color="primary"
+              disabled={isUpdating}
             />
           </Group>
-
           <Group justify="space-between" py="sm">
             <Box>
               <Text fw={500}>Product Updates</Text>
-              <Text size="sm" c="dimmed">New features, improvements, and community news.</Text>
+              <Text size="sm" c="dimmed">New features and news.</Text>
             </Box>
             <Switch
-              checked={data.updates.productUpdates}
-              onChange={e => updateUpdates('productUpdates', e.currentTarget.checked)}
+              checked={prefs.productUpdates}
+              onChange={e => updatePrefs('productUpdates', e.currentTarget.checked)}
               color="primary"
+              disabled={isUpdating}
             />
           </Group>
         </Stack>
       </Card>
-
-      {/* Save Buttons */}
-      <Group justify="flex-end" gap="md">
-        <Button variant="default" size="md">
-          Cancel
-        </Button>
-        <Button size="md">
-          Save Changes
-        </Button>
-      </Group>
     </Stack>
   );
 }

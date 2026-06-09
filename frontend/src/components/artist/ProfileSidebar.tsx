@@ -19,6 +19,7 @@ import {
 } from '@tabler/icons-react';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
+import { useFollow } from '@/api/hooks';
 import { formatNumber } from '@/mocks/artistData';
 
 export type PublicArtistDetail = {
@@ -34,6 +35,7 @@ export type PublicArtistDetail = {
   tiers: any[];
   accessibleTierIds: string[];
   artworkCounts: { all: number; free: number; tiers: Record<string, number> };
+  isFollowing?: boolean;
 };
 
 type ProfileSidebarProps = {
@@ -43,6 +45,8 @@ type ProfileSidebarProps = {
 export function ProfileSidebar({ artist }: ProfileSidebarProps) {
   const locale = useLocale();
   const uploadHref = `/${locale}/upload`;
+
+  const { isFollowing, followerCount, toggleFollow, isToggling } = useFollow(artist.id);
 
   return (
     <Stack gap="md" w={{ base: '100%', lg: 320 }} style={{ flexShrink: 0 }}>
@@ -108,9 +112,12 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
                     <Button
                       flex={1}
                       radius="md"
-                      leftSection={<IconPlus size={18} />}
+                      leftSection={isFollowing ? undefined : <IconPlus size={18} />}
+                      variant={isFollowing ? 'light' : 'filled'}
+                      onClick={toggleFollow}
+                      loading={isToggling}
                     >
-                      Follow Artist
+                      {isFollowing ? 'Following ✓' : 'Follow Artist'}
                     </Button>
                     <Button
                       flex={1}
@@ -181,7 +188,7 @@ export function ProfileSidebar({ artist }: ProfileSidebarProps) {
       <SimpleGrid cols={2} spacing="xs">
         <Paper withBorder p="sm" radius="md" ta="center">
           <Text fw={700} fz="lg">
-            {formatNumber(artist._count.followers)}
+            {formatNumber(followerCount || artist._count.followers)}
           </Text>
           <Text size="xs" c="dimmed">
             Followers

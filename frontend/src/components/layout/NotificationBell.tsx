@@ -18,9 +18,13 @@ import {
   IconAlertTriangle,
   IconBell,
   IconCheck,
+  IconHeart,
   IconInfoCircle,
+  IconMessageCircle,
+  IconPhoto,
   IconShieldCheck,
   IconShieldOff,
+  IconUserPlus,
 } from '@tabler/icons-react';
 import { useState } from 'react';
 import { useNotifications } from '@/api/hooks';
@@ -30,9 +34,10 @@ const TYPE_ICON: Record<string, { icon: React.ElementType; color: string }> = {
   TEMP_BAN: { icon: IconShieldOff, color: 'red' },
   UNBAN: { icon: IconShieldCheck, color: 'green' },
   SYSTEM: { icon: IconInfoCircle, color: 'blue' },
-  LIKE: { icon: IconInfoCircle, color: 'pink' },
-  COMMENT: { icon: IconInfoCircle, color: 'cyan' },
-  FOLLOW: { icon: IconInfoCircle, color: 'violet' },
+  LIKE: { icon: IconHeart, color: 'pink' },
+  COMMENT: { icon: IconMessageCircle, color: 'cyan' },
+  FOLLOW: { icon: IconUserPlus, color: 'violet' },
+  NEW_ARTWORK: { icon: IconPhoto, color: 'teal' },
 };
 
 function formatTimeAgo(dateStr: string, now: number) {
@@ -137,6 +142,7 @@ export function NotificationBell() {
                             if (!notif.isRead) {
                               markRead(notif.id);
                             }
+                            // Optional: navigate to specific page based on type
                           }}
                         >
                           <Group gap="sm" align="flex-start" wrap="nowrap">

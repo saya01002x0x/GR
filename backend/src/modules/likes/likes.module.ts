@@ -10,9 +10,11 @@ import { BullModule } from '@nestjs/bullmq';
 import { LikesService } from './likes.service';
 import { LikesController } from './likes.controller';
 import { STATS_QUEUE_NAME } from '../stats/stats.constants';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
+    NotificationsModule,
     BullModule.registerQueue({
       name: STATS_QUEUE_NAME,
     }),

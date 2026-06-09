@@ -33,6 +33,7 @@ import {
   IconShieldOff,
   IconUpload,
   IconUser,
+  IconUsers,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -45,6 +46,7 @@ const iconMap: Record<string, React.ElementType> = {
   'profile': IconUser,
   'content': IconEye,
   'notifications': IconBell,
+  'follows': IconUsers,
   'membership': IconCrown,
   'security': IconShield,
   'my-works': IconPhoto,
@@ -59,6 +61,7 @@ const settingsMenuItems = [
   { id: 'profile', label: 'Profile', href: '/dashboard/profile' },
   { id: 'content', label: 'Content Preferences', href: '/dashboard/content' },
   { id: 'notifications', label: 'Notifications', href: '/dashboard/notifications' },
+  { id: 'follows', label: 'Follows', href: '/dashboard/follows' },
   { id: 'membership', label: 'Membership', href: '/dashboard/membership' },
   { id: 'security', label: 'Security', href: '/dashboard/security' },
 ];

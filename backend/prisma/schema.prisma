@@ -50,6 +50,7 @@ model User {
   approvedPayouts         Payout[]           @relation("payout_approver")
   payments                Payment[]
   interactions            UserInteraction[]
+  notificationPreferences NotificationPreference?
 
   @@map("users")
 }
@@ -366,6 +367,24 @@ model Notification {
   @@map("notifications")
 }
 
+model NotificationPreference {
+  id                String  @id @default(uuid())
+  userId            String  @unique @map("user_id")
+  
+  followWeb         Boolean @default(true)  @map("follow_web")
+  likeWeb           Boolean @default(true)  @map("like_web")
+  commentWeb        Boolean @default(true)  @map("comment_web")
+  mentionWeb        Boolean @default(true)  @map("mention_web")
+  newArtworkWeb     Boolean @default(true)  @map("new_artwork_web")
+  
+  weeklyNewsletter  Boolean @default(true)  @map("weekly_newsletter")
+  productUpdates    Boolean @default(true)  @map("product_updates")
+  
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notification_preferences")
+}
+
 enum NotificationType {
   WARNING
   TEMP_BAN
@@ -374,6 +393,7 @@ enum NotificationType {
   LIKE
   COMMENT
   FOLLOW
+  NEW_ARTWORK
 }
 
 // ============================================

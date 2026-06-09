@@ -22,6 +22,7 @@ import {
 } from '@tabler/icons-react';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
+import { useFollow } from '@/api/hooks';
 
 type ArtworkSidebarProps = {
   artwork: ArtworkDetail;
@@ -31,6 +32,8 @@ export function ArtworkSidebar({ artwork }: ArtworkSidebarProps) {
   const { isSignedIn } = useAuth();
   const locale = useLocale();
   const uploadHref = `/${locale}/upload`;
+
+  const { isFollowing, toggleFollow, isToggling } = useFollow(artwork.artist.id);
 
   return (
     <Box
@@ -81,10 +84,13 @@ export function ArtworkSidebar({ artwork }: ArtworkSidebarProps) {
               <Button
                 fullWidth
                 radius="md"
-                leftSection={<IconUserPlus size={18} />}
+                leftSection={isFollowing ? undefined : <IconUserPlus size={18} />}
+                variant={isFollowing ? 'light' : 'filled'}
+                onClick={toggleFollow}
+                loading={isToggling}
                 disabled={!isSignedIn}
               >
-                {isSignedIn ? 'Follow Artist' : 'Signin to follow'}
+                {!isSignedIn ? 'Signin to follow' : isFollowing ? 'Following ✓' : 'Follow Artist'}
               </Button>
             )}
       </Card>

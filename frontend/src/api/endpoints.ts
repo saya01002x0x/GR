@@ -55,8 +55,20 @@ export const E = {
   notifications: {
     list: (limit = 30) => `/notifications?limit=${limit}`,
     markRead: (id: string) => `/notifications/${id}/read`,
-    markAllRead: () => '/notifications/read-all',
+    markAllRead: () => `/notifications/read-all`,
     delete: (id: string) => `/notifications/${id}`,
+    preferences: () => `/notifications/preferences`,
+  },
+
+  follows: {
+    toggle: (userId: string) => `/follows/${userId}/toggle`,
+    status: (userId: string) => `/follows/${userId}/status`,
+    myFollowers: (page?: number, limit?: number) =>
+      `/follows/me/followers?page=${page ?? 1}&limit=${limit ?? 20}`,
+    myFollowing: (page?: number, limit?: number) =>
+      `/follows/me/following?page=${page ?? 1}&limit=${limit ?? 20}`,
+    feed: (page?: number, limit?: number) =>
+      `/follows/me/feed?page=${page ?? 1}&limit=${limit ?? 24}`,
   },
 
   announcements: {

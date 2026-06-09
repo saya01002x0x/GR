@@ -11,6 +11,21 @@ import { NotificationType, Prisma } from '@prisma/client';
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async createNotification(userId: string, input: {
+    type: NotificationType;
+    title: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    return this.create({
+      userId,
+      type: input.type,
+      title: input.title,
+      message: input.content,
+      data: input.metadata,
+    });
+  }
+
   async create(input: {
     userId: string;
     type: NotificationType;
@@ -68,5 +83,41 @@ export class NotificationsService {
       where: { userId, isRead: false },
     });
     return { count };
+  }
+
+  async getPreferences(userId: string) {
+    let prefs = await this.prisma.notificationPreference.findUnique({
+      where: { userId },
+    });
+
+    if (!prefs) {
+      prefs = await this.prisma.notificationPreference.create({
+        data: { userId },
+      });
+    }
+
+    return prefs;
+  }
+
+  async updatePreferences(userId: string, data: Partial<Prisma.NotificationPreferenceUpdateInput>) {
+    return this.prisma.notificationPreference.upsert({
+      where: { userId },
+      update: data,
+      create: {
+        userId,
+        followWeb: data.followWeb as boolean ?? true,
+        likeWeb: data.likeWeb as boolean ?? true,
+        commentWeb: data.commentWeb as boolean ?? true,
+        mentionWeb: data.mentionWeb as boolean ?? true,
+        newArtworkWeb: data.newArtworkWeb as boolean ?? true,
+        weeklyNewsletter: data.weeklyNewsletter as boolean ?? true,
+        productUpdates: data.productUpdates as boolean ?? true,
+      },
+    });
+  }
+
+  async shouldNotify(userId: string, type: 'followWeb' | 'likeWeb' | 'commentWeb' | 'mentionWeb' | 'newArtworkWeb'): Promise<boolean> {
+    const prefs = await this.getPreferences(userId);
+    return prefs[type] === true;
   }
 }

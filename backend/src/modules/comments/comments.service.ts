@@ -19,6 +19,8 @@ import {
   JOB_UPDATE_STATS,
   UpdateStatsJob,
 } from '../stats/stats.constants';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 
 export interface CreateCommentDto {
   content: string;
@@ -32,6 +34,7 @@ export class CommentsService {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(STATS_QUEUE_NAME) private readonly statsQueue: Queue,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -161,6 +164,33 @@ export class CommentsService {
     }
 
     this.logger.log(`User ${userId} commented on artwork ${artworkId}`);
+
+    // Notify artwork author
+    if (artwork.authorId !== userId) {
+      try {
+        const shouldNotify = await this.notificationsService.shouldNotify(
+          artwork.authorId,
+          'commentWeb',
+        );
+        if (shouldNotify) {
+          const displayName = comment.user.displayName || comment.user.username;
+          await this.notificationsService.createNotification(artwork.authorId, {
+            type: NotificationType.COMMENT,
+            title: 'New Comment',
+            content: `${displayName} commented on your artwork "${artwork.title}".`,
+            metadata: {
+              artworkId,
+              commentId: comment.id,
+              userId: comment.user.id,
+              username: comment.user.username,
+              avatar: comment.user.avatar,
+            },
+          });
+        }
+      } catch (err) {
+        this.logger.error('Failed to send comment notification', err);
+      }
+    }
 
     return {
       id: comment.id,

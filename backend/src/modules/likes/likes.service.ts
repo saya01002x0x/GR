@@ -13,6 +13,8 @@ import {
   JOB_UPDATE_STATS,
   UpdateStatsJob,
 } from '../stats/stats.constants';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@prisma/client';
 
 @Injectable()
 export class LikesService {
@@ -21,6 +23,7 @@ export class LikesService {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(STATS_QUEUE_NAME) private readonly statsQueue: Queue,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -99,6 +102,56 @@ export class LikesService {
         this.logger.error(
           `❌ Failed to queue like stats for ${artworkId}:`,
           queueError instanceof Error ? queueError.message : String(queueError),
+        );
+      }
+
+      // Notify artwork author immediately so this does not depend on the
+      // delayed notification worker being available.
+      try {
+        const [artwork, user] = await Promise.all([
+          this.prisma.artwork.findUnique({
+            where: { id: artworkId },
+            select: { authorId: true, title: true },
+          }),
+          this.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              avatar: true,
+            },
+          }),
+        ]);
+
+        if (artwork && user && artwork.authorId !== userId) {
+          const shouldNotify = await this.notificationsService.shouldNotify(
+            artwork.authorId,
+            'likeWeb',
+          );
+
+          if (shouldNotify) {
+            const displayName = user.displayName || user.username;
+            await this.notificationsService.createNotification(
+              artwork.authorId,
+              {
+                type: NotificationType.LIKE,
+                title: 'New Like',
+                content: `${displayName} liked your artwork "${artwork.title}".`,
+                metadata: {
+                  artworkId,
+                  userId: user.id,
+                  username: user.username,
+                  avatar: user.avatar,
+                },
+              },
+            );
+          }
+        }
+      } catch (err) {
+        this.logger.error(
+          'Failed to send like notification',
+          err instanceof Error ? err.message : String(err),
         );
       }
 
