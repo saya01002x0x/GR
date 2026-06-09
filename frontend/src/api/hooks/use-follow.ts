@@ -28,6 +28,7 @@ export function useFollow(userId: string) {
     queryKey,
     queryFn: () => apiClient.get<FollowStatusResponse>(E.follows.status(userId)),
     enabled: !!isSignedIn && !!userId,
+    staleTime: 60 * 1000,
   });
 
   const mutation = useMutation({

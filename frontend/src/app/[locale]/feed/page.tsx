@@ -1,10 +1,12 @@
 'use client';
 
 import { Box, Button, Container, Group, Loader, Stack, Text, Title } from '@mantine/core';
+import { useIntersection } from '@mantine/hooks';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useFollowingFeed } from '@/api/hooks';
-import { ArtworkCard } from '@/components/artwork';
+import { FeedArtworkCard } from '@/components/feed/FeedArtworkCard';
 
 export default function FeedPage() {
   const locale = useLocale();
@@ -12,8 +14,20 @@ export default function FeedPage() {
 
   const artworks = data?.pages.flatMap(page => page.items) || [];
 
+  const [root, setRoot] = useState<HTMLDivElement | null>(null);
+  const { ref, entry } = useIntersection({
+    root,
+    threshold: 0.1,
+  });
+
+  useEffect(() => {
+    if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [entry?.isIntersecting, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
-    <Container size="xl" py="xl">
+    <Container ref={setRoot} size="xl" py="xl">
       <Group justify="space-between" mb="xl">
         <Title order={2}>Your Feed</Title>
         <Button component={Link} href={`/${locale}/discover`} variant="light">
@@ -39,37 +53,15 @@ export default function FeedPage() {
               </Box>
             )
           : (
-              <Stack gap="xl">
-                <Box className="discover-grid">
-                  {artworks.map((artwork: any) => (
-                    <Box key={artwork.id}>
-                      <Link href={`/${locale}/artworks/${artwork.id}`} style={{ textDecoration: 'none' }}>
-                        <ArtworkCard
-                          title={artwork.title}
-                          image={artwork.images?.[0]?.url || artwork.images?.[0]?.thumbnailUrl || ''}
-                          artist={artwork.author?.displayName || artwork.author?.username || 'Unknown'}
-                          artistAvatar={artwork.author?.avatar}
-                          liked={false}
-                          size="sm"
-                          onLikeToggle={() => {}}
-                        />
-                      </Link>
-                    </Box>
-                  ))}
-                </Box>
+              <Stack gap="xl" maw={700} mx="auto">
+                {artworks.map((artwork: any) => (
+                  <FeedArtworkCard key={artwork.id} artwork={artwork} locale={locale} />
+                ))}
 
-                {hasNextPage && (
-                  <Box ta="center" mt="xl">
-                    <Button
-                      variant="subtle"
-                      size="md"
-                      onClick={() => fetchNextPage()}
-                      loading={isFetchingNextPage}
-                    >
-                      Load More
-                    </Button>
-                  </Box>
-                )}
+                {/* Infinite scroll trigger element */}
+                <Box ref={ref} ta="center" mt="xl" py="md">
+                  {isFetchingNextPage && <Loader size="md" />}
+                </Box>
               </Stack>
             )}
     </Container>

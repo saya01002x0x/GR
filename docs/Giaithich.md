@@ -296,3 +296,7 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 ### [06/06] - [Fix: Parent/Child Tier Logic]
 - **Logic:** Khi User ??ng ky m?t Tier (Tier A) co ch?a (k? th?a) quy?n l?i t? Tier con (Tier B), Backend c?n ?? quy ?? l?y toan b? 	ierId c?a cac Tier c?p d??i. Ham getExpandedAccessibleTierIds ???c them vao ?? th?c hi?n vi?c duy?t m?ng ?? quy va m? khoa toan b? n?i dung c?a Tier B (va C, D n?u co) cho User ?ang sub Tier A.
 - **Decision:** Thay vi ch? l?y tr?c ti?p 	ierId t? TierSubscription (lam User b? khoa content c?a Tier B), ta t?o m?t utility helper dung chung cho c? rtworks.service va users.service ?? t? ??ng expand ccessibleTierIds. ??ng th?i, ??i wording UI t? "Parent Tier" thanh "Includes all benefits of (Lower Tier)" ?? ng??i dung d? hi?u h?n (Tier to bao g?m Tier nh?, thay vi Tier to k? th?a Tier nh?).
+
+### [09/06] - Tối ưu UX Caching & Prefetching
+- **Logic:** Phân chia thời gian cache (staleTime) hợp lý cho TanStack Query: Public data (Trending, Discover) được cache 15 phút, Private data (Follow, Feed, Notifications) cache 1 phút. Áp dụng Prefetching ở các nút điều hướng (Discover, Feed) và ArtworkCard khi người dùng hover chuột vào. Thay thế thẻ Image thông thường bằng Next.js Image để tự động nén sang webp và lazy loading.
+- **Decision:** Tách cấu hình staleTime ra khỏi QueryProvider global để kiểm soát độ tươi dữ liệu linh hoạt hơn. Prefetching trên hover giúp tải trước data vào cache, tạo cảm giác chuyển trang và mở popup tức thì.

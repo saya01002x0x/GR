@@ -6,13 +6,17 @@ import {
   Avatar,
   Box,
   Group,
-  Image,
   Text,
 } from '@mantine/core';
 import { useHover } from '@mantine/hooks';
 import { IconHeart, IconHeartFilled } from '@tabler/icons-react';
+import { useQueryClient } from '@tanstack/react-query';
+import NextImage from 'next/image';
+import { apiClient } from '@/api/client';
+import { E } from '@/api/endpoints';
 
 type ArtworkCardProps = {
+  id?: string;
   title: string;
   image: string;
   artist?: string;
@@ -39,6 +43,7 @@ function getRankColor(rank: number): string {
 }
 
 export function ArtworkCard({
+  id,
   title,
   image,
   artist,
@@ -50,26 +55,56 @@ export function ArtworkCard({
   size = 'md',
 }: ArtworkCardProps) {
   const { hovered, ref } = useHover();
+  const queryClient = useQueryClient();
   const isCompact = size === 'sm';
+
+  // Fix cho Next.js Image Optimization trên Node.js >= 17 (Tránh lỗi phân giải IPv6 ::1)
+  const safeImageUrl = image?.startsWith('http://localhost')
+    ? image.replace('http://localhost', 'http://127.0.0.1')
+    : image;
+
+  const handleMouseEnter = () => {
+    if (id) {
+      queryClient.prefetchQuery({
+        queryKey: ['artworks', 'detail', id],
+        queryFn: () => apiClient.get(E.artworks.byId(id)),
+      });
+    }
+  };
 
   return (
     <Box
       ref={ref}
       style={{ cursor: 'pointer' }}
       onClick={onClick}
+      onMouseEnter={handleMouseEnter}
     >
       {/* Image Container */}
       <Box pos="relative" mb={isCompact ? 4 : 'xs'}>
         <AspectRatio ratio={1}>
-          <Image
-            src={image}
-            alt={title}
-            radius={isCompact ? 'sm' : 'md'}
+          <Box
+            pos="relative"
+            w="100%"
+            h="100%"
             style={{
-              transform: hovered ? 'scale(1.05)' : 'scale(1)',
-              transition: 'transform 0.3s ease',
+              overflow: 'hidden',
+              borderRadius: isCompact
+                ? 'var(--mantine-radius-sm)'
+                : 'var(--mantine-radius-md)',
             }}
-          />
+          >
+            <NextImage
+              src={safeImageUrl}
+              alt={title}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              style={{
+                objectFit: 'cover',
+                transform: hovered ? 'scale(1.05)' : 'scale(1)',
+                transition: 'transform 0.3s ease',
+              }}
+            />
+          </Box>
         </AspectRatio>
 
         {/* Rank Badge */}

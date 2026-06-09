@@ -22,8 +22,11 @@ import {
   IconSun,
   IconUser,
 } from '@tabler/icons-react';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Suspense, useSyncExternalStore } from 'react';
+import { apiClient } from '@/api/client';
+import { E } from '@/api/endpoints';
 import { useUserProfile } from '@/api/hooks';
 import { SearchBar } from '@/components/search';
 import { NotificationBell } from './NotificationBell';
@@ -72,6 +75,23 @@ export function AppHeader() {
     () => false,
   );
 
+  const queryClient = useQueryClient();
+
+  const prefetchDiscover = () => {
+    queryClient.prefetchQuery({ queryKey: ['discover', 'hero'], queryFn: () => apiClient.get(E.discover.hero()) });
+    queryClient.prefetchQuery({ queryKey: ['discover', 'featured'], queryFn: () => apiClient.get(E.discover.featured()) });
+  };
+
+  const prefetchFeed = () => {
+    if (isSignedIn) {
+      queryClient.prefetchInfiniteQuery({
+        queryKey: ['follows', 'feed', 24],
+        queryFn: () => apiClient.get(E.follows.feed(1, 24)),
+        initialPageParam: 1,
+      });
+    }
+  };
+
   return (
     <Box
       component="header"
@@ -108,6 +128,7 @@ export function AppHeader() {
               variant="subtle"
               color="dark"
               fw={600}
+              onMouseEnter={prefetchDiscover}
             >
               Discover
             </Button>
@@ -118,6 +139,7 @@ export function AppHeader() {
                 variant="subtle"
                 color="dark"
                 fw={600}
+                onMouseEnter={prefetchFeed}
               >
                 Feed
               </Button>

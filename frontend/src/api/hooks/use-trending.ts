@@ -18,5 +18,6 @@ export function useTrendingArtworks(limit = 4) {
     queryKey: ['artworks', 'popular', limit],
     queryFn: () => apiClient.get<ArtworksResponse>(E.artworks.popular(limit)),
     select: data => data.data,
+    staleTime: 15 * 60 * 1000,
   });
 }

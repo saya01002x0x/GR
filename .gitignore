@@ -282,7 +282,7 @@ slide/SOICT_DATN_Application_VIE_Template
 *.out
 *.blg
 *.lof
-*.lot
+*.lot   
 *.run.xml
 *.gz
 *.toc

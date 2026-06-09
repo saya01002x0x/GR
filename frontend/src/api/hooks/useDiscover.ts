@@ -20,6 +20,7 @@ export function useDiscoverHero() {
       const res = await apiClient.get<{ data: FeaturedItem[] }>(E.discover.hero());
       return res.data;
     },
+    staleTime: 15 * 60 * 1000,
   });
 }
 
@@ -30,6 +31,7 @@ export function useFeaturedArtworks() {
       const res = await apiClient.get<{ data: ArtworkDetail[] }>(E.discover.featured());
       return res.data;
     },
+    staleTime: 15 * 60 * 1000,
   });
 }
 
@@ -40,6 +42,7 @@ export function useRanking(timeframe: 'daily' | 'weekly' | 'monthly' | 'rookie' 
       const res = await apiClient.get<{ data: ArtworkListItem[] }>(E.discover.ranking(timeframe));
       return res.data;
     },
+    staleTime: 15 * 60 * 1000,
   });
 }
 
@@ -50,6 +53,7 @@ export function useRisingStars() {
       const res = await apiClient.get<{ data: any[] }>(E.discover.risingStars());
       return res.data;
     },
+    staleTime: 15 * 60 * 1000,
   });
 }
 
@@ -60,5 +64,6 @@ export function usePopularTags() {
       const res = await apiClient.get<{ data: string[] }>(E.discover.popularTags());
       return res.data;
     },
+    staleTime: 15 * 60 * 1000,
   });
 }

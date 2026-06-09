@@ -17,7 +17,7 @@ export function useSearchArtworks(params: URLSearchParams) {
   return useQuery({
     queryKey: ['search', searchParams.toString()],
     queryFn: () => apiClient.get<SearchResponse>(E.search.artworks(searchParams)),
-    staleTime: 1000 * 60,
+    staleTime: 15 * 60 * 1000,
   });
 }
 
@@ -44,7 +44,7 @@ export function useAiSearchText(query: string, limit: number = 20, enabled: bool
       } as unknown as SearchResponse;
     },
     enabled: enabled && !!query,
-    staleTime: 1000 * 60,
+    staleTime: 15 * 60 * 1000,
   });
 }
 

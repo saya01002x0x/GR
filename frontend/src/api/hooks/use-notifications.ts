@@ -33,6 +33,7 @@ export function useNotifications() {
     queryFn: () => apiClient.get<NotificationsResponse>(E.notifications.list(30)),
     enabled: !!isSignedIn,
     refetchInterval: 30_000,
+    staleTime: 60 * 1000,
   });
 
   const markRead = useCallback(async (id: string) => {

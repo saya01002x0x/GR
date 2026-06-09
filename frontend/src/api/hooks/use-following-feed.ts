@@ -32,5 +32,6 @@ export function useFollowingFeed(limit = 24) {
     },
     initialPageParam: 1,
     enabled: !!isSignedIn,
+    staleTime: 60 * 1000,
   });
 }

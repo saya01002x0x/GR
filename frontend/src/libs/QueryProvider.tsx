@@ -7,8 +7,6 @@ import { Env } from './Env';
 // Default options for React Query
 const defaultOptions = {
   queries: {
-    // Stale time: how long data is considered fresh (5 minutes)
-    staleTime: 5 * 60 * 1000,
     // Cache time: how long inactive data stays in cache (10 minutes)
     gcTime: 10 * 60 * 1000,
     // Retry failed requests up to 3 times

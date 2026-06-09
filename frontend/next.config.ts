@@ -16,6 +16,22 @@ const baseConfig: NextConfig = {
     turbopackFileSystemCacheForDev: true,
   },
   transpilePackages: ['@gr/shared'],
+  images: {
+    dangerouslyAllowLocalIP: process.env.NODE_ENV === 'development',
+    remotePatterns: [
+      {
+        hostname: 'localhost',
+      },
+      {
+        hostname: '127.0.0.1',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.cloudflarestorage.com',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 // Initialize the Next-Intl plugin

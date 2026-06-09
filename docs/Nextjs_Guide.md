@@ -97,23 +97,28 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
   ```
 - **Ứng dụng:** Khắc phục lỗi compiler `alt does not exist` trên Mantine `Image` trong component `FeaturedArtwork`.
 
+---
+
 #### Định tuyến động trong Clerk Component (Localized Clerk Routing)
 - **Là gì:** Cấu hình đường dẫn điều hướng nội bộ (\signInUrl\, \signUpUrl\) thủ công cho các component \<SignIn>\ và \<SignUp>\ khi sử dụng định tuyến đa ngôn ngữ (i18n).
 - **Cách dùng:**
-  \\\	sx
+  ```tsx
   <SignIn
     path={getI18nPath('/sign-in', locale)}
     signUpUrl={getI18nPath('/sign-up', locale)}
   />
-  \\\`n- **Ứng dụng:** Dùng để đồng bộ hóa liên kết "Sign up" bên trong component Đăng nhập của Clerk và liên kết "Sign in" trong component Đăng ký của Clerk tương ứng với locale hiện tại, tránh bị văng về trang mặc định không có prefix ngôn ngữ của Clerk.
+  ```
+- **Ứng dụng:** Dùng để đồng bộ hóa liên kết "Sign up" bên trong component Đăng nhập của Clerk và liên kết "Sign in" trong component Đăng ký của Clerk tương ứng với locale hiện tại, tránh bị văng về trang mặc định không có prefix ngôn ngữ của Clerk.
+
+---
 
 #### Clerk ID vs Database UUID (useUser vs useUserProfile)
 - **Là gì:** useUser (Clerk) trả về user auth object với ID định dạng chuỗi (user_xxx), trong khi useUserProfile trả về user từ Database với ID định dạng UUID.
 - **Cách dùng:** 
-  `	sx
+  ```tsx
   const { user: clerkUser } = useUser(); // ID: user_2pz...
   const { data: userProfile } = useUserProfile(); // ID: 123e4567-e89b-12d3...
-  `
+  ```
 - **Ứng dụng:** Tránh lỗi so sánh ID (isOwner) giữa Frontend và Backend. Cần dùng userProfile?.id khi so sánh với khóa chính (ID) của dữ liệu trả về từ DB (như comment.user.id).
 
 ---
@@ -132,3 +137,51 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
   }
   ```
 - **Ứng dụng:** Được dùng trong `/artworks/[id]/review/page.tsx` để lấy tham số `id` và truyền vào `useArtwork(id)` để fetch dữ liệu từ Backend.
+
+---
+
+#### Intersection Observer (Infinite Scroll) với Mantine
+- **Là gì:** Kỹ thuật nhận biết khi nào một phần tử DOM (như nút Loading) xuất hiện trên màn hình (viewport). Dùng kết hợp với React Query để tự động tải thêm dữ liệu.
+- **Cách dùng:**
+  ```tsx
+  import { useIntersection } from '@mantine/hooks';
+  
+  const { ref, entry } = useIntersection({ threshold: 0.1 });
+  
+  useEffect(() => {
+    if (entry?.isIntersecting && hasNextPage) fetchNextPage();
+  }, [entry?.isIntersecting]);
+
+  return <Box ref={ref}><Loader /></Box>;
+  ```
+- **Ứng dụng:** Dùng ở trang Feed (`feed/page.tsx`) để nhận biết khi người dùng cuộn đến cuối danh sách thì tự động gọi `fetchNextPage()` để lấy thêm các bài viết mới, thay vì phải bắt người dùng bấm nút "Load More" thủ công.
+
+---
+
+#### Cố định chiều cao, chiều rộng động và Gradient Fade (Xử lý ảnh dài)
+- **Là gì:** Kỹ thuật CSS giữ tỉ lệ ảnh gốc bằng cách cho ảnh lấp đầy chiều rộng (`width="100%"`), nhưng giới hạn chiều cao tổng thể không vượt quá màn hình (`max-height`). Nếu ảnh bị cắt, chèn một lớp gradient làm mờ phần đuôi để báo hiệu.
+- **Cách dùng:**
+  ```tsx
+  <Box style={{ maxHeight: '70vh', overflow: 'hidden', position: 'relative' }}>
+    <Image src={url} style={{ width: '100%', height: 'auto' }} />
+    
+    {/* Gradient Overlay cho ảnh bị cắt */}
+    <Box 
+      style={{ 
+        position: 'absolute', bottom: 0, height: 160, width: '100%',
+        background: 'linear-gradient(to top, black, transparent)' 
+      }} 
+    />
+  </Box>
+  ```
+- **Ứng dụng:** Dùng trong `FeedArtworkCard` để hiển thị ảnh của artist đẹp mắt (tràn 100% card) nhưng không bị phá vỡ tỉ lệ và không quá dài (Webtoon) làm hỏng trải nghiệm cuộn Feed.
+
+#### TanStack Query Prefetching
+- **Là gì:** Kỹ thuật tải trước dữ liệu vào bộ nhớ đệm (cache) trước khi người dùng thực sự cần đến nó.
+- **Cách dùng:** queryClient.prefetchQuery({ queryKey, queryFn }) gắn vào các sự kiện như onMouseEnter.
+- **Ứng dụng:** Giúp người dùng khi click vào Nav link hoặc mở Artwork detail cảm thấy data tải ngay lập tức vì nó đã được cache sẵn từ lúc hover.
+
+#### Next.js Image Component
+- **Là gì:** Component <Image> tích hợp sẵn của Next.js giúp tối ưu hình ảnh tự động.
+- **Cách dùng:** import Image from 'next/image'; <Image src={url} fill sizes="..." />.
+- **Ứng dụng:** Tự động lazy load hình ảnh không nằm trong khung hình và nén ảnh sang định dạng WebP để giảm dung lượng, áp dụng trong ArtworkCard.
