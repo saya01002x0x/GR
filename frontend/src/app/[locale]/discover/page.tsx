@@ -32,7 +32,13 @@ export default function DiscoverPage() {
   const { data: risingStarsData } = useRisingStars();
   const { data: popularTagsData } = usePopularTags();
 
-  const heroItemsFormatted = (heroItems || []).map(item => ({
+  const heroItemsList = Array.isArray(heroItems) ? heroItems : [];
+  const rankingArtworks = Array.isArray(rankingData) ? rankingData : [];
+  const featuredArtworks = Array.isArray(featured) ? featured : [];
+  const risingStars = Array.isArray(risingStarsData) ? risingStarsData : [];
+  const popularTags = Array.isArray(popularTagsData) ? popularTagsData : [];
+
+  const heroItemsFormatted = heroItemsList.map(item => ({
     ...item,
     tag: item.tag ?? { label: 'Featured', color: 'primary' },
   }));
@@ -48,7 +54,7 @@ export default function DiscoverPage() {
     liked: false,
   }));
 
-  const rankingArtworksFormatted = (rankingData || []).map((artwork: ArtworkListItem, index: number) => ({
+  const rankingArtworksFormatted = rankingArtworks.map((artwork: ArtworkListItem, index: number) => ({
     id: artwork.id,
     title: artwork.title,
     artist: {
@@ -90,7 +96,7 @@ export default function DiscoverPage() {
           {isFeaturedLoading
             ? <Skeleton height={400} mb="xl" />
             : (
-                <FeaturedArtwork artworks={featured || []} />
+                <FeaturedArtwork artworks={featuredArtworks} />
               )}
 
           {isLoading
@@ -128,8 +134,8 @@ export default function DiscoverPage() {
         </Box>
 
         <SidebarContent
-          risingStars={risingStarsData || []}
-          popularTags={popularTagsData || []}
+          risingStars={risingStars}
+          popularTags={popularTags}
         />
       </Flex>
     </Box>
