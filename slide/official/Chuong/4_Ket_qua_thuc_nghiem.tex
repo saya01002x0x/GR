@@ -1,9 +1,119 @@
-\section{Thiết kế kiến trúc hệ thống}
+\section{Phân tích và thiết kế kiến trúc hệ thống}
+\label{section:4.1}
+
 \subsection{Lựa chọn kiến trúc phần mềm}
-\subsection{Kiến trúc tổng thể}
-\subsection{Thiết kế các module backend}
-\subsection{Thiết kế các phân vùng frontend}
-\subsection{Thiết kế luồng xử lý nền}
+\label{subsection:4.1.1}
+
+Kiến trúc phần mềm đóng vai trò nền tảng định hình toàn bộ sự phát triển, bảo trì và khả năng mở rộng của hệ thống. Đối với hệ thống chia sẻ ảnh trực tuyến trong đồ án này, kiến trúc được lựa chọn là Khối nguyên khối mô-đun (Modular Monolith).
+
+Trong quá trình phân tích, hai phương án kiến trúc chính đã được đưa ra cân nhắc. Phương án thứ nhất là Vi dịch vụ (Microservices), cho phép từng dịch vụ chạy trên các tiến trình riêng biệt và mở rộng độc lập. Tuy nhiên, Microservices đòi hỏi chi phí vận hành đáng kể bao gồm triển khai container, quản lý giao dịch phân tán, và đảm bảo tính nhất quán dữ liệu, vốn không phù hợp với quy mô ban đầu của đồ án. Phương án thứ hai là Khối nguyên khối truyền thống (Traditional Monolith), đơn giản trong triển khai nhưng dễ dẫn đến tình trạng mã nguồn đan xen khi hệ thống phát triển, khiến việc bảo trì và mở rộng trở nên khó khăn.
+
+Kiến trúc Modular Monolith mang lại sự cân bằng tối ưu giữa hai phương án trên. Hệ thống vẫn được triển khai dưới dạng một tiến trình duy nhất (đơn giản như Monolith), nhưng mã nguồn bên trong được tổ chức thành các mô-đun (Module) hoàn toàn độc lập theo từng miền nghiệp vụ. Mỗi mô-đun là một đơn vị khép kín, bao gồm đầy đủ: Bộ điều khiển (Controller) để tiếp nhận yêu cầu HTTP, Dịch vụ (Service) để xử lý logic nghiệp vụ, và các Nhà cung cấp (Provider) để tương tác với hạ tầng bên ngoài.
+
+Đây chính là phong cách tổ chức theo chiều dọc (Vertical Slicing), phân chia mã nguồn theo tính năng nghiệp vụ thay vì theo tầng kỹ thuật. Cách tổ chức này phù hợp tự nhiên với cơ chế mô-đun của NestJS \cite{nestjs} thông qua trình trang trí @Module, cho phép mỗi mô-đun khai báo rõ ràng các thành phần nội bộ (controllers, providers) và các mô-đun phụ thuộc (imports). Thiết kế này giữ được sự đơn giản ở hiện tại, nhưng sẵn sàng tách bất kỳ mô-đun nào thành vi dịch vụ độc lập trong tương lai mà không cần tái cấu trúc toàn bộ.
+
+Bên cạnh các mô-đun nghiệp vụ, hệ thống sử dụng các mô-đun hạ tầng toàn cục (Global Module) để cung cấp các dịch vụ nền tảng. Các mô-đun này được đánh dấu @Global và tự động khả dụng cho toàn bộ hệ thống mà không cần khai báo phụ thuộc thủ công, bao gồm: PrismaModule (truy cập cơ sở dữ liệu), RedisModule (bộ nhớ đệm), ConfigModule (cấu hình môi trường), NotificationsModule (thông báo thời gian thực), và AuditLogsModule (ghi nhật ký kiểm toán).
+
+\subsection{Thiết kế tổng quan}
+\label{subsection:4.1.2}
+
+Hệ thống bao gồm tổng cộng 20 mô-đun nghiệp vụ và 5 mô-đun hạ tầng toàn cục. Biểu đồ gói UML trong Hình 4.1 minh họa các mô-đun chính và mối quan hệ phụ thuộc giữa chúng. Tất cả các mô-đun nghiệp vụ đều nằm bên trong AppModule, giao tiếp với nhau thông qua các dịch vụ được xuất khẩu (exported services), và cùng phụ thuộc vào tầng Hạ tầng toàn cục ở phía dưới.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{Hinh_4_1_Bieu_do_phu_thuoc_goi.png}
+\caption{Biểu đồ phụ thuộc mô-đun tổng quan của hệ thống}
+\label{fig:4_1}
+\end{figure}
+
+Các mô-đun được nhóm thành các cụm nghiệp vụ logic như sau:
+
+1. Cụm Nội dung cốt lõi: Bao gồm mô-đun Artworks (quản lý tác phẩm nghệ thuật, là trung tâm của hệ thống với số lượng phụ thuộc lớn nhất) và mô-đun Collections (bộ sưu tập cá nhân).
+
+2. Cụm Danh tính và Truy cập: Bao gồm mô-đun Auth (xác thực qua Clerk) và mô-đun Users (quản lý hồ sơ). Đây là cặp mô-đun duy nhất trong hệ thống tồn tại phụ thuộc vòng hai chiều (circular dependency), được xử lý thông qua cơ chế forwardRef của NestJS.
+
+3. Cụm Tương tác xã hội: Bao gồm mô-đun Likes, Comments và Follows. Cả ba đều phụ thuộc vào mô-đun Notifications để gửi thông báo thời gian thực khi có tương tác mới.
+
+4. Cụm Thanh toán: Mô-đun Payments tích hợp trực tiếp với Stripe \cite{stripe} để quản lý vòng đời gói hội viên định kỳ (subscription).
+
+5. Cụm Xử lý và Thông minh: Bao gồm mô-đun Queue (đường ống xử lý ảnh nền), Stats (thống kê lượt xem), Search (tìm kiếm toàn văn qua Meilisearch), AiSearch (tìm kiếm ngữ nghĩa qua Gemini và pgvector), DuplicateDetection (phát hiện ảnh trùng lặp qua pHash), và Recommendations (gợi ý cá nhân hóa). Mô-đun Queue đóng vai trò trung tâm xử lý, kết nối với Storage, Search, DuplicateDetection và AiSearch để thực hiện đường ống xử lý ảnh hoàn chỉnh sau khi người dùng tải lên.
+
+6. Cụm Quản trị: Bao gồm mô-đun Admin (bảng điều khiển quản trị), Reports (báo cáo vi phạm), và Announcements (thông báo hệ thống). Cả ba đều phụ thuộc vào Auth để xác thực quyền quản trị viên.
+
+7. Hạ tầng toàn cục: Nằm ở dưới cùng biểu đồ, bao gồm PrismaModule (kết nối PostgreSQL \cite{postgresql}), RedisModule (bộ nhớ đệm), BullMQ (hàng đợi tin nhắn) \cite{bullmq}, ConfigModule (cấu hình môi trường), và AuditLogsModule (ghi nhật ký kiểm toán). Tất cả mô-đun nghiệp vụ đều ngầm phụ thuộc vào tầng này.
+
+\subsection{Thiết kế chi tiết gói}
+\label{subsection:4.1.3}
+
+Sau khi xác định kiến trúc tổng thể, do hệ thống có hơn 25 mô-đun phức tạp đan xen nhau, phần này áp dụng nguyên lý thiết kế hướng miền (Domain-Driven Design - DDD) để phân tách hệ thống thành 5 cụm (nhóm package) có liên quan mật thiết về mặt nghiệp vụ. Việc bóc tách này giúp làm rõ các ranh giới dịch vụ và chức năng trong kiến trúc Modular Monolith. Mỗi biểu đồ thiết kế gói dưới đây sẽ trình bày các lớp (class) và mối quan hệ giữa chúng trong nội bộ nhóm.
+
+\textbf{1. Nhóm Định danh và Quản lý Người dùng (Identity \& Access)}
+
+Nhóm này bao gồm AuthModule và UsersModule, đóng vai trò cửa ngõ kiểm soát quyền truy cập và lưu trữ hồ sơ thành viên của toàn hệ thống. Hình 4.2 minh họa thiết kế chi tiết của nhóm.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{Hinh_4_2_Thiet_ke_goi_Identity.png}
+\caption{Thiết kế chi tiết nhóm Định danh và Quản lý Người dùng}
+\label{fig:4_2}
+\end{figure}
+
+Bên trong AuthModule, lớp ClerkStrategy có quan hệ kế thừa (inheritance) từ lớp trừu tượng PassportStrategy, triển khai chiến lược xác thực dựa trên JWT từ Clerk \cite{clerk}. ClerkGuard phụ thuộc vào AuthService để kích hoạt luồng xác thực. Điểm đáng chú ý là AuthService phụ thuộc UsersService để tra cứu người dùng nội bộ, trong khi UsersService phụ thuộc AuthService để xác minh danh tính, tạo thành quan hệ phụ thuộc vòng (circular dependency) được giải quyết bằng forwardRef. Tuy nhiên, cả hai lớp Service đều duy trì quan hệ kết tập (aggregation) với PrismaService để giao tiếp độc lập với cơ sở dữ liệu.
+
+\textbf{2. Nhóm Lõi Nội dung và Xử lý Ảnh (Core Content \& Processing)}
+
+Đây là "trái tim" của hệ thống, xử lý luồng tải lên và phân phối nội dung, bao gồm ArtworksModule, CollectionsModule, StorageModule và QueueModule. Hình 4.3 minh họa thiết kế.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{Hinh_4_3_Thiet_ke_goi_Core.png}
+\caption{Thiết kế chi tiết nhóm Lõi Nội dung và Xử lý Ảnh}
+\label{fig:4_3}
+\end{figure}
+
+ArtworksController và CollectionsController đều phụ thuộc vào ClerkGuard để bảo vệ các API. Lớp ArtworksService gọi đến lớp ArtworkProcessor (thuộc QueueModule) để khởi tạo quy trình xử lý nền không đồng bộ, giúp luồng chính của máy chủ không bị nghẽn (non-blocking). Từ ArtworkProcessor, các luồng dữ liệu được đẩy thẳng sang StorageService để lưu ảnh vào MinIO, cũng như đẩy đến các dịch vụ AI và tìm kiếm bên ngoài mà không làm ảnh hưởng đến thời gian phản hồi của ArtworksModule. 
+
+\textbf{3. Nhóm Tương tác Xã hội \& Cảnh báo (Social Interactions \& Notifications)}
+
+Nhóm này quản lý các hoạt động cộng đồng, bóc tách hoàn toàn logic tương tác khỏi phần lõi nội dung, bao gồm LikesModule, CommentsModule, FollowsModule và NotificationsModule. Hình 4.4 minh họa thiết kế.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{Hinh_4_4_Thiet_ke_goi_Social.png}
+\caption{Thiết kế chi tiết nhóm Tương tác Xã hội và Cảnh báo}
+\label{fig:4_4}
+\end{figure}
+
+Đặc điểm kiến trúc nổi bật nhất của nhóm này là LikesService, CommentsService và FollowsService đều có quan hệ phụ thuộc (dependency) một chiều trỏ về NotificationsService. Thiết kế này tuân thủ chặt chẽ nguyên tắc Loose Coupling, cho phép các hành động tương tác (như thả tim, bình luận) dễ dàng kích hoạt thông báo theo thời gian thực (real-time) tới người dùng nhận mà không làm phình to logic nội bộ của bản thân chức năng tương tác đó.
+
+\textbf{4. Nhóm Xử lý Dữ liệu Thông minh (Intelligence \& Search)}
+
+Nhóm này tập trung vào bài toán khám phá nội dung bằng văn bản và trí tuệ nhân tạo, bao gồm SearchModule, AiSearchModule, DuplicateDetectionModule, RecommendationsModule và StatsModule. Hình 4.5 minh họa thiết kế.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{Hinh_4_5_Thiet_ke_goi_Intelligence.png}
+\caption{Thiết kế chi tiết nhóm Xử lý Dữ liệu Thông minh}
+\label{fig:4_5}
+\end{figure}
+
+Bên trong AiSearchModule, lớp EmbeddingService có quan hệ hợp thành (composition) với AiSearchService, tạo thành một cụm chuyên biệt gọi API Gemini để trích xuất vector ngữ nghĩa hình ảnh. MeilisearchSyncService (thuộc StatsModule) phụ thuộc trực tiếp vào SearchService để đồng bộ dữ liệu tìm kiếm siêu tốc độ. Đặc biệt, RecommendationsModule được thiết kế theo kiến trúc Hướng sự kiện (Event-Driven) để thu thập hành vi người dùng (như lượt xem, lượt thích) thông qua InteractionsService. Thay vì bắt các module chức năng gọi chéo lẫn nhau, hệ thống sử dụng Event Emitter để duy trì tính độc lập lỏng lẻo (Loose Coupling) tuyệt đối. Đây là cụm module tập hợp các công nghệ phức tạp nhất như pgvector và mã băm pHash để cung cấp trải nghiệm tìm kiếm ảnh chính xác và gợi ý cá nhân hóa.
+
+\textbf{5. Nhóm Quản trị, Vận hành và Doanh thu (Management \& Monetization)}
+
+Nhóm này chịu trách nhiệm quản lý hệ thống Backoffice (dành cho Admin) và xử lý luồng doanh thu, hoàn toàn tách biệt khỏi trải nghiệm lướt web thông thường của người dùng cuối. Nhóm bao gồm AdminModule, ReportsModule, AnnouncementsModule, PaymentsModule và AuditLogsModule. Hình 4.6 minh họa thiết kế.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{Hinh_4_6_Thiet_ke_goi_Management.png}
+\caption{Thiết kế chi tiết nhóm Quản trị, Vận hành và Doanh thu}
+\label{fig:4_6}
+\end{figure}
+
+PaymentsModule cung cấp PaymentsController cho người dùng trích xuất hóa đơn và WebhookController để lắng nghe sự kiện từ cổng thanh toán Stripe. Điểm chung của cụm nghiệp vụ này là sử dụng nhiều tác vụ chạy ngầm (CronJob) có quan hệ hợp thành với Service nội bộ, điển hình như AutoUnbanTask thuộc AdminService (để tự động mở khóa tài khoản) và SubscriptionSyncTask thuộc PaymentsService (để đồng bộ gói hội viên).
+
+Cuối cùng, Hình 4.7 (sẽ được đính kèm ở bản vẽ khổ lớn đính kèm cùng báo cáo) trình bày bức tranh tổng thể mạng lưới chi tiết nhất về toàn bộ cấu trúc lớp và mối liên kết phức tạp giữa toàn bộ hơn 25 mô-đun trong hệ thống Modular Monolith của nền tảng.
+
 
 \section{Thiết kế cơ sở dữ liệu}
 \subsection{Mô hình thực thể quan hệ}
