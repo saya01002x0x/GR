@@ -15,7 +15,7 @@ Mặc dù mỗi nhóm nền tảng có định hướng khác nhau, chúng đề
 
 Đối với bài toán hỗ trợ người sáng tạo kiếm tiền, nhiều nền tảng hiện có buộc người sáng tạo phải tách nội dung công khai và nội dung trả phí sang hai hệ thống khác nhau. Điều này gây phân mảnh trải nghiệm: người xem khám phá tác phẩm ở một nơi, nhưng thanh toán và xem nội dung độc quyền ở nơi khác. Hệ thống đề xuất tích hợp trực tiếp cơ chế artist tier, đăng ký tier, nội dung giới hạn theo tier, doanh thu và payout. Nhờ đó, người sáng tạo có thể vừa xây dựng hồ sơ nghệ thuật, vừa quản lý người theo dõi, vừa cung cấp nội dung trả phí trong cùng một nền tảng.
 
-\begin{table}[H]
+\begin{table}[h!]
 \centering
 \small
 \renewcommand{\arraystretch}{1.25}
@@ -38,6 +38,7 @@ Hệ thống đề xuất & Kết hợp chia sẻ ảnh, xử lý nền, kiểm 
     \label{table:2_1}
 
 \end{table}
+\FloatBarrier
 
 Từ khảo sát trên, hệ thống cần phát triển các nhóm tính năng quan trọng sau. Thứ nhất là nhóm chức năng tài khoản và phân quyền, bao gồm đăng nhập, đồng bộ hồ sơ người dùng, quản lý trạng thái artist và kiểm soát vai trò quản trị. Thứ hai là nhóm chức năng quản lý tác phẩm, bao gồm đăng tải nhiều ảnh, xử lý nền, watermark, lưu ảnh gốc, ảnh xem trước, ảnh thu nhỏ, ảnh làm mờ, kiểm tra trùng lặp và kiểm duyệt NSFW. Thứ ba là nhóm chức năng tìm kiếm và khám phá, bao gồm tìm kiếm từ khóa, lọc theo tag, độ phân giải, tỷ lệ ảnh, tìm kiếm ngữ nghĩa bằng văn bản, tìm kiếm bằng ảnh phác thảo và gợi ý nội dung liên quan. Thứ tư là nhóm tương tác cộng đồng, bao gồm thích, bình luận, bookmark, collection, follow và feed cá nhân. Thứ năm là nhóm chức năng membership và thanh toán, bao gồm plan nền tảng, artist tier, đăng ký tier, đồng bộ Stripe, customer portal, lịch sử thanh toán, doanh thu và payout. Thứ sáu là nhóm kiểm duyệt và quản trị, bao gồm report, appeal, duyệt hoặc từ chối tác phẩm vi phạm, quản lý người dùng, cảnh báo, khóa tài khoản, audit log và thống kê.
 
@@ -51,12 +52,13 @@ Hệ thống được phân tích theo phương pháp hướng đối tượng v
 
 Hệ thống có bốn nhóm tác nhân chính. Khách là người chưa đăng nhập, có thể xem nội dung công khai, tìm kiếm, xem trang tác phẩm và trang nghệ sĩ trong phạm vi cho phép. Người dùng là người đã đăng nhập, có thể tương tác với tác phẩm, quản lý bộ sưu tập, theo dõi nghệ sĩ, báo cáo vi phạm và đăng ký các gói thành viên. Người sáng tạo là người dùng có thêm khả năng đăng tải và quản lý tác phẩm, thiết lập gói artist tier, xem người đăng ký và theo dõi doanh thu. Quản trị viên hoặc điều phối viên là nhóm có quyền xử lý báo cáo, kiểm duyệt tác phẩm, quản lý người dùng, quản lý cấu hình hệ thống và theo dõi thống kê vận hành.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.65\linewidth]{Hinh_2_1_Use_case_tong_quat.png}
 \caption{Biểu đồ use case tổng quát của hệ thống}
 \label{fig:2_1}
 \end{figure}
+\FloatBarrier
 
 Các use case mức cao của hệ thống gồm: quản lý tài khoản, quản lý tác phẩm, tìm kiếm và khám phá nội dung, tương tác cộng đồng, quản lý thành viên và thanh toán, kiểm duyệt và quản trị. Nhóm quản lý tài khoản bao phủ đăng nhập, đồng bộ hồ sơ, cập nhật thông tin cá nhân và trở thành người sáng tạo. Nhóm quản lý tác phẩm bao phủ đăng tải, xử lý ảnh, chỉnh sửa, xem trạng thái và quản lý quyền truy cập theo tier. Nhóm tìm kiếm và khám phá bao phủ tìm kiếm toàn văn, lọc, sắp xếp, tìm kiếm ngữ nghĩa, tìm kiếm bằng phác thảo và gợi ý nội dung. Nhóm tương tác cộng đồng bao phủ thích, bình luận, lưu vào bộ sưu tập, theo dõi và báo cáo vi phạm. Nhóm thành viên và thanh toán bao phủ plan nền tảng, artist tier, đăng ký, hủy đăng ký, lịch sử thanh toán, doanh thu và payout. Nhóm kiểm duyệt và quản trị bao phủ xử lý report, appeal, duyệt hoặc từ chối tác phẩm, quản lý người dùng, audit log và thống kê.
 
@@ -65,12 +67,13 @@ Các use case mức cao của hệ thống gồm: quản lý tài khoản, quả
 
 Use case Quản lý tài khoản liên quan đến cả người dùng thường và người sáng tạo. Hệ thống sử dụng Clerk cho xác thực, nhưng vẫn duy trì hồ sơ người dùng nội bộ để lưu vai trò, trạng thái artist, trạng thái bị khóa, thông tin Stripe và các quan hệ xã hội. Khi người dùng đăng nhập lần đầu, backend thực hiện đồng bộ lười, tạo hoặc cập nhật bản ghi người dùng dựa trên định danh Clerk.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_2_Use_case_Quan_ly_tai_khoan.png}
 \caption{Biểu đồ use case phân rã Quản lý tài khoản}
 \label{fig:2_2}
 \end{figure}
+\FloatBarrier
 
 Các use case con gồm đăng nhập, xem hồ sơ cá nhân, cập nhật hồ sơ, mở trang thiết lập bảo mật của Clerk, trở thành người sáng tạo, xem dashboard cá nhân và kiểm tra trạng thái tài khoản. Đối với người dùng bị khóa, middleware phía frontend gọi backend để kiểm tra trạng thái và chuyển hướng người dùng sang trang thông báo chặn nếu cần.
 
@@ -79,12 +82,13 @@ Các use case con gồm đăng nhập, xem hồ sơ cá nhân, cập nhật hồ
 
 Use case Quản lý tác phẩm là trung tâm của hệ thống. Người sáng tạo có thể đăng tải một tác phẩm gồm một hoặc nhiều ảnh, nhập tiêu đề, mô tả, tag, chọn visibility, chọn tier yêu cầu nếu là nội dung giới hạn, cấu hình watermark và theo dõi trạng thái xử lý. Sau khi tạo tác phẩm, hệ thống đưa tác phẩm vào hàng đợi để worker xử lý ảnh bất đồng bộ.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_3_Use_case_Quan_ly_tac_pham.png}
 \caption{Biểu đồ use case phân rã Quản lý tác phẩm}
 \label{fig:2_3}
 \end{figure}
+\FloatBarrier
 
 Các use case con gồm tạo tác phẩm, tải ảnh lên, cấu hình watermark, chọn quyền truy cập, gửi xử lý nền, xem tiến độ xử lý, xem tác phẩm đã xuất bản, chỉnh sửa thông tin, quảng bá tác phẩm, xem tác phẩm liên quan và gửi appeal khi tác phẩm bị đưa vào trạng thái cần xử lý. Hệ thống phân biệt trạng thái tác phẩm như đang xử lý, đã xuất bản, thất bại, cần xử lý và đang được xem xét lại. Thiết kế này phù hợp với thực tế xử lý ảnh vì kiểm duyệt và phát hiện trùng lặp có thể xảy ra ở từng ảnh trong cùng một tác phẩm.
 
@@ -93,12 +97,13 @@ Các use case con gồm tạo tác phẩm, tải ảnh lên, cấu hình waterma
 
 Use case Tìm kiếm và khám phá nội dung phục vụ cả khách và người dùng đã đăng nhập. Khách có thể tìm kiếm và xem nội dung công khai; người dùng đã đăng nhập có thêm khả năng tìm kiếm cá nhân hóa, dùng tìm kiếm bằng phác thảo nếu thỏa điều kiện gói dịch vụ và nhận gợi ý dựa trên lịch sử tương tác.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_4_Use_case_Tim_kiem_kham_pha.png}
 \caption{Biểu đồ use case phân rã Tìm kiếm và khám phá nội dung}
 \label{fig:2_4}
 \end{figure}
+\FloatBarrier
 
 Các use case con gồm tìm kiếm theo từ khóa, lọc theo tag, tỷ lệ ảnh, độ phân giải và nội dung AI, sắp xếp theo thời gian hoặc độ phổ biến, tìm kiếm ngữ nghĩa bằng văn bản, tìm kiếm bằng ảnh phác thảo, xem trang khám phá, xem tác phẩm phổ biến, xem nghệ sĩ nổi bật, xem tag thịnh hành và xem gợi ý tác phẩm liên quan. Hệ thống sử dụng Meilisearch cho tìm kiếm toàn văn và pgvector cho tìm kiếm ngữ nghĩa.
 
@@ -107,12 +112,13 @@ Các use case con gồm tìm kiếm theo từ khóa, lọc theo tag, tỷ lệ �
 
 Use case Tương tác cộng đồng bao phủ các hành vi giúp người dùng hình thành quan hệ xã hội xung quanh tác phẩm. Đây là nhóm chức năng làm cho nền tảng không chỉ là kho lưu trữ ảnh mà trở thành cộng đồng.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_5_Use_case_Tuong_tac_cong_dong.png}
 \caption{Biểu đồ use case phân rã Tương tác cộng đồng}
 \label{fig:2_5}
 \end{figure}
+\FloatBarrier
 
 Các use case con gồm thích hoặc bỏ thích tác phẩm, bình luận, xóa bình luận của bản thân, lưu tác phẩm vào collection, tạo collection, thêm hoặc xóa tác phẩm khỏi collection, theo dõi hoặc bỏ theo dõi nghệ sĩ, xem feed theo dõi, báo cáo tác phẩm vi phạm và nhận thông báo. Một số tương tác như lượt xem hoặc lượt thích cũng được dùng để cập nhật thống kê và đồng bộ sang chỉ mục tìm kiếm.
 
@@ -121,12 +127,13 @@ Các use case con gồm thích hoặc bỏ thích tác phẩm, bình luận, xó
 
 Use case Quản lý thành viên và thanh toán bao gồm hai nhánh: subscription nền tảng và subscription theo artist tier. Subscription nền tảng phục vụ các quyền lợi chung của người dùng, còn artist tier phục vụ quan hệ trả phí giữa người sáng tạo và người hâm mộ.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_6_Use_case_Thanh_vien_thanh_toan.png}
 \caption{Biểu đồ use case phân rã Quản lý thành viên và thanh toán}
 \label{fig:2_6}
 \end{figure}
+\FloatBarrier
 
 Các use case con gồm xem danh sách plan, tạo phiên thanh toán, đồng bộ kết quả checkout, mở customer portal, hủy subscription, tạo artist tier, cập nhật artist tier, archive tier, xem danh sách người đăng ký tier, đăng ký tier của artist, hủy đăng ký tier, xem lịch sử thanh toán, xem doanh thu và tạo yêu cầu payout. Hệ thống tích hợp cổng thanh toán (Stripe/PayPal) để xử lý thanh toán và webhook để đồng bộ trạng thái về cơ sở dữ liệu nội bộ.
 
@@ -135,12 +142,13 @@ Các use case con gồm xem danh sách plan, tạo phiên thanh toán, đồng b
 
 Use case Kiểm duyệt và quản trị dành cho Moderator, Admin và Super Admin. Đây là nhóm chức năng đảm bảo nền tảng vận hành an toàn, kiểm soát được nội dung vi phạm và truy vết được thao tác quan trọng.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_7_Use_case_Kiem_duyet_quan_tri.png}
 \caption{Biểu đồ use case phân rã Kiểm duyệt và quản trị}
 \label{fig:2_7}
 \end{figure}
+\FloatBarrier
 
 Các use case con gồm xem danh sách tác phẩm bị đánh dấu, xem báo cáo vi phạm của tác phẩm, duyệt tác phẩm, từ chối tác phẩm, xử lý yêu cầu xem xét lại, xem lịch sử report đã giải quyết, cảnh báo người dùng, khóa hoặc mở khóa người dùng, thay đổi vai trò người dùng, xem thống kê dashboard, cấu hình trọng số xếp hạng, cấu hình tìm kiếm khám phá, xem audit log, quản lý nhân sự điều phối và xử lý yêu cầu rút tiền. Hệ thống cần đảm bảo chỉ người có vai trò phù hợp mới truy cập được các chức năng này.
 
@@ -149,23 +157,25 @@ Các use case con gồm xem danh sách tác phẩm bị đánh dấu, xem báo c
 
 Quy trình nghiệp vụ quan trọng nhất của hệ thống là quy trình đăng tải và xử lý tác phẩm. Quy trình này kết hợp nhiều use case: đăng nhập, tạo tác phẩm, tải ảnh, đưa job vào hàng đợi, xử lý ảnh, kiểm tra trùng lặp, kiểm duyệt NSFW, lưu biến thể ảnh, lập chỉ mục tìm kiếm, sinh embedding và thông báo kết quả cho người sáng tạo.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.65\linewidth]{Hinh_2_8_Quy_trinh_dang_tai_xu_ly_anh.png}
 \caption{Quy trình nghiệp vụ đăng tải và xử lý tác phẩm}
 \label{fig:2_8}
 \end{figure}
+\FloatBarrier
 
 Mô tả sơ bộ quy trình như sau. Người sáng tạo đăng nhập và truy cập trang upload. Sau khi nhập thông tin tác phẩm và chọn ảnh, frontend gửi yêu cầu tạo tác phẩm tới backend. Backend lưu metadata, lưu tệp tạm vào storage, tạo job xử lý ảnh và trả về mã job cho frontend theo dõi. Worker nhận job, tải từng ảnh, tính pHash để phát hiện trùng lặp, phân loại NSFW, tạo ảnh gốc tối ưu, ảnh xem trước, ảnh thu nhỏ và ảnh làm mờ. Nếu ảnh hợp lệ, thông tin ảnh được lưu với trạng thái thành công; nếu ảnh trùng lặp hoặc nhạy cảm, hệ thống lưu metadata lỗi ở cấp ảnh. Khi tất cả ảnh đã được xử lý, nếu không có lỗi, tác phẩm được xuất bản và lập chỉ mục tìm kiếm; nếu có lỗi, tác phẩm chuyển sang trạng thái cần xử lý để người sáng tạo hoặc quản trị viên xem xét.
 
 Quy trình nghiệp vụ thứ hai là quy trình đăng ký artist tier. Quy trình này kết hợp các use case xem tier công khai, tạo phiên thanh toán, thanh toán qua cổng thanh toán, webhook đồng bộ subscription và kiểm tra quyền truy cập nội dung giới hạn.
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \centering
 \includegraphics[width=0.65\linewidth]{Hinh_2_9_Quy_trinh_thanh_vien_tier.png}
 \caption{Quy trình nghiệp vụ đăng ký gói thành viên của người sáng tạo}
 \label{fig:2_9}
 \end{figure}
+\FloatBarrier
 
 Người dùng truy cập trang nghệ sĩ và xem các tier đang hoạt động. Khi chọn đăng ký một tier, backend kiểm tra người dùng, đảm bảo khách hàng trên cổng thanh toán tồn tại và tạo phiên thanh toán. Sau khi người dùng thanh toán, cổng thanh toán gửi webhook về backend. Backend xác minh chữ ký webhook, đọc metadata của subscription, cập nhật bảng đăng ký tier và ghi nhận thanh toán. Từ thời điểm subscription ở trạng thái hoạt động, người dùng được phép truy cập các tác phẩm đặt quyền truy cập theo tier tương ứng.
 
@@ -178,7 +188,7 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \subsection{Đặc tả use case Đăng nhập và đồng bộ tài khoản}
 \label{subsection:2.3.1}
 
-\begin{table}[H]
+\begin{table}[h!]
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -217,11 +227,12 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
     \label{table:2_2}
 
 \end{table}
+\FloatBarrier
 
 \subsection{Đặc tả use case Đăng tải tác phẩm}
 \label{subsection:2.3.2}
 
-\begin{table}[H]
+\begin{table}[h!]
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -262,11 +273,12 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
     \label{table:2_3}
 
 \end{table}
+\FloatBarrier
 
 \subsection{Đặc tả use case Tìm kiếm và khám phá tác phẩm}
 \label{subsection:2.3.3}
 
-\begin{table}[H]
+\begin{table}[h!]
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -303,11 +315,12 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
     \label{table:2_4}
 
 \end{table}
+\FloatBarrier
 
 \subsection{Đặc tả use case Tương tác với tác phẩm}
 \label{subsection:2.3.4}
 
-\begin{table}[H]
+\begin{table}[h!]
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -345,11 +358,12 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
     \label{table:2_5}
 
 \end{table}
+\FloatBarrier
 
 \subsection{Đặc tả use case Đăng ký gói thành viên của người sáng tạo}
 \label{subsection:2.3.5}
 
-\begin{table}[H]
+\begin{table}[h!]
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -389,11 +403,12 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
     \label{table:2_6}
 
 \end{table}
+\FloatBarrier
 
 \subsection{Đặc tả use case Kiểm duyệt báo cáo và appeal}
 \label{subsection:2.3.6}
 
-\begin{table}[H]
+\begin{table}[h!]
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -432,6 +447,7 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
     \label{table:2_7}
 
 \end{table}
+\FloatBarrier
 
 \section{Yêu cầu phi chức năng}
 \label{section:2.4}
