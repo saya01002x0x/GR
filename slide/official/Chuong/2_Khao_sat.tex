@@ -17,8 +17,6 @@ Mặc dù mỗi nhóm nền tảng có định hướng khác nhau, chúng đề
 
 \begin{table}[H]
 \centering
-\caption{So sánh một số nhóm hệ thống hiện có với hệ thống đề xuất}
-\label{table:2_1}
 \small
 \renewcommand{\arraystretch}{1.25}
 \begin{tabular}{|p{0.18\linewidth}|p{0.24\linewidth}|p{0.24\linewidth}|p{0.24\linewidth}|}
@@ -36,6 +34,9 @@ Công cụ tìm kiếm ảnh bằng AI & Có khả năng hiểu ngữ nghĩa, t�
 Hệ thống đề xuất & Kết hợp chia sẻ ảnh, xử lý nền, kiểm duyệt tự động, tìm kiếm lai và cơ chế thành viên & Phạm vi đồ án chưa đi sâu vào triển khai hạ tầng phân tán quy mô rất lớn & Xây dựng nền tảng tích hợp theo kiến trúc module, có khả năng mở rộng tiếp \\
 \hline
 \end{tabular}
+    \caption{So sánh một số nhóm hệ thống hiện có với hệ thống đề xuất}
+    \label{table:2_1}
+
 \end{table}
 
 Từ khảo sát trên, hệ thống cần phát triển các nhóm tính năng quan trọng sau. Thứ nhất là nhóm chức năng tài khoản và phân quyền, bao gồm đăng nhập, đồng bộ hồ sơ người dùng, quản lý trạng thái artist và kiểm soát vai trò quản trị. Thứ hai là nhóm chức năng quản lý tác phẩm, bao gồm đăng tải nhiều ảnh, xử lý nền, watermark, lưu ảnh gốc, ảnh xem trước, ảnh thu nhỏ, ảnh làm mờ, kiểm tra trùng lặp và kiểm duyệt NSFW. Thứ ba là nhóm chức năng tìm kiếm và khám phá, bao gồm tìm kiếm từ khóa, lọc theo tag, độ phân giải, tỷ lệ ảnh, tìm kiếm ngữ nghĩa bằng văn bản, tìm kiếm bằng ảnh phác thảo và gợi ý nội dung liên quan. Thứ tư là nhóm tương tác cộng đồng, bao gồm thích, bình luận, bookmark, collection, follow và feed cá nhân. Thứ năm là nhóm chức năng membership và thanh toán, bao gồm plan nền tảng, artist tier, đăng ký tier, đồng bộ Stripe, customer portal, lịch sử thanh toán, doanh thu và payout. Thứ sáu là nhóm kiểm duyệt và quản trị, bao gồm report, appeal, duyệt hoặc từ chối tác phẩm vi phạm, quản lý người dùng, cảnh báo, khóa tài khoản, audit log và thống kê.
@@ -179,8 +180,6 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 
 \begin{table}[H]
 \centering
-\caption{Đặc tả use case Đăng nhập và đồng bộ tài khoản}
-\label{table:2_2}
 \small
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{0.24\linewidth}|p{0.68\linewidth}|}
@@ -214,6 +213,9 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Người dùng có phiên đăng nhập hợp lệ; cơ sở dữ liệu nội bộ có bản ghi người dùng tương ứng với định danh Clerk. \\
 \hline
 \end{tabular}
+    \caption{Đặc tả use case Đăng nhập và đồng bộ tài khoản}
+    \label{table:2_2}
+
 \end{table}
 
 \subsection{Đặc tả use case Đăng tải tác phẩm}
@@ -221,8 +223,6 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 
 \begin{table}[H]
 \centering
-\caption{Đặc tả use case Đăng tải tác phẩm}
-\label{table:2_3}
 \small
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{0.24\linewidth}|p{0.68\linewidth}|}
@@ -258,6 +258,9 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Tác phẩm được xuất bản nếu hợp lệ; nếu có lỗi, tác phẩm được lưu ở trạng thái cần xử lý hoặc thất bại để người dùng và quản trị viên theo dõi. \\
 \hline
 \end{tabular}
+    \caption{Đặc tả use case Đăng tải tác phẩm}
+    \label{table:2_3}
+
 \end{table}
 
 \subsection{Đặc tả use case Tìm kiếm và khám phá tác phẩm}
@@ -265,8 +268,6 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 
 \begin{table}[H]
 \centering
-\caption{Đặc tả use case Tìm kiếm và khám phá tác phẩm}
-\label{table:2_4}
 \small
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{0.24\linewidth}|p{0.68\linewidth}|}
@@ -298,6 +299,9 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Danh sách kết quả phù hợp được hiển thị; các truy vấn ngữ nghĩa có thể được cache để tăng hiệu năng cho lần sau. \\
 \hline
 \end{tabular}
+    \caption{Đặc tả use case Tìm kiếm và khám phá tác phẩm}
+    \label{table:2_4}
+
 \end{table}
 
 \subsection{Đặc tả use case Tương tác với tác phẩm}
@@ -305,8 +309,6 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 
 \begin{table}[H]
 \centering
-\caption{Đặc tả use case Tương tác với tác phẩm}
-\label{table:2_5}
 \small
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{0.24\linewidth}|p{0.68\linewidth}|}
@@ -339,6 +341,9 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Tương tác được ghi nhận; bộ đếm và trạng thái giao diện được cập nhật; nếu có report, report được đưa vào hàng xử lý kiểm duyệt. \\
 \hline
 \end{tabular}
+    \caption{Đặc tả use case Tương tác với tác phẩm}
+    \label{table:2_5}
+
 \end{table}
 
 \subsection{Đặc tả use case Đăng ký gói thành viên của người sáng tạo}
@@ -346,8 +351,6 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 
 \begin{table}[H]
 \centering
-\caption{Đặc tả use case Đăng ký gói thành viên của người sáng tạo}
-\label{table:2_6}
 \small
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{0.24\linewidth}|p{0.68\linewidth}|}
@@ -382,6 +385,9 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Nếu thanh toán thành công, subscription nội bộ ở trạng thái hoạt động và quyền truy cập nội dung giới hạn được mở cho người dùng. \\
 \hline
 \end{tabular}
+    \caption{Đặc tả use case Đăng ký gói thành viên của người sáng tạo}
+    \label{table:2_6}
+
 \end{table}
 
 \subsection{Đặc tả use case Kiểm duyệt báo cáo và appeal}
@@ -389,8 +395,6 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 
 \begin{table}[H]
 \centering
-\caption{Đặc tả use case Kiểm duyệt báo cáo và appeal}
-\label{table:2_7}
 \small
 \renewcommand{\arraystretch}{1.2}
 \begin{tabular}{|p{0.24\linewidth}|p{0.68\linewidth}|}
@@ -424,6 +428,9 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Report được cập nhật trạng thái; tác phẩm được duyệt, từ chối hoặc tiếp tục chờ xử lý; thao tác quản trị được ghi nhận trong audit log. \\
 \hline
 \end{tabular}
+    \caption{Đặc tả use case Kiểm duyệt báo cáo và appeal}
+    \label{table:2_7}
+
 \end{table}
 
 \section{Yêu cầu phi chức năng}
