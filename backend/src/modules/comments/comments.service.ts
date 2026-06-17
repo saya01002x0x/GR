@@ -19,8 +19,7 @@ import {
   JOB_UPDATE_STATS,
   UpdateStatsJob,
 } from '../stats/stats.constants';
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface CreateCommentDto {
   content: string;
@@ -34,7 +33,7 @@ export class CommentsService {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(STATS_QUEUE_NAME) private readonly statsQueue: Queue,
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -165,31 +164,15 @@ export class CommentsService {
 
     this.logger.log(`User ${userId} commented on artwork ${artworkId}`);
 
-    // Notify artwork author
+    // Notify artwork author via event
     if (artwork.authorId !== userId) {
-      try {
-        const shouldNotify = await this.notificationsService.shouldNotify(
-          artwork.authorId,
-          'commentWeb',
-        );
-        if (shouldNotify) {
-          const displayName = comment.user.displayName || comment.user.username;
-          await this.notificationsService.createNotification(artwork.authorId, {
-            type: NotificationType.COMMENT,
-            title: 'New Comment',
-            content: `${displayName} commented on your artwork "${artwork.title}".`,
-            metadata: {
-              artworkId,
-              commentId: comment.id,
-              userId: comment.user.id,
-              username: comment.user.username,
-              avatar: comment.user.avatar,
-            },
-          });
-        }
-      } catch (err) {
-        this.logger.error('Failed to send comment notification', err);
-      }
+      this.eventEmitter.emit('artwork.commented', {
+        authorId: artwork.authorId,
+        artworkId,
+        artworkTitle: artwork.title,
+        commentId: comment.id,
+        user: comment.user,
+      });
     }
 
     return {

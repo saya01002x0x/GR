@@ -9,6 +9,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bullmq';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
@@ -49,6 +50,7 @@ import { FollowsModule } from './modules/follows/follows.module';
 
     PrismaModule,
     RedisModule,
+    EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
     PrometheusModule.register({
       path: '/metrics',

@@ -19,8 +19,7 @@ import {
 } from '../../search/search.service';
 import { DuplicateDetectionService } from '../../duplicate-detection/duplicate-detection.service';
 import { EmbeddingService } from '../../ai-search/embedding.service';
-import { NotificationsService } from '../../notifications/notifications.service';
-import { NotificationType } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import sharp from 'sharp';
 
 /** Per-image processing result used internally */
@@ -53,7 +52,7 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
     private readonly searchService: SearchService,
     private readonly duplicateDetection: DuplicateDetectionService,
     private readonly embeddingService: EmbeddingService,
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super();
   }
@@ -558,15 +557,13 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
 
     // We can do this sequentially or in chunks. Sequential is fine for small count.
     for (const { followerId } of followers) {
-      const shouldNotify = await this.notificationsService.shouldNotify(followerId, 'newArtworkWeb');
-      if (shouldNotify) {
-        await this.notificationsService.createNotification(followerId, {
-          type: NotificationType.NEW_ARTWORK,
-          title: 'New Artwork',
-          content: `${artistName} just published "${artwork.title}"`,
-          metadata: { artworkId, artistId },
-        }).catch(() => {});
-      }
+      this.eventEmitter.emit('artwork.published', {
+        followerId,
+        artworkId,
+        artistId,
+        artistName,
+        artworkTitle: artwork.title,
+      });
     }
   }
 }

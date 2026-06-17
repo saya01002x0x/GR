@@ -13,8 +13,7 @@ import {
   JOB_UPDATE_STATS,
   UpdateStatsJob,
 } from '../stats/stats.constants';
-import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class LikesService {
@@ -23,7 +22,7 @@ export class LikesService {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(STATS_QUEUE_NAME) private readonly statsQueue: Queue,
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -125,28 +124,12 @@ export class LikesService {
         ]);
 
         if (artwork && user && artwork.authorId !== userId) {
-          const shouldNotify = await this.notificationsService.shouldNotify(
-            artwork.authorId,
-            'likeWeb',
-          );
-
-          if (shouldNotify) {
-            const displayName = user.displayName || user.username;
-            await this.notificationsService.createNotification(
-              artwork.authorId,
-              {
-                type: NotificationType.LIKE,
-                title: 'New Like',
-                content: `${displayName} liked your artwork "${artwork.title}".`,
-                metadata: {
-                  artworkId,
-                  userId: user.id,
-                  username: user.username,
-                  avatar: user.avatar,
-                },
-              },
-            );
-          }
+          this.eventEmitter.emit('artwork.liked', {
+            authorId: artwork.authorId,
+            artworkId,
+            artworkTitle: artwork.title,
+            user,
+          });
         }
       } catch (err) {
         this.logger.error(

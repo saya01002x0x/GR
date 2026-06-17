@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { NotificationProcessor } from './notification.processor';
+import { NotificationListener } from './notification.listener';
 import { NOTIFICATION_QUEUE_NAME } from './notification.constants';
 
 @Global()
@@ -13,7 +14,7 @@ import { NOTIFICATION_QUEUE_NAME } from './notification.constants';
     }),
   ],
   controllers: [NotificationsController],
-  providers: [NotificationsService, NotificationProcessor],
-  exports: [NotificationsService, BullModule],
+  providers: [NotificationsService, NotificationProcessor, NotificationListener],
+  exports: [BullModule],
 })
 export class NotificationsModule {}

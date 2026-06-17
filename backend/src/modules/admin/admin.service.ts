@@ -15,8 +15,9 @@ import {
   Prisma,
   ReportStatus,
   PayoutStatus,
+  NotificationType,
 } from '@prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import dist from 'sharp-phash/distance';
 
 const WARNING_EXPIRY_DAYS = 30;
@@ -27,7 +28,7 @@ const MAX_WARNINGS_BEFORE_BAN = 3;
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ── Dashboard Stats ──
@@ -440,12 +441,12 @@ export class AdminService {
         },
       });
 
-      await this.notificationsService.create({
+      this.eventEmitter.emit('admin.notified', {
         userId: authorId,
-        type: 'TEMP_BAN',
+        type: NotificationType.TEMP_BAN,
         title: 'Account temporarily banned for 7 days',
-        message: `You have received ${newWarningCount} warnings. Your account will be temporarily banned until ${bannedUntil.toLocaleDateString('vi-VN')}. If you continue to violate the rules after being unbanned, your account will be permanently deleted by Admin.`,
-        data: {
+        content: `You have received ${newWarningCount} warnings. Your account will be temporarily banned until ${bannedUntil.toLocaleDateString('vi-VN')}. If you continue to violate the rules after being unbanned, your account will be permanently deleted by Admin.`,
+        metadata: {
           artworkId,
           reason: primaryReason,
           warningCount: newWarningCount,
@@ -453,12 +454,12 @@ export class AdminService {
         },
       });
     } else {
-      await this.notificationsService.create({
+      this.eventEmitter.emit('admin.notified', {
         userId: authorId,
-        type: 'WARNING',
+        type: NotificationType.WARNING,
         title: `Warning ${newWarningCount}/${MAX_WARNINGS_BEFORE_BAN}: Content violation`,
-        message: `Your artwork has been hidden due to community rule violation (${primaryReason}). This is the ${newWarningCount}th warning. ${MAX_WARNINGS_BEFORE_BAN - newWarningCount} more warnings will lead to a 7-day temp ban.`,
-        data: {
+        content: `Your artwork has been hidden due to community rule violation (${primaryReason}). This is the ${newWarningCount}th warning. ${MAX_WARNINGS_BEFORE_BAN - newWarningCount} more warnings will lead to a 7-day temp ban.`,
+        metadata: {
           artworkId,
           reason: primaryReason,
           warningCount: newWarningCount,
@@ -579,13 +580,13 @@ export class AdminService {
       },
     });
 
-    await this.notificationsService.create({
+    this.eventEmitter.emit('admin.notified', {
       userId,
-      type: 'TEMP_BAN',
+      type: NotificationType.TEMP_BAN,
       title: 'Tài khoản bị khóa',
-      message:
+      content:
         'Tài khoản của bạn đã bị Admin khóa do vi phạm nghiêm trọng quy tắc cộng đồng. Liên hệ support để biết thêm thông tin.',
-      data: { bannedById },
+      metadata: { bannedById },
     });
 
     return result;
@@ -606,13 +607,13 @@ export class AdminService {
       },
     });
 
-    await this.notificationsService.create({
+    this.eventEmitter.emit('admin.notified', {
       userId,
-      type: 'UNBAN',
+      type: NotificationType.UNBAN,
       title: 'Account has been unbanned',
-      message:
+      content:
         'Your account has been restored. Please follow the community rules to avoid being permanently deleted.',
-      data: {},
+      metadata: {},
     });
 
     return result;

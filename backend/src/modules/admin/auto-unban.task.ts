@@ -7,7 +7,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class AutoUnbanTask {
@@ -15,7 +15,7 @@ export class AutoUnbanTask {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -47,13 +47,13 @@ export class AutoUnbanTask {
         },
       });
 
-      await this.notificationsService.create({
+      this.eventEmitter.emit('admin.notified', {
         userId: user.id,
         type: 'UNBAN',
-        title: 'Tﾃi kho蘯｣n ﾄ妥｣ ﾄ柁ｰ盻｣c m盻・khﾃｳa',
-        message:
-          'L盻㌻h c蘯･m t蘯｡m th盻拱 c盻ｧa b蘯｡n ﾄ妥｣ h蘯ｿt h蘯｡n. Tﾃi kho蘯｣n ﾄ柁ｰ盻｣c khﾃｴi ph盻･c, nhﾆｰng hﾃ｣y tuﾃ｢n th盻ｧ quy t蘯ｯc c盻冢g ﾄ黛ｻ渡g ﾄ黛ｻ・trﾃ｡nh b盻・c蘯･m vﾄｩnh vi盻・.',
-        data: { warningCount: user.warningCount },
+        title: 'Tài khoản đã được mở khóa',
+        content:
+          'Lệnh cấm tạm thời của bạn đã hết hạn. Tài khoản được khôi phục, nhưng hãy tuân thủ quy tắc cộng đồng để tránh bị cấm vĩnh viễn.',
+        metadata: { warningCount: user.warningCount },
       });
 
       this.logger.log(`Auto-unbanned user: ${user.username}`);
