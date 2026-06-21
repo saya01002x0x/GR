@@ -185,3 +185,23 @@ Tá»•ng há»£p cÃ¡c khÃ¡i niá»‡m Next.js vÃ  Frontend Ä‘Ã£ sá»­ dá»¥ng trong dá»± 
 - **LÃ  gÃ¬:** Component <Image> tÃ­ch há»£p sáºµn cá»§a Next.js giÃºp tá»‘i Æ°u hÃ¬nh áº£nh tá»± Ä‘á»™ng.
 - **CÃ¡ch dÃ¹ng:** import Image from 'next/image'; <Image src={url} fill sizes="..." />.
 - **á»¨ng dá»¥ng:** Tá»± Ä‘á»™ng lazy load hÃ¬nh áº£nh khÃ´ng náº±m trong khung hÃ¬nh vÃ  nÃ©n áº£nh sang Ä‘á»‹nh dáº¡ng WebP Ä‘á»ƒ giáº£m dung lÆ°á»£ng, Ã¡p dá»¥ng trong ArtworkCard.
+# # # #   M a n t i n e   P o p o v e r   f o r   A u t o c o m p l e t e 
+ -   * * L à   g ì : * *   C o m p o n e n t   \ P o p o v e r \   c ça   M a n t i n e   d ù n g   Ã  t ¡o   m Ùt   k h u n g   n Õi   ( d r o p d o w n )   í n h   k è m   v à o   m Ùt   t a r g e t   e l e m e n t   ( v í   d å  \ T e x t I n p u t \ ) . 
+ -   * * C á c h   d ù n g : * * 
+     \ \ \ 	 s x 
+     i m p o r t   {   P o p o v e r ,   T e x t I n p u t ,   S t a c k ,   T e x t   }   f r o m   ' @ m a n t i n e / c o r e ' ; 
+     
+     < P o p o v e r   o p e n e d = { i s O p e n e d }   w i d t h = \  
+ t a r g e t \   p o s i t i o n = \ b o t t o m \ > 
+         < P o p o v e r . T a r g e t > 
+             < T e x t I n p u t   o n F o c u s = { ( )   = >   s e t I s O p e n e d ( t r u e ) }   / > 
+         < / P o p o v e r . T a r g e t > 
+         < P o p o v e r . D r o p d o w n > 
+             < S t a c k > 
+                 < T e x t > G ãi   ý   1 < / T e x t > 
+             < / S t a c k > 
+         < / P o p o v e r . D r o p d o w n > 
+     < / P o p o v e r > 
+     \ \ \ 
+ -   * * èn g   d ån g : * *   D ù n g   Ã  x â y   d ñn g   t í n h   n n g   A u t o c o m p l e t e   T a g   k h i   n g °Ýi   d ù n g   g õ   t ì m   k i ¿m   t r o n g   S e a r c h B a r . t s x ,   c h o   p h é p   t ù y   c h Én h   g i a o   d i Çn   d r o p d o w n   l i n h   h o ¡t   h ¡n   s o   v Ûi   c o m p o n e n t   A u t o c o m p l e t e   c ó   s µn .  
+ 

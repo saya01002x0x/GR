@@ -4,7 +4,7 @@
  * Reference: https://docs.nestjs.com/controllers
  */
 
-import { Controller, Get, Patch, UseGuards, Body, Param, Query, Req } from '@nestjs/common';
+import { Controller, Get, Patch, UseGuards, Body, Param, Query } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -13,17 +13,15 @@ import {
 } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { ClerkGuard } from '../auth/clerk.guard';
-import { AuthService } from '../auth/auth.service';
+import { OptionalClerkGuard } from '../auth/optional-clerk.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { User } from '@prisma/client';
-import type { Request } from 'express';
 
 @ApiTags('users')
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
-    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -104,10 +102,10 @@ export class UsersController {
   }
 
   @Get('artists/:identifier')
+  @UseGuards(OptionalClerkGuard)
   @ApiOperation({ summary: 'Get public artist detail' })
   @ApiResponse({ status: 200, description: 'Artist detail retrieved' })
-  async findArtistDetail(@Param('identifier') identifier: string, @Req() req: Request) {
-    const viewer = await this.authService.getOptionalUser(req);
+  async findArtistDetail(@Param('identifier') identifier: string, @CurrentUser() viewer: User | null) {
     const artist = await this.usersService.findPublicArtistDetail(identifier, viewer?.id);
 
     return {
@@ -117,10 +115,10 @@ export class UsersController {
   }
 
   @Get('artists/:identifier/tier-previews')
+  @UseGuards(OptionalClerkGuard)
   @ApiOperation({ summary: 'Get tier previews for membership tab' })
   @ApiResponse({ status: 200, description: 'Tier previews retrieved' })
-  async findArtistTierPreviews(@Param('identifier') identifier: string, @Req() req: Request) {
-    const viewer = await this.authService.getOptionalUser(req);
+  async findArtistTierPreviews(@Param('identifier') identifier: string, @CurrentUser() viewer: User | null) {
     const previews = await this.usersService.findArtistTierPreviews(identifier, viewer?.id);
 
     return {
@@ -132,6 +130,7 @@ export class UsersController {
 
 
   @Get('artists/:identifier/artworks')
+  @UseGuards(OptionalClerkGuard)
   @ApiOperation({ summary: 'Get artist artworks for public detail page' })
   @ApiResponse({ status: 200, description: 'Artist artworks retrieved' })
   async findArtistArtworks(
@@ -139,9 +138,8 @@ export class UsersController {
     @Query('filter') filter: string | undefined,
     @Query('limit') limit: string | undefined,
     @Query('offset') offset: string | undefined,
-    @Req() req: Request,
+    @CurrentUser() viewer: User | null,
   ) {
-    const viewer = await this.authService.getOptionalUser(req);
     const parsedFilter = filter && filter !== 'all'
       ? filter === 'free'
         ? { visibility: 'free' as const }

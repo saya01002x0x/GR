@@ -32,6 +32,12 @@ export interface ArtworkDocument {
   isHighRes: boolean; // true if maxResolution >= 2560 (2K+)
 }
 
+export interface TagDocument {
+  id: string; // Same as name for simplicity, or DB id
+  name: string;
+  count: number;
+}
+
 export interface SearchResult {
   hits: ArtworkDocument[];
   total: number;
@@ -45,8 +51,10 @@ export class SearchService implements OnModuleInit {
   private readonly logger = new Logger(SearchService.name);
   private client: MeiliSearch;
   private index: Index<ArtworkDocument>;
+  private tagsIndex: Index<TagDocument>;
 
   private readonly INDEX_NAME = 'artworks';
+  private readonly TAGS_INDEX_NAME = 'tags';
 
   constructor(private readonly configService: ConfigService) {
     const host = this.configService.get<string>(
@@ -57,6 +65,7 @@ export class SearchService implements OnModuleInit {
 
     this.client = new MeiliSearch({ host, apiKey });
     this.index = this.client.index<ArtworkDocument>(this.INDEX_NAME);
+    this.tagsIndex = this.client.index<TagDocument>(this.TAGS_INDEX_NAME);
   }
 
   async onModuleInit() {
@@ -69,7 +78,8 @@ export class SearchService implements OnModuleInit {
 
       // Create or update index with settings
       await this.ensureIndexSettings();
-      this.logger.log(`✅ Index "${this.INDEX_NAME}" ready`);
+      await this.ensureTagIndexSettings();
+      this.logger.log(`✅ Index "${this.INDEX_NAME}" and "${this.TAGS_INDEX_NAME}" ready`);
     } catch (error) {
       this.logger.error('❌ Failed to initialize Meilisearch', error);
     }
@@ -113,6 +123,32 @@ export class SearchService implements OnModuleInit {
         'exactness',
         'likeCount:desc',
         'viewCount:desc',
+      ],
+      typoTolerance: {
+        enabled: true,
+      },
+    });
+  }
+
+  /**
+   * Ensure tags index exists with proper settings
+   */
+  private async ensureTagIndexSettings() {
+    await this.client
+      .createIndex(this.TAGS_INDEX_NAME, { primaryKey: 'id' })
+      .catch(() => {});
+
+    await this.tagsIndex.updateSettings({
+      searchableAttributes: ['name'],
+      sortableAttributes: ['count'],
+      rankingRules: [
+        'words',
+        'typo',
+        'proximity',
+        'attribute',
+        'sort',
+        'exactness',
+        'count:desc',
       ],
       typoTolerance: {
         enabled: true,
@@ -259,6 +295,31 @@ export class SearchService implements OnModuleInit {
       this.logger.log(`Bulk indexed ${artworks.length} artworks`);
     } catch (error) {
       this.logger.error('Failed to bulk index artworks', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search tags for autocomplete
+   */
+  async searchTags(query: string, limit: number = 5): Promise<TagDocument[]> {
+    const result = await this.tagsIndex.search(query, {
+      limit,
+    });
+    return result.hits as TagDocument[];
+  }
+
+  /**
+   * Bulk index tags
+   */
+  async bulkIndexTags(tags: TagDocument[]): Promise<void> {
+    if (tags.length === 0) return;
+
+    try {
+      await this.tagsIndex.addDocuments(tags);
+      this.logger.log(`Bulk indexed ${tags.length} tags`);
+    } catch (error) {
+      this.logger.error('Failed to bulk index tags', error);
       throw error;
     }
   }

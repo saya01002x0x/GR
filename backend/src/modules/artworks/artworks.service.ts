@@ -21,6 +21,7 @@ import { Queue } from 'bullmq';
 import { QUEUE_NAME, JOB_PROCESS_IMAGES } from '../queue/queue.constants';
 import { randomUUID } from 'crypto';
 import { getExpandedAccessibleTierIds } from '../../utils/tier-helpers';
+import { RecommendationsService } from '../recommendations/recommendations.service';
 
 export interface CreateArtworkDto {
   title: string;
@@ -108,6 +109,7 @@ export class ArtworksService {
     private readonly stripeService: StripeService,
     private readonly configService: ConfigService,
     @InjectQueue(QUEUE_NAME) private readonly queue: Queue,
+    private readonly recommendationsService: RecommendationsService,
   ) {}
 
   /**
@@ -525,11 +527,13 @@ export class ArtworksService {
   }
 
   /**
-   * Get related artworks by tags (OR logic)
-   * Fallback: same author or latest artworks
+   * Get related artworks using Hybrid Algorithm:
+   * 1. 60% from Collaborative Filtering (RecommendationsService)
+   * 2. 20% from matching tags
+   * 3. 20% from same author
+   * Fallback to random/latest to fill limit.
    */
   async findRelated(artworkId: string, limit = 10, viewerId?: string | null) {
-    // Get current artwork with tags
     const artwork = await this.prisma.artwork.findUnique({
       where: { id: artworkId },
       include: {
@@ -542,48 +546,97 @@ export class ArtworksService {
     }
 
     const tagNames = artwork.tags.map((t) => t.tag.name);
+    
+    // Limits
+    const cfLimit = Math.max(1, Math.floor(limit * 0.6));
+    const tagLimit = Math.max(1, Math.floor(limit * 0.2));
+    const authorLimit = Math.max(1, Math.floor(limit * 0.2));
 
-    // Try to find by matching tags (OR logic)
-    const matchingArtworks = await this.prisma.artwork.findMany({
-      where: {
-        id: { not: artworkId },
-        status: 'PUBLISHED',
-        tags: {
-          some: {
-            tag: {
-              name: { in: tagNames },
-            },
-          },
-        },
-      },
-      include: this.artworkListInclude,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+    // 1. Collaborative Filtering
+    const cfResults = await this.recommendationsService.getRecommendations(artworkId, cfLimit);
+    const cfIds = cfResults.map((r) => r.artwork_id);
 
-    let relatedArtworks = await this.filterAccessibleArtworks(matchingArtworks, viewerId);
+    // Fetch CF artworks
+    let cfArtworks: any[] = [];
+    if (cfIds.length > 0) {
+      const rawCfArtworks = await this.prisma.artwork.findMany({
+        where: { id: { in: cfIds }, status: 'PUBLISHED' },
+        include: this.artworkListInclude,
+      });
+      // Sort to match CF order
+      const cfMap = new Map(rawCfArtworks.map(a => [a.id, a]));
+      cfArtworks = cfIds.map(id => cfMap.get(id)).filter(Boolean);
+    }
+    
+    cfArtworks = await this.filterAccessibleArtworks(cfArtworks, viewerId);
+    let relatedArtworks = [...cfArtworks];
+    
+    // Adjust limits if CF didn't find enough
+    let remainingTagLimit = tagLimit + (cfLimit - cfArtworks.length);
+    let existingIds = new Set([artworkId, ...relatedArtworks.map(a => String(a.id))]);
 
-    // Fallback: same author or latest
-    if (relatedArtworks.length < limit) {
-      const remaining = limit - relatedArtworks.length;
-      const existingIds = [artworkId, ...relatedArtworks.map((a) => String(a.id))];
-
-      const fallbackArtworks = await this.prisma.artwork.findMany({
+    // 2. Matching Tags
+    let tagArtworks: any[] = [];
+    if (remainingTagLimit > 0 && tagNames.length > 0) {
+      const rawTagArtworks = await this.prisma.artwork.findMany({
         where: {
-          id: { notIn: existingIds },
+          id: { notIn: Array.from(existingIds) },
           status: 'PUBLISHED',
-          OR: [
-            { authorId: artwork.authorId },
-            {}, // Any artwork as last resort
-          ],
+          tags: {
+            some: { tag: { name: { in: tagNames } } },
+          },
         },
         include: this.artworkListInclude,
         orderBy: { createdAt: 'desc' },
-        take: remaining,
+        take: remainingTagLimit + 5, // fetch a bit more for filtering
+      });
+      
+      const accessibleTagArtworks = await this.filterAccessibleArtworks(rawTagArtworks, viewerId);
+      tagArtworks = accessibleTagArtworks.slice(0, remainingTagLimit);
+      relatedArtworks = [...relatedArtworks, ...tagArtworks];
+    }
+
+    // Adjust limits if Tags didn't find enough
+    let remainingAuthorLimit = authorLimit + (remainingTagLimit - tagArtworks.length);
+    existingIds = new Set([artworkId, ...relatedArtworks.map(a => String(a.id))]);
+
+    // 3. Same Author
+    let authorArtworks: any[] = [];
+    if (remainingAuthorLimit > 0) {
+      const rawAuthorArtworks = await this.prisma.artwork.findMany({
+        where: {
+          id: { notIn: Array.from(existingIds) },
+          status: 'PUBLISHED',
+          authorId: artwork.authorId,
+        },
+        include: this.artworkListInclude,
+        orderBy: { createdAt: 'desc' },
+        take: remainingAuthorLimit + 5,
       });
 
-      const accessibleFallbackArtworks = await this.filterAccessibleArtworks(fallbackArtworks, viewerId);
-      relatedArtworks = [...relatedArtworks, ...accessibleFallbackArtworks].slice(0, limit);
+      const accessibleAuthorArtworks = await this.filterAccessibleArtworks(rawAuthorArtworks, viewerId);
+      authorArtworks = accessibleAuthorArtworks.slice(0, remainingAuthorLimit);
+      relatedArtworks = [...relatedArtworks, ...authorArtworks];
+    }
+
+    // 4. Fallback (Any Artwork)
+    if (relatedArtworks.length < limit) {
+      const remainingLimit = limit - relatedArtworks.length;
+      existingIds = new Set([artworkId, ...relatedArtworks.map(a => String(a.id))]);
+
+      const rawFallbackArtworks = await this.prisma.artwork.findMany({
+        where: {
+          id: { notIn: Array.from(existingIds) },
+          status: 'PUBLISHED',
+        },
+        include: this.artworkListInclude,
+        orderBy: { createdAt: 'desc' },
+        take: remainingLimit + 5,
+      });
+
+      const accessibleFallbackArtworks = await this.filterAccessibleArtworks(rawFallbackArtworks, viewerId);
+      const fallbackArtworks = accessibleFallbackArtworks.slice(0, remainingLimit);
+      relatedArtworks = [...relatedArtworks, ...fallbackArtworks];
     }
 
     return relatedArtworks;

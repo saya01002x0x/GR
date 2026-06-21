@@ -11,7 +11,7 @@ import { Strategy } from 'passport-custom';
 import { Request } from 'express';
 import { verifyToken, type ClerkClient } from '@clerk/backend';
 import { CLERK_CLIENT } from './clerk-client.provider';
-import { UsersService } from '../users/users.service';
+import { AuthService } from './auth.service';
 import { User } from '@prisma/client';
 
 /**
@@ -28,7 +28,7 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
   constructor(
     @Inject(CLERK_CLIENT) private readonly clerkClient: ClerkClient,
     private readonly configService: ConfigService,
-    private readonly usersService: UsersService,
+    private readonly authService: AuthService,
   ) {
     super();
     this.secretKey = this.configService.get<string>('CLERK_SECRET_KEY') || '';
@@ -58,7 +58,7 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
       const clerkUser = await this.clerkClient.users.getUser(clerkId);
 
       // 4. LAZY SYNC: T蘯｡o ho蘯ｷc c蘯ｭp nh蘯ｭt user trong Database
-      const dbUser = await this.usersService.findOrCreateByClerkId({
+      const dbUser = await this.authService.findOrCreateUser({
         clerkId: clerkUser.id,
         email: clerkUser.emailAddresses[0]?.emailAddress || '',
         username: clerkUser.username || `user_${clerkUser.id.slice(-8)}`,

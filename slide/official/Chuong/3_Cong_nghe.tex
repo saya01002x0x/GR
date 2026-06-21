@@ -16,7 +16,7 @@ Việc chọn NestJS mang lại sự cân bằng hoàn hảo: nó duy trì đư�
 
 \subsection{Framework Frontend Next.js và Thư viện UI Mantine}
 
-Bài toán ở Chương 2 chỉ ra rằng hệ thống không chỉ yêu cầu một giao diện tương tác phong phú cho tính năng đăng tải và quản lý bảng điều khiển (Dashboard) mà còn cần tối ưu hóa công cụ tìm kiếm (SEO) cho các trang chi tiết tác phẩm nhằm thu hút người dùng bên ngoài.
+Bài toán ở Chương 2 chỉ ra rằng hệ thống không chỉ yêu cầu một giao diện tương tác phong phú cho tính năng đăng tải và quản lý bảng điều khiển mà còn cần tối ưu hóa công cụ tìm kiếm (SEO) cho các trang chi tiết tác phẩm nhằm thu hút người dùng bên ngoài.
 
 Next.js (dựa trên React) được lựa chọn làm nền tảng Frontend chính \cite{nextjs}. Các lựa chọn thay thế như React thuần (Client-Side Rendering) hoặc Vue.js. React thuần gặp nhược điểm lớn về SEO do nội dung trang không được kết xuất sẵn tại máy chủ, dẫn đến các bộ máy tìm kiếm khó thu thập dữ liệu ảnh và nghệ sĩ.
 
@@ -26,35 +26,35 @@ Next.js giải quyết bài toán này thông qua cơ chế Server-Side Renderin
 
 \subsection{Hệ quản trị cơ sở dữ liệu PostgreSQL}
 
-Như đã đề cập ở cấu trúc thực thể trong Chương 2, dữ liệu của hệ thống có tính quan hệ rất cao: một người dùng có thể sở hữu nhiều tác phẩm, một tác phẩm có nhiều ảnh, nhiều thẻ (tag), và liên kết chặt chẽ với các giao dịch thanh toán định kỳ. Yêu cầu tính toàn vẹn dữ liệu (ACID) là bắt buộc.
+Như đã đề cập ở cấu trúc thực thể trong Chương 2, dữ liệu của hệ thống có tính quan hệ rất cao: một người dùng có thể sở hữu nhiều tác phẩm, một tác phẩm có nhiều ảnh, nhiều tag, và liên kết chặt chẽ với các giao dịch thanh toán định kỳ. Yêu cầu tính toàn vẹn dữ liệu (ACID) là bắt buộc.
 
 PostgreSQL được lựa chọn làm cơ sở dữ liệu chính \cite{postgresql}. So sánh với các giải pháp thay thế như MongoDB (cơ sở dữ liệu NoSQL) hoặc MySQL. MongoDB linh hoạt trong việc lưu trữ tài liệu không có cấu trúc cố định, nhưng rất yếu trong việc duy trì tính toàn vẹn khi thực hiện các giao dịch phức tạp liên quan đến nhiều bảng (ví dụ: vừa trừ tiền, vừa cập nhật trạng thái gói hội viên). MySQL tốt nhưng hệ sinh thái hỗ trợ mở rộng không mạnh mẽ bằng PostgreSQL, đặc biệt là sự thiếu hụt các tiện ích mở rộng cho tìm kiếm vector gốc. PostgreSQL cung cấp độ tin cậy tuyệt đối cho các quan hệ thực thể khắt khe của hệ thống, đồng thời hỗ trợ lưu trữ mảng và kiểu dữ liệu JSON linh hoạt khi cần thiết.
 
 \subsection{Công cụ ánh xạ dữ liệu Prisma ORM}
 
-Để tương tác với PostgreSQL từ mã nguồn TypeScript, Prisma ORM được sử dụng \cite{prisma}. Trong lập trình truyền thống, lập trình viên thường viết các câu lệnh SQL thô, hoặc sử dụng các thư viện như TypeORM, Sequelize. Viết SQL thô dễ gây ra lỗi bảo mật (SQL Injection) và khó tái cấu trúc mã nguồn. TypeORM khá phổ biến nhưng cơ chế kiểm tra kiểu dữ liệu (Type-safety) không thực sự hoàn hảo.
+Để tương tác với PostgreSQL từ mã nguồn TypeScript, Prisma ORM được sử dụng \cite{prisma}. Trong lập trình truyền thống, lập trình viên thường viết các câu lệnh SQL thô, hoặc sử dụng các thư viện như TypeORM, Sequelize. Viết SQL thô dễ gây ra lỗi bảo mật ví dụ như SQL Injection và khó tái cấu trúc mã nguồn. TypeORM khá phổ biến nhưng cơ chế kiểm tra kiểu dữ liệu không thực sự hoàn hảo.
 
-Prisma nổi bật nhờ cơ chế tự động sinh mã máy khách (Auto-generated client) dựa trên tệp lược đồ. Điều này đảm bảo rằng mọi truy vấn tới cơ sở dữ liệu đều được kiểm tra lỗi cú pháp và kiểu dữ liệu ngay trong quá trình viết code (Compile-time). Nhờ Prisma, các thao tác phức tạp như truy vấn tác phẩm kèm theo thông tin tác giả và số lượng bình luận được thực hiện một cách an toàn và ngắn gọn, giảm thiểu đáng kể lỗi phát sinh trong thời gian chạy.
+Prisma nổi bật nhờ cơ chế tự động sinh mã máy khách dựa trên tệp lược đồ. Điều này đảm bảo rằng mọi truy vấn tới cơ sở dữ liệu đều được kiểm tra lỗi cú pháp và kiểu dữ liệu ngay trong quá trình viết code. Nhờ Prisma, các thao tác phức tạp như truy vấn tác phẩm kèm theo thông tin tác giả và số lượng bình luận được thực hiện một cách an toàn và ngắn gọn, giảm thiểu đáng kể lỗi phát sinh trong thời gian chạy.
 
 \section{Nền tảng Lý thuyết và Công nghệ Tìm kiếm}
 
 \subsection{Công cụ tìm kiếm toàn văn Meilisearch}
 
-Chương 2 đặt ra yêu cầu hệ thống phải hỗ trợ tìm kiếm tác phẩm theo từ khóa một cách nhanh chóng, kết hợp bộ lọc (filter) phức tạp theo thẻ, độ phân giải, tỷ lệ ảnh, và có khả năng chịu lỗi chính tả của người dùng.
+Chương 2 đặt ra yêu cầu hệ thống phải hỗ trợ tìm kiếm tác phẩm theo từ khóa một cách nhanh chóng, kết hợp bộ lọc phức tạp theo thẻ, độ phân giải, tỷ lệ ảnh, và có khả năng chịu lỗi chính tả của người dùng.
 
-Meilisearch được lựa chọn để giải quyết bài toán tìm kiếm toàn văn này \cite{meilisearch}. Các giải pháp thay thế bao gồm Elasticsearch và tìm kiếm Full-text gốc của PostgreSQL. Tìm kiếm gốc của PostgreSQL khá chậm khi dữ liệu lớn và không hỗ trợ xử lý lỗi chính tả tự nhiên. Elasticsearch là một giải pháp cấp độ doanh nghiệp cực kỳ mạnh mẽ, nhưng nó đòi hỏi cấu hình hạ tầng khổng lồ, tiêu tốn nhiều tài nguyên bộ nhớ (RAM), làm tăng chi phí vận hành không cần thiết cho một đồ án quy mô trung bình.
+Meilisearch được lựa chọn để giải quyết bài toán tìm kiếm toàn văn này \cite{meilisearch}. Các giải pháp thay thế bao gồm Elasticsearch và tìm kiếm Full-text gốc của PostgreSQL. Tìm kiếm gốc của PostgreSQL khá chậm khi dữ liệu lớn và không hỗ trợ xử lý lỗi chính tả tự nhiên. Elasticsearch là một giải pháp cấp độ doanh nghiệp cực kỳ mạnh mẽ, nhưng nó đòi hỏi cấu hình hạ tầng khổng lồ, tiêu tốn nhiều tài nguyên bộ nhớ, làm tăng chi phí vận hành không cần thiết cho một đồ án quy mô trung bình.
 
-Meilisearch được viết bằng ngôn ngữ Rust, nổi bật với thiết kế tối giản, tiêu thụ cực ít tài nguyên nhưng mang lại tốc độ tìm kiếm dưới 50 mili-giây. Tính năng bỏ qua lỗi gõ phím (Typo tolerance) được bật mặc định, giúp trải nghiệm người dùng trên nền tảng nghệ thuật trở nên tự nhiên hơn khi họ tìm kiếm các tên nghệ sĩ hoặc các thẻ tiếng nước ngoài phức tạp.
+Meilisearch được viết bằng ngôn ngữ Rust, nổi bật với thiết kế tối giản, tiêu thụ cực ít tài nguyên nhưng mang lại tốc độ tìm kiếm dưới 50 mili-giây. Tính năng bỏ qua lỗi gõ phím được bật mặc định, giúp trải nghiệm người dùng trên nền tảng nghệ thuật trở nên tự nhiên hơn khi họ tìm kiếm các tên nghệ sĩ hoặc các thẻ tiếng nước ngoài phức tạp.
 
 \subsection{Lý thuyết học biểu diễn và Tìm kiếm ngữ nghĩa với pgvector}
 
 Ngoài tìm kiếm từ khóa, bài toán khám phá nội dung ở Chương 2 chỉ ra rằng người dùng cần tìm kiếm ảnh bằng các mô tả ngữ nghĩa (ví dụ: một bức tranh hoàng hôn trên biển có cô gái đứng quay lưng) hoặc tìm kiếm qua ảnh phác thảo. Lời giải cho bài toán này nằm ở lý thuyết học biểu diễn đa phương thức, cụ thể là mô hình CLIP (Contrastive Language-Image Pretraining) \cite{clip}.
 
-Lý thuyết của CLIP là huấn luyện đồng thời một bộ mã hóa hình ảnh và một bộ mã hóa văn bản sao cho chúng ánh xạ cả hình ảnh và văn bản vào cùng một không gian toán học (không gian vector). Hệ thống sử dụng lý thuyết này để chuyển đổi từng bức ảnh được tải lên thành một vector số thực gồm 512 chiều. Khoảng cách Cosine giữa các vector này chính là thước đo độ tương đồng về mặt thị giác hoặc ngữ nghĩa. Khoảng cách càng nhỏ, hai bức ảnh càng giống nhau.
+Lý thuyết của CLIP là huấn luyện đồng thời một bộ mã hóa hình ảnh và một bộ mã hóa văn bản sao cho chúng ánh xạ cả hình ảnh và văn bản vào cùng một không gian toán học. Hệ thống sử dụng lý thuyết này để chuyển đổi từng bức ảnh được tải lên thành một vector số thực gồm 512 chiều. Khoảng cách Cosine giữa các vector này chính là thước đo độ tương đồng về mặt thị giác hoặc ngữ nghĩa. Khoảng cách càng nhỏ, hai bức ảnh càng giống nhau.
 
 Để lưu trữ và truy vấn hàng triệu vector này, hệ thống sử dụng pgvector, một tiện ích mở rộng trực tiếp của PostgreSQL \cite{pgvector}. Giải pháp thay thế là sử dụng các cơ sở dữ liệu vector chuyên dụng như Milvus hoặc Pinecone. Tuy nhiên, việc vận hành thêm một hệ thống cơ sở dữ liệu riêng biệt sẽ làm tăng độ phức tạp của hạ tầng, đòi hỏi phải đồng bộ hóa dữ liệu liên tục giữa cơ sở dữ liệu quan hệ và cơ sở dữ liệu vector. pgvector giải quyết triệt để vấn đề này bằng cách cho phép lưu trữ trực tiếp vector bên trong bảng dữ liệu của PostgreSQL, hỗ trợ truy vấn các bức ảnh có không gian ngữ nghĩa gần nhất (K-Nearest Neighbors) bằng câu lệnh SQL truyền thống kết hợp toán tử khoảng cách.
 
-\section{Xử lý nền và Hàng đợi (Background Processing)}
+\section{Xử lý nền và hàng đợi}
 
 \subsection{Hàng đợi tin nhắn BullMQ và Bộ nhớ đệm Redis}
 
@@ -62,13 +62,13 @@ Theo luồng nghiệp vụ đăng tải tác phẩm ở Chương 2, hệ thống
 
 Để giải quyết, hệ thống áp dụng kiến trúc xử lý nền với hàng đợi tin nhắn BullMQ và hệ thống bộ nhớ đệm Redis \cite{bullmq}. Các lựa chọn thay thế mạnh mẽ hơn bao gồm Apache Kafka hoặc RabbitMQ. Kafka và RabbitMQ rất xuất sắc trong các hệ thống phân tán khổng lồ, nhưng chúng đòi hỏi kiến thức vận hành phức tạp và tài nguyên máy chủ lớn.
 
-BullMQ là một hệ thống hàng đợi dựa trên Redis, cực kỳ nhẹ nhưng vẫn cung cấp đầy đủ các tính năng nâng cao cấp doanh nghiệp như: lập lịch tác vụ, xử lý lại khi thất bại (Retry), giới hạn tốc độ xử lý, và báo cáo tiến trình (Progress tracking). Khi người dùng tải ảnh lên, Backend chỉ việc ghi thông tin vào cơ sở dữ liệu và ném một công việc vào hàng đợi BullMQ. Các trình làm việc (Worker) chạy ngầm sẽ âm thầm nhận công việc từ Redis, xử lý toàn bộ các bước cắt xén, kiểm duyệt ảnh và sau đó gửi thông báo hoàn tất về giao diện. Mô hình này giúp luồng đăng tải ảnh trở nên mượt mà và hệ thống không bao giờ bị quá tải cục bộ.
+BullMQ là một hệ thống hàng đợi dựa trên Redis, cực kỳ nhẹ nhưng vẫn cung cấp đầy đủ các tính năng nâng cao cấp doanh nghiệp như: lập lịch tác vụ, xử lý lại khi thất bại, giới hạn tốc độ xử lý, và báo cáo tiến trình. Khi người dùng tải ảnh lên, Backend chỉ việc ghi thông tin vào cơ sở dữ liệu và ném một công việc vào hàng đợi BullMQ. Các trình làm việc chạy ngầm sẽ âm thầm nhận công việc từ Redis, xử lý toàn bộ các bước cắt xén, kiểm duyệt ảnh và sau đó gửi thông báo hoàn tất về giao diện. Mô hình này giúp luồng đăng tải ảnh trở nên mượt mà và hệ thống không bao giờ bị quá tải cục bộ.
 
 \section{Nền tảng Lý thuyết cho Kiểm duyệt và Xử lý Ảnh}
 
-\subsection{Lý thuyết Băm nhận thức (Perceptual Hash) trong phát hiện trùng lặp}
+\subsection{Lý thuyết Băm nhận thức trong phát hiện trùng lặp}
 
-Để giải quyết bài toán phát hiện ảnh đạo nhái, đăng lại nhiều lần được định nghĩa ở Chương 2, hệ thống áp dụng lý thuyết Băm nhận thức (Perceptual Hash - pHash). 
+Để giải quyết bài toán phát hiện ảnh đạo nhái, đăng lại nhiều lần được định nghĩa ở Chương 2, hệ thống áp dụng lý thuyết Băm nhận thức. 
 
 Trong khoa học máy tính, các thuật toán băm truyền thống (như MD5, SHA-256) hoạt động ở cấp độ byte. Chỉ cần bức ảnh bị thay đổi 1 pixel, mã băm sẽ thay đổi hoàn toàn, khiến chúng trở nên vô dụng trong việc tìm ảnh trùng lặp nếu người dùng cố tình thay đổi kích thước hoặc nén ảnh. Ngược lại, lý thuyết pHash hoạt động dựa trên đặc trưng cảm nhận thị giác của con người. Nó áp dụng biến đổi Cosine rời rạc (Discrete Cosine Transform - DCT) để trích xuất các tần số không gian thấp của ảnh, bỏ qua các chi tiết nhiễu. Kết quả là một chuỗi bit đại diện cho hình dáng tổng thể của ảnh.
 
@@ -76,11 +76,11 @@ Khi hai bức ảnh có nội dung hình ảnh tương tự nhau, mã pHash củ
 
 \subsection{Phân loại nội dung nhạy cảm bằng NSFWJS}
 
-Kiểm duyệt nội dung nhạy cảm (NSFW) là một yêu cầu bảo mật cộng đồng cốt lõi đã đề cập ở Chương 2. Hệ thống áp dụng thư viện NSFWJS, được xây dựng trên nền tảng TensorFlow.js.
+Kiểm duyệt nội dung nhạy cảm là một yêu cầu bảo mật cộng đồng cốt lõi đã đề cập ở Chương 2. Hệ thống áp dụng thư viện NSFWJS, được xây dựng trên nền tảng TensorFlow.js.
 
 Giải pháp thay thế là tích hợp các API kiểm duyệt đám mây của Google Vision hoặc AWS Rekognition. Tuy nhiên, việc sử dụng các dịch vụ đám mây sẽ phát sinh chi phí tính theo từng lượt gọi API, không khả thi cho một đồ án có lượng ảnh tải lên liên tục.
 
-Lý thuyết đằng sau NSFWJS là việc sử dụng kiến trúc mạng nơ-ron tích chập (Convolutional Neural Networks - CNN), cụ thể là mô hình MobileNet. Điểm ưu việt của MobileNet là nó sử dụng các phép tích chập tách biệt theo chiều sâu (Depthwise Separable Convolution), giúp giảm đáng kể số lượng tham số và khối lượng tính toán. Nhờ lý thuyết tối ưu hóa này, mô hình trí tuệ nhân tạo có thể được nhúng trực tiếp vào trong môi trường Node.js của tầng Backend. Trình làm việc (Worker) có thể tự thân phân tích điểm số nhạy cảm của từng điểm ảnh và tự động làm mờ các bức ảnh vi phạm quy tắc cộng đồng một cách cục bộ, hoàn toàn miễn phí và bảo vệ quyền riêng tư dữ liệu.
+Lý thuyết đằng sau NSFWJS là việc sử dụng kiến trúc mạng nơ-ron tích chập (Convolutional Neural Networks - CNN), cụ thể là mô hình MobileNet. Điểm ưu việt của MobileNet là nó sử dụng các phép tích chập tách biệt theo chiều sâu (Depthwise Separable Convolution), giúp giảm đáng kể số lượng tham số và khối lượng tính toán. Nhờ lý thuyết tối ưu hóa này, mô hình trí tuệ nhân tạo có thể được nhúng trực tiếp vào trong môi trường Node.js của tầng Backend. Trình làm việc có thể tự thân phân tích điểm số nhạy cảm của từng điểm ảnh và tự động làm mờ các bức ảnh vi phạm quy tắc cộng đồng một cách cục bộ, hoàn toàn miễn phí và bảo vệ quyền riêng tư dữ liệu.
 
 \section{Các Dịch vụ Tích hợp Bên ngoài}
 
@@ -88,12 +88,12 @@ Lý thuyết đằng sau NSFWJS là việc sử dụng kiến trúc mạng nơ-r
 
 Quản lý đăng nhập, cấp lại mật khẩu và bảo mật phiên truy cập là một phần không thể thiếu được mô tả ở mục Quản lý tài khoản (Chương 2). Việc tự xây dựng toàn bộ hệ thống xác thực (Tự tạo bảng mật khẩu, mã hóa Bcrypt, tạo mã thông báo JWT, viết giao diện quên mật khẩu) rất dễ dẫn đến các lỗ hổng bảo mật nghiêm trọng.
 
-Hệ thống sử dụng Clerk làm dịch vụ cung cấp danh tính (Identity Provider) \cite{clerk}. So với Auth0 hay Firebase Authentication, Clerk được thiết kế đặc biệt tối ưu cho hệ sinh thái Next.js App Router và React. Clerk cung cấp sẵn các thành phần giao diện đăng nhập tuyệt đẹp và an toàn. Hệ thống Backend chỉ cần cấu hình bộ trung gian (Middleware) để xác minh tính hợp lệ của mã thông báo (Token) do Clerk cấp phát, từ đó ánh xạ định danh người dùng vào cơ sở dữ liệu nội bộ. Sự tách biệt này giúp đồ án tuân thủ tiêu chuẩn bảo mật hiện đại.
+Hệ thống sử dụng Clerk làm dịch vụ cung cấp danh tính \cite{clerk}. So với Auth0 hay Firebase Authentication, Clerk được thiết kế đặc biệt tối ưu cho hệ sinh thái Next.js App Router và React. Clerk cung cấp sẵn các thành phần giao diện đăng nhập tuyệt đẹp và an toàn. Hệ thống Backend chỉ cần cấu hình bộ trung gian (Middleware) để xác minh tính hợp lệ của mã thông báo token do Clerk cấp phát, từ đó ánh xạ định danh người dùng vào cơ sở dữ liệu nội bộ. Sự tách biệt này giúp đồ án tuân thủ tiêu chuẩn bảo mật hiện đại.
 
 \subsection{Cổng thanh toán Stripe}
 
-Để hiện thực hóa tính năng Gói hội viên của nghệ sĩ (Artist Tier) yêu cầu trả phí định kỳ ở Chương 2, hệ thống tích hợp trực tiếp cổng thanh toán Stripe \cite{stripe}.
+Để hiện thực hóa tính năng Gói hội viên của nghệ sĩ yêu cầu trả phí định kỳ ở Chương 2, hệ thống tích hợp trực tiếp cổng thanh toán Stripe \cite{stripe}.
 
-Lựa chọn thay thế phổ biến tại Việt Nam là VNPay hoặc Momo. Tuy nhiên, các cổng thanh toán nội địa này được thiết kế chủ yếu cho các giao dịch mua đứt bán đoạn một lần. Chúng không hỗ trợ mạnh mẽ cho các nghiệp vụ đăng ký tự động trừ tiền hàng tháng (Subscriptions) - vốn là trái tim của hệ thống Gói hội viên.
+Lựa chọn thay thế phổ biến tại Việt Nam là VNPay hoặc Momo. Tuy nhiên, các cổng thanh toán nội địa này được thiết kế chủ yếu cho các giao dịch mua đứt bán đoạn một lần. Chúng không hỗ trợ mạnh mẽ cho các nghiệp vụ đăng ký tự động trừ tiền hàng tháng gói hội viên - vốn là trái tim của hệ thống Gói hội viên.
 
-Stripe là giải pháp hàng đầu thế giới về thanh toán định kỳ. Stripe cung cấp môi trường thử nghiệm (Sandbox) hoàn hảo, hệ thống Webhook tức thời để báo cáo cho Backend mỗi khi giao dịch thành công. Thông qua Stripe, hệ thống có thể dễ dàng quản lý vòng đời của một gói hội viên: từ lúc người dùng bắt đầu thanh toán, tự động gia hạn tháng sau, cho đến khi họ quyết định hủy gói. Mọi thao tác này đều được đồng bộ chính xác về cơ sở dữ liệu PostgreSQL của hệ thống để phân quyền truy cập hình ảnh một cách tức thời.
+Stripe là giải pháp hàng đầu thế giới về thanh toán định kỳ. Stripe cung cấp môi trường thử nghiệm hoàn hảo, hệ thống Webhook tức thời để báo cáo cho Backend mỗi khi giao dịch thành công. Thông qua Stripe, hệ thống có thể dễ dàng quản lý vòng đời của một gói hội viên: từ lúc người dùng bắt đầu thanh toán, tự động gia hạn tháng sau, cho đến khi họ quyết định hủy gói. Mọi thao tác này đều được đồng bộ chính xác về cơ sở dữ liệu PostgreSQL của hệ thống để phân quyền truy cập hình ảnh một cách tức thời.

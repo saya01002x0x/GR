@@ -294,3 +294,32 @@ Tổng hợp các khái niệm NestJS đã sử dụng trong dự án.
  -   * * C � c h   d � n g : * *   S �  d �n g   t h �  v i �n   ' @ f a k e r - j s / f a k e r '   k �t   h �p   g �i   ' f a k e r . s e e d ( n u m b e r ) ' . 
  -   * * �n g   d �n g : * *   G i � p   t �o   r a   b �  T e s t c a s e   v �i   B X H   t r e n d i n g ,   h �  t h �n g   c o m m e n t ,   l ��t   l i k e   c �  �n h   q u a   h � n g   t r m   l �n   t e s t   m �   k h � n g   c �n   h a r d c o d e   b �n g   t a y .  
  
+
+#### Event Emitter (`@nestjs/event-emitter`)
+- **Là gì:** Cơ chế Pub/Sub (Publish-Subscribe) nội bộ giúp các module giao tiếp bất đồng bộ (gửi và nhận sự kiện) mà không cần phụ thuộc trực tiếp vào nhau.
+- **Cách dùng:**
+  ```typescript
+  // 1. Cài đặt và Import
+  EventEmitterModule.forRoot()
+  
+  // 2. Phát sự kiện (Emit)
+  this.eventEmitter.emit('user.created', payload);
+
+  // 3. Lắng nghe sự kiện (Listen)
+  @OnEvent('user.created')
+  handleUserCreatedEvent(payload: UserPayload) {}
+  ```
+- **Ứng dụng:** Dùng để hiện thực hóa Kiến trúc Loose Coupling (Modular Monolith) trong hệ thống, đặc biệt là tách biệt hoàn toàn module Notifications (Thông báo) ra khỏi các module chức năng (Likes, Comments, Admin, Queue) thay vì Inject trực tiếp `NotificationsService`.
+
+#### Optional Guard (B?o v? tu? ch?n)
+- **La gi:** La m?t Custom Guard k? th?a t? AuthGuard g?c nh?ng ghi ?e method handleRequest ?? khong qu?ng l?i khi thi?u token.
+- **Cach dung:**
+  \\\	ypescript
+  @Injectable()
+  export class OptionalClerkGuard extends AuthGuard('clerk') {
+    handleRequest(err: any, user: any) {
+      return user ? user : null; // Khong throw UnauthorizedException
+    }
+  }
+  \\\
+- **?ng d?ng:** Dung cho cac API public (vd: trang chi ti?t Artist), n?i ma guest v?n xem ???c binh th??ng, nh?ng n?u user co ??ng nh?p thi s? nh?n them thong tin ??c quy?n (thong qua \@CurrentUser()\).

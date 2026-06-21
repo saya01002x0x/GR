@@ -4,18 +4,19 @@
  * Reference: https://docs.nestjs.com/security/authentication
  */
 
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from '../../database';
 import { AuthService } from './auth.service';
 import { ClerkClientProvider } from './clerk-client.provider';
 import { ClerkStrategy } from './clerk.strategy';
 import { ClerkGuard } from './clerk.guard';
-import { UsersModule } from '../users/users.module';
+import { OptionalClerkGuard } from './optional-clerk.guard';
 
 @Module({
-  imports: [PassportModule, ConfigModule, forwardRef(() => UsersModule)],
-  providers: [AuthService, ClerkClientProvider, ClerkStrategy, ClerkGuard],
-  exports: [AuthService, ClerkGuard],
+  imports: [PassportModule, ConfigModule, PrismaModule],
+  providers: [AuthService, ClerkClientProvider, ClerkStrategy, ClerkGuard, OptionalClerkGuard],
+  exports: [AuthService, ClerkGuard, OptionalClerkGuard],
 })
 export class AuthModule { }

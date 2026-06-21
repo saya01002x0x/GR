@@ -300,3 +300,33 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 ### [09/06] - Tối ưu UX Caching & Prefetching
 - **Logic:** Phân chia thời gian cache (staleTime) hợp lý cho TanStack Query: Public data (Trending, Discover) được cache 15 phút, Private data (Follow, Feed, Notifications) cache 1 phút. Áp dụng Prefetching ở các nút điều hướng (Discover, Feed) và ArtworkCard khi người dùng hover chuột vào. Thay thế thẻ Image thông thường bằng Next.js Image để tự động nén sang webp và lazy loading.
 - **Decision:** Tách cấu hình staleTime ra khỏi QueryProvider global để kiểm soát độ tươi dữ liệu linh hoạt hơn. Prefetching trên hover giúp tải trước data vào cache, tạo cảm giác chuyển trang và mở popup tức thì.
+
+
+### [13/06] - Fix LaTeX Table Caption Formatting
+- **Logic:** Chuyển vị trí của \\caption\ và \\label\ từ phía trên \\begin{tabular}\ xuống phía dưới \\end{tabular}\ trong tất cả các file .tex của các chương.
+- **Decision:** Viết script Python dùng Regular Expression để tự động hóa việc tìm và chuyển đổi hàng loạt nhằm đảm bảo tính đồng bộ, tuân thủ chặt chẽ template chuẩn của SOICT.
+
+### [13/06] - Viết Chương 4.3 (Xây dựng ứng dụng)
+- **Logic:** Soạn thảo nội dung mục 4.3 theo đúng chuẩn template của SOICT, bao gồm bảng danh sách công cụ/thư viện (4.3.1), bảng số liệu mã nguồn (4.3.2), và thiết lập các màn hình UI đại diện cho chức năng cốt lõi (4.3.3).
+- **Decision:** Sử dụng ảnh placeholder \	em.png\ và chuẩn bị sẵn mô tả cách thay thế vào danh sách file MD để sinh viên tự chụp giao diện và lắp ráp vào slide/official/Hinhve mà không cần can thiệp sâu vào code LaTeX.
+
+### [13/06] - Fix: Cập nhật thư viện thực tế Chương 4.3
+- **Logic:** Cập nhật lại Bảng 4.5 trong 4_Ket_qua_thuc_nghiem.tex để bám sát thực tế từ package.json. Loại bỏ Tailwind CSS, thay bằng Mantine (8.3). Bổ sung BullMQ (5.66) cho việc xử lý hàng đợi (Queue).
+- **Decision:** Do dự án dựa nhiều vào bộ core UI của Mantine thay vì Tailwind, nên việc trích xuất chính xác theo file config sẽ giúp báo cáo chân thực và ghi điểm hơn.
+
+### [13/06] - Fix: Điều chỉnh văn phong Chương 4.3
+- **Logic:** Chỉnh sửa cách xưng hô từ Nhóm tác giả thành cách viết bị động/khách quan (Hệ thống được phát triển...) trong mục 4.3.1.
+- **Decision:** Văn phong đồ án tốt nghiệp cần sự chuẩn mực, trang trọng và đồng nhất. Việc dùng danh xưng tự do khiến đoạn văn bị lệch tone so với toàn bộ tài liệu, do đó tôi đã sửa lại thành văn phong trung lập.
+
+
+### [17/06] - Refactor: Áp dụng Event-Driven Architecture cho Hệ thống Thông báo
+- **Logic:** Chuyển đổi toàn bộ việc tạo thông báo (từ thả tim, bình luận, xuất bản tranh, admin phạt) từ dạng gọi hàm đồng bộ (`await notificationsService.createNotification`) sang dạng bắn sự kiện (`this.eventEmitter.emit(...)`). Tạo ra một `NotificationListener` chuyên dụng để lắng nghe các sự kiện này.
+- **Decision:** Đảm bảo hệ thống đạt chuẩn kiến trúc Loose Coupling (Modular Monolith thực thụ), xóa bỏ sự kết dính trực tiếp (inject service chéo) giữa các module chức năng và module thông báo. Việc này cũng giúp source code khớp hoàn toàn 100% với những gì đã trình bày trong slide báo cáo đồ án phần 5.1.
+# # #   [ 1 7 / 0 6 ]   -   H y b r i d   A l g o r i t h m   &   M e i l i s e a r c h   T a g   A u t o c o m p l e t e 
+ -   * * L o g i c : * *   � p   d �n g   H y b r i d   A l g o r i t h m   c h o   R e l a t e d   A r t w o r k s   ( 6 0 %   C o l l a b o r a t i v e   F i l t e r i n g ,   2 0 %   T a g s ,   2 0 %   A u t h o r ) .   C h u y �n   s a n g   s �  d �n g   M e i l i s e a r c h   i n d e x   r i � n g   ( \ 	 a g s \ )   �  t � m   k i �m   g �i   �   s i � u   t �c   c h o   T a g   t h a y   v �   d � n g   P r i s m a .   T �i   F r o n t e n d ,   c �p   n h �t   S e a r c h B a r   t � c h   h �p   b �  p h � n   t � c h   c �   p h � p   k �   t �  \ # \   ( n h �n   d i �n   T a g )   v �   h i �n   t h �  P o p o v e r   A u t o c o m p l e t e . 
+ -   * * D e c i s i o n : * *   K �t   h �p   t h u �t   t o � n   l �c   c �n g   t � c   v �i   h �  t h �n g   t a g s / a u t h o r   g i � p   t n g   t � n h   a   d �n g   v �   g i �i   q u y �t   v �n   �  C o l d - S t a r t   c h o   A r t w o r k   m �i .   I n d e x   \ 	 a g s \   t r � n   M e i l i s e a r c h   g i � p   t �n   d �n g   P r e f i x   S e a r c h   v �   T y p o   T o l e r a n c e   t �t   h �n   s o   v �i   d � n g   P o s t g r e S Q L .   U X   s �  d �n g   k �   t �  \ # \   �  t � c h   b i �t   t � m   k i �m   t a g   v �   t � m   k i �m   f u l l - t e x t   g i �n g   n h �  c � c   n �n   t �n g   n g h �  t h u �t   c h u �n   m �c .  
+ 
+
+### [21/06] - Kh?c ph?c Circular Dependency gi?a AuthModule va UsersModule
+- **Logic:** Lo?i b? orwardRef() gi?a AuthModule va UsersModule. Thay vi AuthModule inject UsersService ?? l?y/sync user, AuthModule s? g?i tr?c ti?p PrismaService ?? t? x? ly database logic cho vi?c xac th?c. ? phia UsersController, thay vi tiem AuthService ?? g?i th? cong getOptionalUser(), ta dung m?t custom guard @UseGuards(OptionalClerkGuard) va l?y user qua decorator @CurrentUser().
+- **Decision:** Vi?c AuthModule ??c l?p va t? x? ly logic xac th?c v?i Database la best practice. S? d?ng OptionalClerkGuard giup code controller s?ch h?n, tuan th? nguyen t?c Declarative c?a NestJS.

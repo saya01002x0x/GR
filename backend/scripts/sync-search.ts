@@ -131,9 +131,31 @@ async function main() {
 
         console.log(`✏️ Updated ${updatedCount} artworks with ratio/resolution data`);
 
+        // Now sync tags
+        console.log('📦 Fetching tags to process...');
+        const tags = await prisma.tag.findMany();
+        console.log(`📦 Found ${tags.length} tags to process`);
+
+        const tagsIndex = meili.index('tags');
+        await tagsIndex.deleteAllDocuments();
+        console.log('🗑️ Cleared existing tags documents');
+
+        const tagDocuments = tags.map((t) => ({
+            id: t.id,
+            name: t.name,
+            count: t.count,
+        }));
+
+        for (let i = 0; i < tagDocuments.length; i += BATCH_SIZE) {
+            const batch = tagDocuments.slice(i, i + BATCH_SIZE);
+            await tagsIndex.addDocuments(batch);
+            console.log(`📤 Indexed batch of ${batch.length} tags`);
+        }
+
         await new Promise((resolve) => setTimeout(resolve, 2000));
         const stats = await index.getStats();
-        console.log(`📊 Index stats: ${stats.numberOfDocuments} documents`);
+        const tagStats = await tagsIndex.getStats();
+        console.log(`📊 Index stats: ${stats.numberOfDocuments} artworks, ${tagStats.numberOfDocuments} tags`);
         console.log('✅ Sync complete!');
     } catch (error) {
         console.error('❌ Sync failed:', error);

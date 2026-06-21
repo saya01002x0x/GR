@@ -14,6 +14,7 @@ import { QueueModule } from '../queue/queue.module';
 import { StatsModule } from '../stats/stats.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { ConfigModule } from '@nestjs/config';
+import { RecommendationsModule } from '../recommendations/recommendations.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { ConfigModule } from '@nestjs/config';
     QueueModule, 
     StatsModule,
     PaymentsModule,
-    ConfigModule
+    ConfigModule,
+    RecommendationsModule
   ],
   controllers: [ArtworksController],
   providers: [ArtworksService],

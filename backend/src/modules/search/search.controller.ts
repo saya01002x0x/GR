@@ -18,8 +18,31 @@ export class SearchController {
   @ApiOperation({ summary: 'Search artworks with filters and pagination' })
   @ApiOkResponse({ description: 'Search results with pagination info' })
   async searchArtworks(@Query() dto: SearchArtworkDto): Promise<SearchResult> {
-    return this.searchService.search(dto.q, {
-      tags: dto.tags,
+    let q = dto.q || '';
+    let tags = dto.tags || [];
+
+    // Parse #tags from query
+    if (q) {
+      const words = q.split(/\s+/);
+      const extractedTags: string[] = [];
+      const remainingWords: string[] = [];
+
+      for (const word of words) {
+        if (word.startsWith('#') && word.length > 1) {
+          extractedTags.push(word.substring(1));
+        } else {
+          remainingWords.push(word);
+        }
+      }
+
+      q = remainingWords.join(' ');
+      if (extractedTags.length > 0) {
+        tags = Array.isArray(tags) ? [...tags, ...extractedTags] : extractedTags;
+      }
+    }
+
+    return this.searchService.search(q, {
+      tags,
       rating: dto.rating,
       excludeAI: dto.excludeAI,
       sort: dto.sort,
@@ -28,5 +51,25 @@ export class SearchController {
       ratio: dto.ratio,
       minRes: dto.minRes,
     });
+  }
+
+  @Get('tags/autocomplete')
+  @ApiOperation({ summary: 'Autocomplete tags' })
+  @ApiOkResponse({ description: 'List of suggested tags' })
+  async autocompleteTags(
+    @Query('q') query: string,
+    @Query('limit') limit?: string,
+  ) {
+    const q = query || '';
+    // Strip # if user types #gi
+    const cleanQuery = q.startsWith('#') ? q.substring(1) : q;
+    
+    if (!cleanQuery) {
+      return { message: 'success', data: [] };
+    }
+    
+    const parsedLimit = limit ? parseInt(limit, 10) : 5;
+    const data = await this.searchService.searchTags(cleanQuery, parsedLimit);
+    return { message: 'success', data };
   }
 }
