@@ -323,3 +323,9 @@ Tổng hợp các khái niệm NestJS đã sử dụng trong dự án.
   }
   \\\
 - **?ng d?ng:** Dung cho cac API public (vd: trang chi ti?t Artist), n?i ma guest v?n xem ???c binh th??ng, nh?ng n?u user co ??ng nh?p thi s? nh?n them thong tin ??c quy?n (thong qua \@CurrentUser()\).
+#### Môi trường Docker (Alpine vs Slim)
+- **Là gì:** Lựa chọn hệ điều hành nền cho Docker container. Alpine cực nhẹ nhưng thiếu thư viện C++, Slim nặng hơn một chút nhưng đầy đủ chuẩn Debian.
+- **Cách dùng:** Đổi `FROM node:20-alpine` thành `FROM node:20-slim` trong Dockerfile.
+- **Ứng dụng:** Dự án này dùng AI (ONNX) và Sharp (xử lý ảnh) nên bắt buộc phải dùng bản `slim` kết hợp cài `openssl` để tránh bị sập (crash) trên server thực tế.
+
+

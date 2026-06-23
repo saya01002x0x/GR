@@ -60,4 +60,4 @@ RUN npx prisma generate
 
 EXPOSE 5145
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main.js"]
