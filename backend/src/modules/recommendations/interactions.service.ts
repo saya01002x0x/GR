@@ -5,6 +5,7 @@
  */
 
 import { Injectable, Logger, Inject } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma.service';
 import { REDIS_CLIENT } from '../../database/redis.constants';
 import Redis from 'ioredis';
@@ -80,5 +81,15 @@ export class InteractionsService {
         `Failed to track interaction: ${error.message}`,
       );
     }
+  }
+
+  @OnEvent('artwork.liked')
+  async handleArtworkLiked(payload: { user: { id: string }; artworkId: string }) {
+    await this.trackInteraction(payload.user.id, payload.artworkId, InteractionType.LIKE);
+  }
+
+  @OnEvent('artwork.commented')
+  async handleArtworkCommented(payload: { user: { id: string }; artworkId: string }) {
+    await this.trackInteraction(payload.user.id, payload.artworkId, InteractionType.COMMENT);
   }
 }

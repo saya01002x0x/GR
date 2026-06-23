@@ -8,9 +8,10 @@ import { RecommendationsService } from './recommendations.service';
 import { RecommendationsController } from './recommendations.controller';
 import { InteractionsService } from './interactions.service';
 import { PrismaModule } from '../../database';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AuthModule],
   controllers: [RecommendationsController],
   providers: [RecommendationsService, InteractionsService],
   exports: [RecommendationsService, InteractionsService],

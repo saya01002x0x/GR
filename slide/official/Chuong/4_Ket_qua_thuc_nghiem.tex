@@ -27,13 +27,13 @@ Các mô-đun được nhóm thành các cụm nghiệp vụ logic như sau:
 
 1. Cụm Nội dung cốt lõi: Bao gồm mô-đun Artworks (quản lý tác phẩm nghệ thuật, là trung tâm của hệ thống với số lượng phụ thuộc lớn nhất) và mô-đun Collections (bộ sưu tập cá nhân).
 
-2. Cụm Danh tính và Truy cập: Bao gồm mô-đun Auth (xác thực qua Clerk) và mô-đun Users (quản lý hồ sơ). Đây là cặp mô-đun duy nhất trong hệ thống tồn tại phụ thuộc vòng hai chiều (circular dependency), được xử lý thông qua cơ chế forwardRef của NestJS.
+2. Cụm Danh tính và Truy cập: Bao gồm mô-đun Auth (xác thực qua Clerk) và mô-đun Users (quản lý hồ sơ).
 
-3. Cụm Tương tác xã hội: Bao gồm mô-đun Likes, Comments và Follows. Cả ba đều phụ thuộc vào mô-đun Notifications để gửi thông báo thời gian thực khi có tương tác mới.
+3. Cụm Tương tác xã hội: Bao gồm mô-đun Likes, Comments và Follows. Thay vì phụ thuộc trực tiếp, cả ba mô-đun này giao tiếp với mô-đun Notifications thông qua kiến trúc hướng sự kiện. Thiết kế bất đồng bộ này giúp triệt tiêu hoàn toàn sự phụ thuộc, đảm bảo tính khả dụng cao cho hệ thống ngay cả khi dịch vụ gửi thông báo gặp sự cố.
 
-4. Cụm Thanh toán: Mô-đun Payments tích hợp trực tiếp với Stripe \cite{stripe} để quản lý vòng đời gói hội viên định kỳ (subscription).
+4. Cụm Thanh toán: Mô-đun Payments tích hợp trực tiếp với Stripe \cite{stripe} để quản lý vòng đời gói hội viên định kỳ.
 
-5. Cụm Xử lý và Thông minh: Bao gồm mô-đun Queue (đường ống xử lý ảnh nền), Stats (thống kê lượt xem), Search (tìm kiếm toàn văn qua Meilisearch), AiSearch (tìm kiếm ngữ nghĩa qua Gemini và pgvector), DuplicateDetection (phát hiện ảnh trùng lặp qua pHash), và Recommendations (gợi ý cá nhân hóa). Mô-đun Queue đóng vai trò trung tâm xử lý, kết nối với Storage, Search, DuplicateDetection và AiSearch để thực hiện đường ống xử lý ảnh hoàn chỉnh sau khi người dùng tải lên.
+5. Cụm Xử lý và Thông minh: Bao gồm mô-đun Queue (đường ống xử lý ảnh nền), Stats (thống kê lượt xem), Search (tìm kiếm toàn văn qua Meilisearch), AiSearch (tìm kiếm ngữ nghĩa qua mô hình CLIP cục bộ và pgvector), DuplicateDetection (phát hiện ảnh trùng lặp qua pHash), và Recommendations (gợi ý cá nhân hóa). Mô-đun Queue đóng vai trò trung tâm xử lý, kết nối với Storage, Search, DuplicateDetection và AiSearch để thực hiện đường ống xử lý ảnh hoàn chỉnh sau khi người dùng tải lên.
 
 6. Cụm Quản trị: Bao gồm mô-đun Admin (bảng điều khiển quản trị), Reports (báo cáo vi phạm), và Announcements (thông báo hệ thống). Cả ba đều phụ thuộc vào Auth để xác thực quyền quản trị viên.
 
@@ -42,7 +42,7 @@ Các mô-đun được nhóm thành các cụm nghiệp vụ logic như sau:
 \subsection{Thiết kế chi tiết gói}
 \label{subsection:4.1.3}
 
-Sau khi xác định kiến trúc tổng thể, do hệ thống có hơn 25 mô-đun phức tạp đan xen nhau, phần này áp dụng nguyên lý thiết kế hướng miền (Domain-Driven Design - DDD) để phân tách hệ thống thành 5 cụm (nhóm package) có liên quan mật thiết về mặt nghiệp vụ. Việc bóc tách này giúp làm rõ các ranh giới dịch vụ và chức năng trong kiến trúc Modular Monolith. Mỗi biểu đồ thiết kế gói dưới đây sẽ trình bày các lớp (class) và mối quan hệ giữa chúng trong nội bộ nhóm.
+Sau khi xác định kiến trúc tổng thể, do hệ thống có hơn 25 mô-đun phức tạp đan xen nhau, phần này áp dụng nguyên lý thiết kế hướng miền (Domain-Driven Design - DDD) để phân tách hệ thống thành 5 cụm có liên quan mật thiết về mặt nghiệp vụ. Việc bóc tách này giúp làm rõ các ranh giới dịch vụ và chức năng trong kiến trúc Modular Monolith. Mỗi biểu đồ thiết kế gói dưới đây sẽ trình bày các lớp và mối quan hệ giữa chúng trong nội bộ nhóm.
 
 \textbf{1. Nhóm Định danh và Quản lý Người dùng (Identity \& Access)}
 
@@ -56,7 +56,7 @@ Nhóm này bao gồm AuthModule và UsersModule, đóng vai trò cửa ngõ ki�
 \end{figure}
 \FloatBarrier
 
-Bên trong AuthModule, lớp ClerkStrategy có quan hệ kế thừa (inheritance) từ lớp trừu tượng PassportStrategy, triển khai chiến lược xác thực dựa trên JWT từ Clerk \cite{clerk}. ClerkGuard phụ thuộc vào AuthService để kích hoạt luồng xác thực. Điểm đáng chú ý là AuthService phụ thuộc UsersService để tra cứu người dùng nội bộ, trong khi UsersService phụ thuộc AuthService để xác minh danh tính, tạo thành quan hệ phụ thuộc vòng (circular dependency) được giải quyết bằng forwardRef. Tuy nhiên, cả hai lớp Service đều duy trì quan hệ kết tập (aggregation) với PrismaService để giao tiếp độc lập với cơ sở dữ liệu.
+Bên trong AuthModule, lớp ClerkStrategy có quan hệ kế thừa từ lớp trừu tượng PassportStrategy, triển khai chiến lược xác thực dựa trên JWT từ Clerk \cite{clerk}. ClerkGuard phụ thuộc vào AuthService để kích hoạt luồng xác thực. Điểm đáng chú ý trong thiết kế là AuthService chịu trách nhiệm duy nhất cho việc tra cứu và đồng bộ người dùng từ Clerk thông qua PrismaService, giúp tách biệt hoàn toàn logic xác thực khỏi UsersService.
 
 \textbf{2. Nhóm Lõi Nội dung và Xử lý Ảnh (Core Content \& Processing)}
 
@@ -83,8 +83,8 @@ Nhóm này quản lý các hoạt động cộng đồng, bóc tách hoàn toàn
 \label{fig:4_4}
 \end{figure}
 \FloatBarrier
+Đặc điểm kiến trúc nổi bật nhất của nhóm này là sự bóc tách hoàn toàn giữa các module tương tác và NotificationsModule. Thiết kế này tuân thủ chặt chẽ nguyên tắc Khớp nối lỏng lẻo thông qua cơ chế hướng sự kiện và Hàng đợi tin nhắn. Cụ thể, thay vì gọi trực tiếp nhau, LikesService và CommentsService sẽ phát các sự kiện tương tác, còn FollowsService sẽ đẩy tín hiệu theo lô vào BullMQ. NotificationsModule đóng vai trò là một dịch vụ độc lập chuyên lắng nghe các sự kiện này để kích hoạt thông báo theo thời gian thực tới người dùng nhận. Cách tiếp cận này giúp các hành động tương tác (như thả tim, bình luận) được xử lý cực kỳ nhẹ bén mà không làm phình to logic nội bộ, đồng thời ngăn chặn rủi ro sập dây chuyền nếu dịch vụ thông báo gặp sự cố.
 
-Đặc điểm kiến trúc nổi bật nhất của nhóm này là LikesService, CommentsService và FollowsService đều có quan hệ phụ thuộc (dependency) một chiều trỏ về NotificationsService. Thiết kế này tuân thủ chặt chẽ nguyên tắc Loose Coupling, cho phép các hành động tương tác (như thả tim, bình luận) dễ dàng kích hoạt thông báo theo thời gian thực (real-time) tới người dùng nhận mà không làm phình to logic nội bộ của bản thân chức năng tương tác đó.
 
 \textbf{4. Nhóm Xử lý Dữ liệu Thông minh (Intelligence \& Search)}
 
@@ -98,7 +98,7 @@ Nhóm này tập trung vào bài toán khám phá nội dung bằng văn bản v
 \end{figure}
 \FloatBarrier
 
-Bên trong AiSearchModule, lớp EmbeddingService có quan hệ hợp thành (composition) với AiSearchService, tạo thành một cụm chuyên biệt gọi API Gemini để trích xuất vector ngữ nghĩa hình ảnh. MeilisearchSyncService (thuộc StatsModule) phụ thuộc trực tiếp vào SearchService để đồng bộ dữ liệu tìm kiếm siêu tốc độ. Đặc biệt, RecommendationsModule được thiết kế theo kiến trúc Hướng sự kiện (Event-Driven) để thu thập hành vi người dùng (như lượt xem, lượt thích) thông qua InteractionsService. Thay vì bắt các module chức năng gọi chéo lẫn nhau, hệ thống sử dụng Event Emitter để duy trì tính độc lập lỏng lẻo (Loose Coupling) tuyệt đối. Đây là cụm module tập hợp các công nghệ phức tạp nhất như pgvector và mã băm pHash để cung cấp trải nghiệm tìm kiếm ảnh chính xác và gợi ý cá nhân hóa.
+Bên trong AiSearchModule, lớp EmbeddingService có quan hệ hợp thành (composition) với AiSearchService, tạo thành một cụm chuyên biệt gọi API CLIP cục bộ để trích xuất vector ngữ nghĩa hình ảnh. MeilisearchSyncService (thuộc StatsModule) phụ thuộc trực tiếp vào SearchService để đồng bộ dữ liệu tìm kiếm siêu tốc độ.Đây là cụm module tập hợp các công nghệ phức tạp nhất như pgvector và mã băm pHash để cung cấp trải nghiệm tìm kiếm ảnh chính xác và gợi ý cá nhân hóa.
 
 \textbf{5. Nhóm Quản trị, Vận hành và Doanh thu (Management \& Monetization)}
 
@@ -112,9 +112,8 @@ Nhóm này chịu trách nhiệm quản lý hệ thống Backoffice (dành cho A
 \end{figure}
 \FloatBarrier
 
-PaymentsModule cung cấp PaymentsController cho người dùng trích xuất hóa đơn và WebhookController để lắng nghe sự kiện từ cổng thanh toán Stripe. Điểm chung của cụm nghiệp vụ này là sử dụng nhiều tác vụ chạy ngầm (CronJob) có quan hệ hợp thành với Service nội bộ, điển hình như AutoUnbanTask thuộc AdminService (để tự động mở khóa tài khoản) và SubscriptionSyncTask thuộc PaymentsService (để đồng bộ gói hội viên).
+PaymentsModule cung cấp PaymentsController cho người dùng trích xuất hóa đơn và WebhookController để lắng nghe sự kiện từ cổng thanh toán Stripe. Điểm chung của cụm nghiệp vụ này là sử dụng nhiều tác vụ chạy ngầm (CronJob) có quan hệ song song với Service nội bộ, điển hình như AutoUnbanTask thuộc AdminService (để tự động mở khóa tài khoản) và SubscriptionSyncTask thuộc PaymentsService (để đồng bộ gói hội viên).
 
-Cuối cùng, Hình 4.7 (sẽ được đính kèm ở bản vẽ khổ lớn đính kèm cùng báo cáo) trình bày bức tranh tổng thể mạng lưới chi tiết nhất về toàn bộ cấu trúc lớp và mối liên kết phức tạp giữa toàn bộ hơn 25 mô-đun trong hệ thống Modular Monolith của nền tảng.
 
 
 \section{Thiết kế chi tiết}
@@ -204,29 +203,29 @@ Dựa trên cấu trúc kiến trúc đã định nghĩa, phần này đi sâu v
 \textbf{Lớp Artwork (Tác phẩm nghệ thuật)}
 Đóng vai trò là thực thể trung tâm, lớp Artwork chứa mọi thông tin về một bài đăng ảnh.
 \begin{itemize}
-    \item \textit{Thuộc tính:} Bao gồm id (khóa chính), title (tiêu đề), description (mô tả), visibility (trạng thái hiển thị: công khai hoặc giới hạn gói hội viên), isAI (đánh dấu ảnh do trí tuệ nhân tạo tạo ra), likeCount và viewCount (thống kê tương tác).
-    \item \textit{Phương thức/Hành vi gắn liền:} incrementViewCount() để cập nhật lượt xem và getArtworkAccess() để xác thực quyền truy cập. Việc xử lý ảnh nền sẽ được ủy quyền cho ArtworkProcessor.
+    \item Thuộc tính: Bao gồm id (khóa chính), title (tiêu đề), description (mô tả), visibility (trạng thái hiển thị: công khai hoặc giới hạn gói hội viên), isAI (đánh dấu ảnh do trí tuệ nhân tạo tạo ra), likeCount và viewCount (thống kê tương tác).
+    \item Phương thức/Hành vi gắn liền: incrementViewCount() để cập nhật lượt xem và getArtworkAccess() để xác thực quyền truy cập. Việc xử lý ảnh nền sẽ được ủy quyền cho ArtworkProcessor.
 \end{itemize}
 
-\textbf{Lớp User (Người dùng)}
+Lớp User:
 Quản lý thông tin định danh và vai trò của cá nhân tham gia hệ thống.
 \begin{itemize}
-    \item \textit{Thuộc tính:} id, clerkId (mã định danh từ nhà cung cấp SSO), username (tên đăng nhập), isArtist (cờ xác định quyền đăng bài và tạo gói hội viên), role (vai trò quản trị).
-    \item \textit{Phương thức/Hành vi gắn liền:} becomeArtist() để nâng cấp tài khoản thành họa sĩ.
+    \item Thuộc tính: id, clerkId (mã định danh từ nhà cung cấp SSO), username (tên đăng nhập), isArtist (cờ xác định quyền đăng bài và tạo gói hội viên), role (vai trò quản trị).
+    \item Phương thức/Hành vi gắn liền: becomeArtist() để nâng cấp tài khoản thành họa sĩ.
 \end{itemize}
 
-\textbf{Lớp ArtistTier (Gói hội viên)}
+Lớp ArtistTier (Gói hội viên):
 Thực thể đặc thù cho bài toán kiếm tiền (Monetization), định nghĩa cấu trúc một gói trả phí.
 \begin{itemize}
-    \item \textit{Thuộc tính:} id, name (tên gói), price (mức giá), currency (loại tiền tệ, mặc định là VND), benefits (danh sách đặc quyền dạng Json).
-    \item \textit{Phương thức/Hành vi gắn liền:} getArtistRevenue() để tính toán doanh thu, getArtistTierSubscribers() để lấy danh sách người theo dõi gói.
+    \item Thuộc tính: id, name (tên gói), price (mức giá), currency (loại tiền tệ, mặc định là USD), benefits (danh sách đặc quyền dạng Json).
+    \item Phương thức/Hành vi gắn liền: getArtistRevenue() để tính toán doanh thu, getArtistTierSubscribers() để lấy danh sách người theo dõi gói.
 \end{itemize}
 
-Để minh họa sự phối hợp giữa các đối tượng trong thời gian thực thi, ba biểu đồ trình tự (Sequence Diagram) sau đây sẽ mô tả luồng truyền thông điệp cho ba Use Case mang tính sống còn của hệ thống.
+Để minh họa sự phối hợp giữa các đối tượng trong thời gian thực thi, ba biểu đồ trình tự sau đây sẽ mô tả luồng truyền thông điệp cho ba Use Case mang tính sống còn của hệ thống.
 
 \textbf{1. Biểu đồ trình tự: Đăng tải tác phẩm nghệ thuật}
 
-Luồng đăng tải tác phẩm được thiết kế theo cơ chế xử lý nền bất đồng bộ để tối ưu thời gian phản hồi. Biểu đồ trong Hình 4.13 minh họa cách hệ thống tiếp nhận yêu cầu và đẩy công việc vào hàng đợi (Queue), trong khi tiến trình nền (Worker) âm thầm thực hiện việc tính toán mã băm pHash chống sao chép và đẩy ảnh lên máy chủ lưu trữ (MinIO). Chi tiết về thuật toán mã băm pHash và kiến trúc tối ưu hiệu năng bằng hàng đợi BullMQ sẽ được phân tích chuyên sâu lần lượt tại \textbf{Mục 5.3 và Mục 5.4 của Chương 5}.
+Luồng đăng tải tác phẩm được thiết kế theo cơ chế xử lý nền bất đồng bộ để tối ưu thời gian phản hồi. Biểu đồ trong Hình 4.13 minh họa cách hệ thống tiếp nhận yêu cầu và đẩy công việc vào hàng đợi, trong khi tiến trình nền âm thầm thực hiện việc tính toán mã băm pHash chống sao chép và đẩy ảnh lên máy chủ lưu trữ (MinIO). Chi tiết về thuật toán mã băm pHash và kiến trúc tối ưu hiệu năng bằng hàng đợi BullMQ sẽ được phân tích chuyên sâu lần lượt tại Mục 5.3 và Mục 5.4 của Chương 5.
 
 \begin{figure}[h!]
 \centering
@@ -236,9 +235,9 @@ Luồng đăng tải tác phẩm được thiết kế theo cơ chế xử lý n
 \end{figure}
 \FloatBarrier
 
-\textbf{2. Biểu đồ trình tự: Tìm kiếm hình ảnh bằng AI (Tìm kiếm ngữ nghĩa)}
+\textbf{2. Biểu đồ trình tự: Tìm kiếm hình ảnh bằng tìm kiếm ngữ nghĩa}
 
-Tính năng cốt lõi tạo nên sự khác biệt của hệ thống là khả năng tìm kiếm bằng trí tuệ nhân tạo. Hình 4.14 mô tả luồng giao tiếp cơ bản bắt đầu từ khi người dùng nhập câu truy vấn tự nhiên, sau đó hệ thống tương tác với API của AI (Gemini) và cơ sở dữ liệu vector (pgvector) để tìm kiếm ảnh có độ tương đồng. Chi tiết về nguyên lý hoạt động của Hệ thống tìm kiếm ngữ nghĩa đa phương thức này sẽ được trình bày chuyên sâu tại \textbf{Mục 5.2 của Chương 5}.
+Tính năng cốt lõi tạo nên sự khác biệt của hệ thống là khả năng tìm kiếm bằng trí tuệ nhân tạo. Hình 4.14 mô tả luồng giao tiếp cơ bản bắt đầu từ khi người dùng nhập câu truy vấn tự nhiên, sau đó hệ thống tương tác với API của mô hình CLIP và cơ sở dữ liệu vector (pgvector) để tìm kiếm ảnh có độ tương đồng. Chi tiết về nguyên lý hoạt động của Hệ thống tìm kiếm ngữ nghĩa đa phương thức này sẽ được trình bày chuyên sâu tại Mục 5.2 của Chương 5.
 
 \begin{figure}[h!]
 \centering
@@ -276,7 +275,7 @@ Biểu đồ Thực thể - Liên kết (ER Diagram) trong Hình 4.16 minh họa
 \end{figure}
 \FloatBarrier
 
-Dựa trên biểu đồ thực thể liên kết (ERD) mức logic ở trên, hệ thống tiến hành chuẩn hóa (Normalization) để ánh xạ xuống cơ sở dữ liệu vật lý thông qua Prisma. Do quy mô hệ thống lớn (hơn 20 bảng), biểu đồ trên chỉ tập trung minh họa các thực thể cốt lõi. Dưới đây là đặc tả chi tiết thiết kế vật lý của 4 bảng dữ liệu quan trọng nhất mang tính nền tảng cho toàn bộ nghiệp vụ.
+Dựa trên biểu đồ thực thể liên kết (ERD) mức logic ở trên, hệ thống tiến hành chuẩn hóa để ánh xạ xuống cơ sở dữ liệu vật lý thông qua Prisma. Do quy mô hệ thống lớn (hơn 20 bảng), biểu đồ trên chỉ tập trung minh họa các thực thể cốt lõi. Dưới đây là đặc tả chi tiết thiết kế vật lý của 4 bảng dữ liệu quan trọng nhất mang tính nền tảng cho toàn bộ nghiệp vụ.
 
 \begin{table}[h!]
 \centering
@@ -369,7 +368,6 @@ created\_at & DateTime & Default now() & Thời điểm phát sinh hóa đơn \\
 \end{table}
 \FloatBarrier
 
-Chi tiết của các bảng dữ liệu còn lại, bảng trung gian giải quyết quan hệ N:M (như Likes, Follows, Bookmark, v.v.), cùng toàn bộ Lược đồ cơ sở dữ liệu vật lý (Physical Database Schema Diagram) dạng toàn cảnh được cung cấp đầy đủ trong Phụ lục của tài liệu.
 
 \section{Xây dựng ứng dụng}
 
@@ -387,7 +385,7 @@ Môi trường phát triển & Visual Studio Code (1.8x) & https://code.visualst
 Mã nguồn Frontend & Next.js (16.2) / React (19.2) & https://nextjs.org/ \\ \hline
 Giao diện người dùng & Mantine (8.3) & https://mantine.dev/ \\ \hline
 Mã nguồn Backend & NestJS (11.1) / Node.js (20) & https://nestjs.com/ \\ \hline
-Xử lý hàng đợi (Queue) & BullMQ (5.66) & https://bullmq.io/ \\ \hline
+Xử lý hàng đợi & BullMQ (5.66) & https://bullmq.io/ \\ \hline
 Hệ quản trị CSDL & PostgreSQL (16) / pgvector & https://www.postgresql.org/ \\ \hline
 Công cụ truy vấn dữ liệu & Prisma ORM (6.19) & https://www.prisma.io/ \\ \hline
 Công cụ tìm kiếm & Meilisearch (0.54) & https://www.meilisearch.com/ \\ \hline
@@ -401,7 +399,7 @@ Môi trường triển khai & Docker / Docker Compose & https://www.docker.com/ 
 \FloatBarrier
 
 \subsection{Kết quả đạt được}
-Kết quả đạt được của đồ án là một nền tảng mạng xã hội chia sẻ tác phẩm nghệ thuật hoàn chỉnh, hỗ trợ họa sĩ số đăng tải, quản lý, phân phối nội dung và xây dựng cộng đồng người hâm mộ. Hệ thống được đóng gói thành các dịch vụ độc lập theo kiến trúc Microservices tinh gọn, bao gồm ba thành phần chính:
+Kết quả đạt được của đồ án là một nền tảng mạng xã hội chia sẻ tác phẩm nghệ thuật hoàn chỉnh, hỗ trợ họa sĩ số đăng tải, quản lý, phân phối nội dung và xây dựng cộng đồng người hâm mộ. Hệ thống được đóng gói thành các dịch vụ độc lập theo kiến trúc Modular Monolith, bao gồm ba thành phần chính:
 \begin{itemize}
     \item \textbf{Frontend Web Application:} Giao diện người dùng tương tác trực quan, tối ưu hóa SEO và tốc độ tải trang bằng cơ chế Server-Side Rendering (SSR). Đóng vai trò là điểm tiếp xúc duy nhất của người dùng cuối.
     \item \textbf{Backend API Service:} Dịch vụ trung tâm xử lý nghiệp vụ cốt lõi, quản lý giao dịch thanh toán, phân quyền truy cập, tương tác cộng đồng và định tuyến dữ liệu.
@@ -419,7 +417,6 @@ Kết quả đạt được của đồ án là một nền tảng mạng xã h�
 \textbf{Thành phần / Chỉ số} & \textbf{Khối lượng} & \textbf{Đơn vị / Ghi chú} \\ \hline
 Tổng số dòng mã nguồn (LOC) & $\sim$35,200 & Dòng lệnh (TypeScript/HTML/CSS) \\ \hline
 Số lượng Module/Lớp/Gói & $\sim$145 & Component Frontend và Module Backend \\ \hline
-Số lượng bảng cơ sở dữ liệu & 22 & Bảng (Tables và Relations) \\ \hline
 Dung lượng mã nguồn gốc & $\sim$5.8 & Megabytes (MB) \\ \hline
 Dung lượng Container Frontend & $\sim$150 & Megabytes (MB) sau khi build \\ \hline
 Dung lượng Container Backend & $\sim$210 & Megabytes (MB) sau khi build \\ \hline
@@ -577,6 +574,6 @@ Tương tác (Social) & 25 & 25 & 0 & 100\% \\ \hline
 
 \textbf{Phân tích nguyên nhân các trường hợp lỗi (FAIL):}
 \begin{itemize}
-    \item \textbf{TC09 (Lỗi đồng bộ Avatar lần đầu):} Khi người dùng sử dụng tài khoản Google/Facebook có ảnh đại diện gốc ở độ phân giải quá cao, tiến trình tải và nén ảnh đại diện của hệ thống nhận về qua Webhook đôi lúc vượt quá thời gian phản hồi API (Timeout 5000ms). \textbf{Giải pháp khắc phục:} Chuyển luồng đồng bộ Avatar sang dạng chạy ngầm bất đồng bộ (Asynchronous Background Job) thông qua BullMQ thay vì chờ xử lý trực tiếp trên API.
-    \item \textbf{TC14 (Độ chính xác của Vector Search):} Chức năng tìm kiếm ảnh tương đồng (Image-to-Image) bằng mô hình AI gặp khó khăn khi ảnh đầu vào là ảnh phác thảo (sketch) có chất lượng thấp, thiếu chi tiết màu sắc, dẫn đến điểm số Cosine Similarity với kho ảnh gốc không đạt ngưỡng yêu cầu. \textbf{Giải pháp khắc phục:} Cần tích hợp thêm bộ trọng số (weights) của mô hình chuyên biệt cho việc nhận diện nét vẽ phác thảo, thay vì dùng chung mô hình nhận dạng ảnh thông thường.
+    \item \textbf{TC09 (Lỗi đồng bộ Avatar lần đầu):} Khi người dùng sử dụng tài khoản Google/Facebook có ảnh đại diện gốc ở độ phân giải quá cao, tiến trình tải và nén ảnh đại diện của hệ thống nhận về qua Webhook đôi lúc vượt quá thời gian phản hồi API (Timeout 5000ms). Giải pháp khắc phục: Chuyển luồng đồng bộ Avatar sang dạng chạy ngầm bất đồng bộ (Asynchronous Background Job) thông qua BullMQ thay vì chờ xử lý trực tiếp trên API.
+    \item \textbf{TC14 (Độ chính xác của Vector Search):} Chức năng tìm kiếm ảnh tương đồng (Image-to-Image) bằng mô hình AI gặp khó khăn khi ảnh đầu vào là ảnh phác thảo có chất lượng thấp, thiếu chi tiết màu sắc, dẫn đến điểm số Cosine Similarity với kho ảnh gốc không đạt ngưỡng yêu cầu. Giải pháp khắc phục: Cần tích hợp thêm bộ trọng số của mô hình chuyên biệt cho việc nhận diện nét vẽ phác thảo, thay vì dùng chung mô hình nhận dạng ảnh thông thường.
 \end{itemize}

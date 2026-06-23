@@ -30,7 +30,7 @@ Các hệ thống cơ sở dữ liệu quan hệ truyền thống chỉ hỗ tr�
 \subsection{Giải pháp}
 Để giải quyết triệt để rào cản này, em đề xuất tích hợp giải pháp Tìm kiếm Ngữ nghĩa (Semantic Search) thông qua việc kết hợp Trí tuệ Nhân tạo (Mô hình Ngôn ngữ Lớn) và Cơ sở dữ liệu Vector.
 
-Thay vì lưu trữ thông tin dưới dạng văn bản thông thường, hệ thống sử dụng Mô hình AI mã hóa của Google Gemini để chuyển đổi toàn bộ tiêu đề, mô tả và nhãn của bức tranh thành một ma trận vector không gian (Vector Embeddings) với 768 chiều. Vector này đóng vai trò đại diện biểu diễn mặt toán học của ngữ nghĩa. Những khái niệm có ý nghĩa tương đồng (như buồn bã và cô đơn) sẽ có các vector nằm rất gần nhau trong tọa độ không gian nhiều chiều.
+Thay vì lưu trữ thông tin dưới dạng văn bản thông thường, hệ thống sử dụng mô hình CILP cục bộ để chuyển đổi toàn bộ tiêu đề, mô tả và nhãn của bức tranh thành một ma trận vector không gian (Vector Embeddings) với 512 chiều. Vector này đóng vai trò đại diện biểu diễn mặt toán học của ngữ nghĩa. Những khái niệm có ý nghĩa tương đồng (như buồn bã và cô đơn) sẽ có các vector nằm rất gần nhau trong tọa độ không gian nhiều chiều.
 
 Khi người dùng thực hiện một truy vấn tìm kiếm bằng văn bản tự nhiên, câu truy vấn đó lập tức được gửi qua API để mã hóa thành một vector câu lệnh duy nhất. Quy trình tiếp theo là đưa vector này vào cơ sở dữ liệu PostgreSQL (sử dụng tiện ích mở rộng pgvector) để thực hiện phép toán Khoảng cách Cosine (Cosine Distance) giữa vector câu lệnh và hàng triệu vector tác phẩm đang lưu trữ. Từ đó, hệ thống tìm ra các bức tranh mang ý nghĩa không gian sát với câu truy vấn nhất.
 

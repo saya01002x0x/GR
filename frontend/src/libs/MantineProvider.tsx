@@ -2,9 +2,11 @@
 
 import type { MantineColorsTuple } from '@mantine/core';
 import { MantineProvider as BaseMantineProvider, createTheme } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 
 // Import Mantine core styles
 import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 
 // Custom theme configuration for ArtSpace
 // See: https://mantine.dev/theming/theme-object/
@@ -59,6 +61,7 @@ const theme = createTheme({
 export function MantineProvider({ children }: { children: React.ReactNode }) {
   return (
     <BaseMantineProvider theme={theme} defaultColorScheme="auto">
+      <Notifications position="top-right" autoClose={3000} zIndex={1000} />
       {children}
     </BaseMantineProvider>
   );
