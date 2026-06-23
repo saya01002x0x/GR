@@ -3,7 +3,7 @@
 # Build context: project root (GR/)
 # ============================================
 
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
 RUN npm install -g pnpm@10.16.1
 
 # === STAGE 1: Install ALL dependencies ===
@@ -36,7 +36,7 @@ RUN cd backend && npx prisma generate && pnpm run build
 RUN pnpm --filter backend deploy --legacy --prod /prod/backend
 
 # === STAGE 3: Production Image (minimal) ===
-FROM node:20-alpine AS production
+FROM node:20-slim AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
