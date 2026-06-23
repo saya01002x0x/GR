@@ -4,6 +4,8 @@
 # ============================================
 
 FROM node:20-slim AS base
+# Cài đặt OpenSSL và CA certificates bắt buộc cho Prisma và Sharp
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN npm install -g pnpm@10.16.1
 
 # === STAGE 1: Install ALL dependencies ===
