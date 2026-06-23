@@ -42,7 +42,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install prisma CLI globally (for running migrations on VPS)
-RUN npm install -g prisma
+RUN npm install -g prisma@6
 
 # Copy production bundle from pnpm deploy
 COPY --from=build /prod/backend ./
