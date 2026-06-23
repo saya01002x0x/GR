@@ -15,7 +15,6 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
-COPY ai-service/package.json ./ai-service/
 
 RUN pnpm install --frozen-lockfile
 
