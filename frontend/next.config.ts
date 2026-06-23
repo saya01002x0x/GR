@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-import withBundleAnalyzer from '@next/bundle-analyzer';
+
 import { withSentryConfig } from '@sentry/nextjs';
 import createNextIntlPlugin from 'next-intl/plugin';
 import './src/libs/Env';
@@ -44,7 +44,9 @@ let configWithPlugins = createNextIntlPlugin('./src/libs/I18n.ts')(baseConfig);
 
 // Conditionally enable bundle analysis
 if (process.env.ANALYZE === 'true') {
-  configWithPlugins = withBundleAnalyzer()(configWithPlugins);
+  // eslint-disable-next-line ts/no-require-imports
+  const withBundleAnalyzer = require('@next/bundle-analyzer')();
+  configWithPlugins = withBundleAnalyzer(configWithPlugins);
 }
 
 // Conditionally enable Sentry configuration
