@@ -53,8 +53,8 @@ COPY --from=build /workspace/backend/dist ./dist
 # Copy Prisma schema + migrations
 COPY --from=build /workspace/backend/prisma ./prisma
 
-# Copy generated Prisma client
-COPY --from=build /workspace/node_modules/.prisma ./node_modules/.prisma
+# Generate Prisma client directly in production image
+RUN npx prisma generate
 
 EXPOSE 5145
 
