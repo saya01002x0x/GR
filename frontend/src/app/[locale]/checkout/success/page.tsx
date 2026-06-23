@@ -5,10 +5,10 @@ import { Alert, Button, Card, Center, Loader, Stack, Text, Title } from '@mantin
 import { IconCheck } from '@tabler/icons-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSyncCheckoutSession } from '@/api/hooks/use-payments';
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const isTierCheckout = searchParams.get('tier') === 'true';
@@ -85,5 +85,18 @@ export default function CheckoutSuccessPage() {
         </Stack>
       </Card>
     </Center>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={(
+      <Center style={{ minHeight: '60vh' }}>
+        <Loader size={64} />
+      </Center>
+    )}
+    >
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }
