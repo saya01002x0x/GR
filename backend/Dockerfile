@@ -1,81 +1,62 @@
-# Backend Dockerfile - NestJS
-# NOTE: Build context is project root, not backend/
-FROM node:20-alpine AS base
+# ============================================
+# Backend Dockerfile - NestJS + Prisma
+# Build context: project root (GR/)
+# ============================================
 
-# Install pnpm globally
+FROM node:20-alpine AS base
 RUN npm install -g pnpm@10.16.1
 
-# Install dependencies only when needed
+# === STAGE 1: Install ALL dependencies ===
 FROM base AS deps
 WORKDIR /workspace
 
-# Copy workspace files first
-COPY pnpm-workspace.yaml ./
-COPY pnpm-lock.yaml* ./
-COPY package.json ./
-
-# Copy shared package
-COPY packages/shared ./packages/shared
-
-# Copy backend package
+# Copy workspace config + ALL package.json (for lockfile integrity)
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY packages/shared/package.json ./packages/shared/
 COPY backend/package.json ./backend/
+COPY frontend/package.json ./frontend/
+COPY ai-service/package.json ./ai-service/
 
-# Install all dependencies (workspace + backend)
-WORKDIR /workspace/backend
-RUN cd /workspace/packages/shared && pnpm install && pnpm build
-RUN pnpm install --ignore-scripts
+RUN pnpm install --frozen-lockfile
 
-# Development stage
-FROM base AS dev
-WORKDIR /app
+# === STAGE 2: Build shared + backend ===
+FROM deps AS build
 
-# Copy shared package for runtime
-COPY --from=deps /workspace/packages/shared /workspace/packages/shared
+# Copy source code
+COPY packages/shared/ ./packages/shared/
+COPY backend/ ./backend/
 
-# Copy backend node_modules
-COPY --from=deps /workspace/backend/node_modules ./node_modules
+# Build shared package first (backend depends on it)
+RUN pnpm --filter @gr/shared build
 
-# Copy backend code
-COPY backend ./
+# Generate Prisma client + Build NestJS
+RUN cd backend && npx prisma generate && pnpm run build
 
-# Expose port
-EXPOSE 3001
+# Create production bundle using pnpm deploy
+# This resolves workspace deps (@gr/shared) and includes only prod node_modules
+RUN pnpm --filter backend deploy --prod /prod/backend
 
-# Start dev server with hot reload
-CMD ["pnpm", "run", "start:dev"]
-
-# Builder stage for production
-FROM base AS builder
-WORKDIR /app
-
-# Copy shared package
-COPY --from=deps /workspace/packages/shared /workspace/packages/shared
-
-# Copy node_modules and backend code
-COPY --from=deps /workspace/backend/node_modules ./node_modules
-COPY backend ./
-
-# Build the app
-RUN pnpm run build
-
-# Production stage
-FROM base AS production
+# === STAGE 3: Production Image (minimal) ===
+FROM node:20-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy shared package
-COPY --from=deps /workspace/packages/shared /workspace/packages/shared
+# Install prisma CLI globally (for running migrations on VPS)
+RUN npm install -g prisma
 
-# Install production dependencies
-COPY backend/package.json ./
-RUN pnpm install --prod --ignore-scripts
+# Copy production bundle from pnpm deploy
+COPY --from=build /prod/backend ./
 
-# Copy built app from builder
-COPY --from=builder /app/dist ./dist
+# Ensure built output is present
+COPY --from=build /workspace/backend/dist ./dist
 
-# Expose port
-EXPOSE 3001
+# Copy Prisma schema + migrations
+COPY --from=build /workspace/backend/prisma ./prisma
 
-# Start production server
+# Copy generated Prisma client
+COPY --from=build /workspace/node_modules/.prisma ./node_modules/.prisma
+
+EXPOSE 5145
+
 CMD ["node", "dist/main"]

@@ -1,0 +1,189 @@
+# ============================================
+# Docker Compose - PRODUCTION
+# Lumina Project (luminaaaa.studio)
+# ============================================
+# Cách chạy:
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml up -d
+# ============================================
+
+services:
+  # ============================================
+  # Nginx - Reverse Proxy (Cổng vào duy nhất)
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: gr-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    networks:
+      - gr-network
+
+  # ============================================
+  # Frontend - Next.js 16
+  # ============================================
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+        - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+    container_name: gr-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    networks:
+      - gr-network
+
+  # ============================================
+  # Backend - NestJS
+  # ============================================
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: gr-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=5145
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - AWS_ENDPOINT=http://minio:9000
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME:-lumina-artworks}
+      - AWS_FORCE_PATH_STYLE=true
+      - CORS_ORIGIN=${NEXT_PUBLIC_APP_URL}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - SENTRY_DISABLED=${SENTRY_DISABLED:-true}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - gr-network
+
+  # ============================================
+  # PostgreSQL - Database chính
+  # ============================================
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: gr-postgres
+    restart: unless-stopped
+    # KHÔNG expose port ra host (UFW chặn, chỉ Docker network)
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-gr_production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gr-network
+
+  # ============================================
+  # Redis - Cache & Queue (BullMQ)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: gr-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gr-network
+
+  # ============================================
+  # Meilisearch - Search Engine
+  # ============================================
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    container_name: gr-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY}
+      MEILI_ENV: production
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gr-network
+
+  # ============================================
+  # MinIO - Object Storage (Ảnh, File)
+  # ============================================
+  minio:
+    image: minio/minio:latest
+    container_name: gr-minio
+    restart: unless-stopped
+    # ⚠️ MỞ TẠM PORT 9001 ĐỂ SETUP BUCKET LẦN ĐẦU.
+    # SAU KHI SETUP XONG, HÃY COMMENT/XÓA 2 DÒNG DƯỚI ĐÂY ĐỂ BẢO MẬT!
+    ports:
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gr-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  meilisearch_data:
+  minio_data:
+
+networks:
+  gr-network:
+    driver: bridge

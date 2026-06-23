@@ -30,6 +30,11 @@ const baseConfig: NextConfig = {
         hostname: '*.r2.cloudflarestorage.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'luminaaaa.studio',
+        pathname: '/storage/**',
+      },
     ],
   },
 };

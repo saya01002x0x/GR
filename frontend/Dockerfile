@@ -1,85 +1,70 @@
-# Frontend Dockerfile - Next.js
-# NOTE: Build context is project root, not frontend/
-FROM node:20-alpine AS base
+# ============================================
+# Frontend Dockerfile - Next.js 16
+# Build context: project root (GR/)
+# ============================================
 
-# Install pnpm globally
+FROM node:20-alpine AS base
 RUN npm install -g pnpm@10.16.1
 
-# Install dependencies only when needed
+# === STAGE 1: Install ALL dependencies ===
 FROM base AS deps
 WORKDIR /workspace
 
-# Copy workspace files first
-COPY pnpm-workspace.yaml ./
-COPY pnpm-lock.yaml* ./
-COPY package.json ./
-
-# Copy shared package
-COPY packages/shared ./packages/shared
-
-# Copy frontend package
+# Copy workspace config + ALL package.json (for lockfile integrity)
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY packages/shared/package.json ./packages/shared/
 COPY frontend/package.json ./frontend/
+COPY backend/package.json ./backend/
+COPY ai-service/package.json ./ai-service/
 
-# Install all dependencies (workspace + frontend)
-WORKDIR /workspace/frontend
-RUN cd /workspace/packages/shared && pnpm install && pnpm build
-RUN pnpm install --ignore-scripts
+RUN pnpm install --frozen-lockfile
 
-# Development stage
-FROM base AS dev
-WORKDIR /app
+# === STAGE 2: Build shared + frontend ===
+FROM deps AS build
 
-# Copy shared package for runtime
-COPY --from=deps /workspace/packages/shared /workspace/packages/shared
+# Copy source code
+COPY packages/shared/ ./packages/shared/
+COPY frontend/ ./frontend/
 
-# Copy frontend node_modules
-COPY --from=deps /workspace/frontend/node_modules ./node_modules
+# Build shared package first
+RUN pnpm --filter @gr/shared build
 
-# Copy frontend code
-COPY frontend ./
-
-# Expose port
-EXPOSE 3000
-
-# Start dev server with hot reload
-CMD ["pnpm", "run", "dev"]
-
-# Builder stage for production
-FROM base AS builder
-WORKDIR /app
-
-# Copy shared package
-COPY --from=deps /workspace/packages/shared /workspace/packages/shared
-
-# Copy node_modules and frontend code
-COPY --from=deps /workspace/frontend/node_modules ./node_modules
-COPY frontend ./
-
-# Build the app
+# NEXT_PUBLIC_* vars are embedded at build time
+# These are passed via docker-compose build args
+ARG NEXT_PUBLIC_APP_URL=https://luminaaaa.studio
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_API_URL=https://api.luminaaaa.studio
+ARG CLERK_SECRET_KEY
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV CLERK_SECRET_KEY=$CLERK_SECRET_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm run build
+ENV NODE_ENV=production
 
-# Production stage
-FROM base AS production
+# Build Next.js
+RUN pnpm --filter frontend build
+
+# Create production bundle
+RUN pnpm --filter frontend deploy --prod /prod/frontend
+
+# === STAGE 3: Production Image (minimal) ===
+FROM node:20-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy shared package
-COPY --from=deps /workspace/packages/shared /workspace/packages/shared
+RUN npm install -g pnpm@10.16.1
 
-# Install production dependencies
-COPY frontend/package.json ./
-RUN pnpm install --prod --ignore-scripts
+# Copy production bundle from pnpm deploy
+COPY --from=build /prod/frontend ./
 
-# Copy built app from builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.ts ./next.config.ts
+# Copy Next.js build output
+COPY --from=build /workspace/frontend/.next ./.next
+COPY --from=build /workspace/frontend/public ./public
+COPY --from=build /workspace/frontend/next.config.ts ./next.config.ts
 
-# Expose port
 EXPOSE 3000
 
-# Start production server
 CMD ["pnpm", "start"]
