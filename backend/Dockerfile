@@ -33,7 +33,7 @@ RUN cd backend && npx prisma generate && pnpm run build
 
 # Create production bundle using pnpm deploy
 # This resolves workspace deps (@gr/shared) and includes only prod node_modules
-RUN pnpm --filter backend deploy --prod /prod/backend
+RUN pnpm --filter backend deploy --legacy --prod /prod/backend
 
 # === STAGE 3: Production Image (minimal) ===
 FROM node:20-alpine AS production

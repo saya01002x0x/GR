@@ -45,7 +45,7 @@ ENV NODE_ENV=production
 RUN pnpm --filter frontend build
 
 # Create production bundle
-RUN pnpm --filter frontend deploy --prod /prod/frontend
+RUN pnpm --filter frontend deploy --legacy --prod /prod/frontend
 
 # === STAGE 3: Production Image (minimal) ===
 FROM node:20-alpine AS production
