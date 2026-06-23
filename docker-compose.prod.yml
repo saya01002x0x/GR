@@ -69,6 +69,8 @@ services:
       - MEILISEARCH_HOST=http://meilisearch:7700
       - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY}
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - AWS_ENDPOINT=${AWS_ENDPOINT}
+      - AWS_PUBLIC_ENDPOINT=https://luminaaaa.studio/storage
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}

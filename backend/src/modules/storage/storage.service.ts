@@ -261,7 +261,10 @@ export class StorageService implements OnModuleInit {
    * Get public URL for a file
    */
   getPublicUrl(key: string): string {
-    return `${this.endpoint}/${this.bucket}/${key}`;
+    const publicEndpoint = this.configService.get<string>('AWS_PUBLIC_ENDPOINT') || this.endpoint;
+    // Xóa dấu / ở cuối nếu có
+    const cleanEndpoint = publicEndpoint.replace(/\/$/, '');
+    return `${cleanEndpoint}/${this.bucket}/${key}`;
   }
 
   /**

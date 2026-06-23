@@ -35,6 +35,12 @@ const baseConfig: NextConfig = {
         hostname: 'luminaaaa.studio',
         pathname: '/storage/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'minio',
+        port: '9000',
+        pathname: '/**',
+      },
     ],
   },
 };
