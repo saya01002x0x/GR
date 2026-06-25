@@ -26,7 +26,7 @@ Next.js giải quyết bài toán này thông qua cơ chế Server-Side Renderin
 
 \subsection{Hệ quản trị cơ sở dữ liệu PostgreSQL}
 
-Như đã đề cập ở cấu trúc thực thể trong Chương 2, dữ liệu của hệ thống có tính quan hệ rất cao: một người dùng có thể sở hữu nhiều tác phẩm, một tác phẩm có nhiều ảnh, nhiều tag, và liên kết chặt chẽ với các giao dịch thanh toán định kỳ. Yêu cầu tính toàn vẹn dữ liệu (ACID) là bắt buộc.
+Như đã đề cập ở cấu trúc thực thể trong Chương 2, dữ liệu của hệ thống có tính quan hệ rất cao: một người dùng có thể sở hữu nhiều tác phẩm, một tác phẩm có nhiều ảnh, nhiều tag, và liên kết chặt chẽ với các giao dịch thanh toán định kỳ. Yêu cầu tính toàn vẹn dữ liệu là bắt buộc.
 
 PostgreSQL được lựa chọn làm cơ sở dữ liệu chính \cite{postgresql}. So sánh với các giải pháp thay thế như MongoDB (cơ sở dữ liệu NoSQL) hoặc MySQL. MongoDB linh hoạt trong việc lưu trữ tài liệu không có cấu trúc cố định, nhưng rất yếu trong việc duy trì tính toàn vẹn khi thực hiện các giao dịch phức tạp liên quan đến nhiều bảng (ví dụ: vừa trừ tiền, vừa cập nhật trạng thái gói hội viên). MySQL tốt nhưng hệ sinh thái hỗ trợ mở rộng không mạnh mẽ bằng PostgreSQL, đặc biệt là sự thiếu hụt các tiện ích mở rộng cho tìm kiếm vector gốc. PostgreSQL cung cấp độ tin cậy tuyệt đối cho các quan hệ thực thể khắt khe của hệ thống, đồng thời hỗ trợ lưu trữ mảng và kiểu dữ liệu JSON linh hoạt khi cần thiết.
 
