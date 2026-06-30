@@ -3,7 +3,7 @@ Chương này tập trung trình bày các giải pháp kỹ thuật cốt lõi 
 \section{Kiến trúc nguyên khối phân rã kết hợp hướng sự kiện}
 
 \subsection{Đặt vấn đề}
-Trong giai đoạn đầu thiết kế hệ thống, một bài toán kiến trúc lớn được đặt ra: Lựa chọn giữa kiến trúc nguyên khối truyền thống Monolithic hay kiến trúc vi dịch vụ Microservices. Đối với một nền tảng chia sẻ ảnh trực tuyến với nhiều nghiệp vụ phức tạp đan chéo nhau như quản lý người dùng, xử lý hình ảnh, thanh toán gói hội viên và mạng xã hội bao gồm tương tác, bình luận, thông báo. Với kiến trúc Monolithic truyền thống thường dễ dẫn đến tình trạng mã nguồn bị trói buộc chặt chẽ. Khi một tính năng thay đổi, nó kéo theo sự sụp đổ hoặc lỗi logic của hàng loạt tính năng khác, làm hệ thống ngày càng khó bảo trì.
+Trong giai đoạn đầu thiết kế hệ thống, một bài toán kiến trúc lớn được đặt ra: Lựa chọn giữa kiến trúc nguyên khối truyền thống Monolithic hay kiến trúc vi dịch vụ Microservices. Đối với một nền tảng chia sẻ ảnh trực tuyến với nhiều nghiệp vụ phức tạp đan chéo nhau như quản lý người dùng, xử lý hình ảnh, thanh toán gói hội viên và tương tác mạng xã hội, kiến trúc Monolithic truyền thống thường dễ dẫn đến tình trạng mã nguồn bị trói buộc chặt chẽ. Khi một tính năng thay đổi, nó kéo theo sự sụp đổ hoặc lỗi logic của hàng loạt tính năng khác, làm hệ thống ngày càng khó bảo trì.
 
 Tuy nhiên, nếu áp dụng ngay kiến trúc Microservices, hệ thống sẽ đối mặt với độ trễ giao tiếp qua mạng, khó khăn trong việc duy trì tính toàn vẹn dữ liệu và tốn kém tài nguyên triển khai đối với một đội ngũ phát triển quy mô nhỏ. Do đó, hệ thống cần một kiến trúc lai: vừa dễ dàng triển khai trên một tiến trình duy nhất để tối ưu chi phí, vừa đảm bảo sự độc lập tuyệt đối giữa các miền nghiệp vụ để có thể dễ dàng tách ra thành các dịch vụ độc lập trong tương lai.
 
@@ -32,9 +32,9 @@ Các hệ thống cơ sở dữ liệu quan hệ truyền thống chỉ hỗ tr�
 \subsection{Giải pháp}
 Để giải quyết triệt để rào cản này, giải pháp được đề xuất là tích hợp cơ chế tìm kiếm ngữ nghĩa Semantic Search thông qua việc kết hợp Trí tuệ Nhân tạo và Cơ sở dữ liệu Vector.
 
-Thay vì lưu trữ thông tin dưới dạng văn bản thông thường, hệ thống sử dụng mô hình ngôn ngữ hình ảnh CLIP cục bộ để chuyển đổi toàn bộ tiêu đề, mô tả và nhãn của bức tranh thành một ma trận không gian vector với 512 chiều. Vector này đóng vai trò đại diện biểu diễn mặt toán học của ngữ nghĩa. Những khái niệm có ý nghĩa tương đồng như buồn bã và cô đơn sẽ có các vector nằm rất gần nhau trong tọa độ không gian nhiều chiều.
+Thay vì lưu trữ thông tin dưới dạng văn bản thông thường, hệ thống sử dụng mô hình ngôn ngữ hình ảnh CLIP cục bộ để chuyển đổi toàn bộ tiêu đề, mô tả và nhãn của bức tranh thành một một vector biểu diễn trong không gian 512 chiều. Vector này đóng vai trò là biểu diễn toán học của ngữ nghĩa. Những khái niệm có ý nghĩa tương đồng như buồn bã và cô đơn sẽ có các vector nằm rất gần nhau trong tọa độ không gian nhiều chiều.
 
-Khi người dùng thực hiện một truy vấn tìm kiếm bằng văn bản tự nhiên, câu truy vấn đó lập tức được gửi qua API để mã hóa thành một vector câu lệnh duy nhất. Quy trình tiếp theo là đưa vector này vào cơ sở dữ liệu PostgreSQL thông qua tiện ích mở rộng pgvector để thực hiện phép toán Khoảng cách Cosine giữa vector câu lệnh và hàng triệu vector tác phẩm đang lưu trữ. Từ đó, hệ thống tìm ra các bức tranh mang ý nghĩa không gian sát với câu truy vấn nhất.
+Khi người dùng thực hiện một truy vấn tìm kiếm bằng văn bản tự nhiên, câu truy vấn đó lập tức được gửi qua API để mã hóa thành một vector truy vấn duy nhất. Quy trình tiếp theo là đưa vector này vào cơ sở dữ liệu PostgreSQL thông qua tiện ích mở rộng pgvector để thực hiện phép toán Khoảng cách Cosine giữa vector câu lệnh và hàng triệu vector tác phẩm đang lưu trữ. Từ đó, hệ thống tìm ra các bức tranh mang ý nghĩa không gian sát với câu truy vấn nhất.
 
 Để tối ưu hóa hiệu năng và chi phí trong kiến trúc tìm kiếm này, một hệ thống bộ nhớ đệm tốc độ cao trên Redis được thiết lập. Trước khi gọi API để mã hóa câu lệnh, hệ thống kiểm tra xem câu truy vấn này đã từng được phân tích trước đó chưa. Điều này giảm thiểu đáng kể quá trình tính toán lại và độ trễ mạng.
 
@@ -47,13 +47,13 @@ Giải pháp đã tạo ra một bước nhảy vọt về trải nghiệm khám
 \subsection{Đặt vấn đề}
 Một trong những vấn nạn nhức nhối nhất của các nền tảng chia sẻ nghệ thuật trực tuyến là tình trạng ăn cắp bản quyền và đăng tải lại trái phép tác phẩm của họa sĩ khác nhằm mục đích câu lượt xem hoặc lôi kéo người đăng ký gói. Nếu giải quyết bài toán phát hiện ảnh trùng lặp bằng các hàm băm mật mã truyền thống như MD5 hay SHA-256, hệ thống sẽ gặp thất bại hoàn toàn trong môi trường thực tế. 
 
-Nguyên lý của các hàm băm mật mã là tính chất nhạy cảm với sự thay đổi, được biết đến như hiệu ứng thác đổ Avalanche effect - chỉ cần một điểm ảnh thay đổi, đổi độ sáng, thu nhỏ kích thước hay nén sang định dạng khác, mã băm sẽ bị biến đổi hoàn toàn sang một chuỗi khác biệt. Kẻ gian có thể dễ dàng đánh lừa bộ lọc chống sao chép bằng thao tác cắt cúp ảnh vô cùng đơn giản hoặc chèn thêm một dấu chìm thủy vân siêu nhỏ.
+Nguyên lý của các hàm băm mật mã là tính chất nhạy cảm với sự thay đổi, được biết đến như hiệu ứng thác đổ Avalanche effect - chỉ cần một điểm ảnh thay đổi, đổi độ sáng, thu nhỏ kích thước hay nén sang định dạng khác, mã băm sẽ bị biến đổi hoàn toàn sang một chuỗi khác biệt. Kẻ gian có thể dễ dàng đánh lừa bộ lọc chống sao chép bằng thao tác cắt ảnh vô cùng đơn giản hoặc chèn thêm một dấu chìm thủy vân siêu nhỏ.
 
 \subsection{Giải pháp}
 Nhằm cung cấp cơ chế bảo vệ tính toàn vẹn và quyền sở hữu trí tuệ mạnh mẽ cho các họa sĩ sáng tạo trên nền tảng, đồ án đã áp dụng thuật toán băm nhận thức Perceptual Hashing, hay gọi tắt là pHash, tích hợp thẳng vào luồng tải ảnh của hệ thống.
 
 Trái ngược hoàn toàn với mã băm mật mã vốn chỉ quan tâm tới chuỗi byte, thuật toán pHash phân tích dựa trên đặc trưng hình ảnh trực quan mà mắt người có thể cảm nhận. Quy trình sinh mã băm pHash được hệ thống thực hiện qua các bước kỹ thuật như sau:
-1. Giảm kích thước ảnh về một kích thước siêu nhỏ, chuẩn hóa ở mức 32x32 pixel, để loại bỏ toàn bộ các chi tiết nhiễu.
+1. Giảm kích thước ảnh về một kích thước siêu nhỏ, chuẩn hóa ở mức $32 \times 32$ pixel, để loại bỏ toàn bộ các chi tiết nhiễu.
 2. Chuyển đổi màu sắc sang thang độ xám để loại trừ thông tin màu, chỉ giữ lại độ chói và hình khối.
 3. Chạy thuật toán biến đổi Cosine rời rạc DCT để trích xuất các dải tần số thấp đại diện cho cấu trúc chính của bức ảnh và loại bỏ dải tần số cao.
 4. Tính toán mức trung bình và tạo ra một chuỗi nhị phân 64-bit đóng vai trò như dấu vân tay kỹ thuật số đặc trưng cho bức ảnh.
@@ -76,7 +76,7 @@ Nếu áp dụng phương pháp lập trình tuần tự đồng bộ, tiến tr
 
 Quy trình được điều phối lại hoàn toàn. Khi yêu cầu tải ảnh được gửi đến máy chủ thông qua giao thức HTTP, tầng điều khiển sẽ lưu thông tin tác phẩm vào cơ sở dữ liệu với trạng thái Đang xử lý, đồng thời tải tệp tin gốc lên hệ thống lưu trữ đám mây MinIO một cách đồng bộ. Ngay sau khi tệp gốc được lưu trữ an toàn, máy chủ sẽ đóng gói phần việc còn lại vào hàng đợi tin nhắn Message Queue và trả về trạng thái phản hồi thành công cho người dùng, thông báo rằng tác phẩm đang trong quá trình phân tích. Trải nghiệm tải trang của người dùng kết thúc tại đây một cách vô cùng mượt mà.
 
-Ở hậu trường sâu bên trong kiến trúc hệ thống, các tiến trình chạy nền, hoàn toàn độc lập với luồng phục vụ API chính, liên tục kiểm tra và rút các công việc ra khỏi hàng đợi BullMQ để thực thi. Hệ thống hàng đợi này cung cấp cơ chế kiểm soát tiến độ vô cùng mạnh mẽ, bao gồm khả năng theo dõi trạng thái, và đặc biệt là cơ chế tự động thử lại theo cấp số nhân Exponential Backoff Retry. Nếu việc phân tích tạm thời thất bại do chập chờn mạng lưới, tiến trình nền sẽ không hủy bỏ công việc mà sẽ tạm nghỉ và tự động thử lại sau 1 giây, rồi 2 giây, đảm bảo tính bền bỉ của hệ thống. Khi quá trình xử lý hoàn tất, tiến trình nền sẽ cập nhật trạng thái bức tranh thành Xuất bản, hoặc chuyển sang trạng thái Cần xử lý và Thất bại nếu có lỗi phát sinh.
+Ở hậu trường sâu bên trong kiến trúc hệ thống, các tiến trình chạy nền, hoàn toàn độc lập với luồng phục vụ API chính, liên tục kiểm tra và rút các công việc ra khỏi hàng đợi BullMQ để thực thi. Hệ thống hàng đợi này cung cấp cơ chế kiểm soát tiến độ vô cùng mạnh mẽ, bao gồm khả năng theo dõi trạng thái, và đặc biệt là cơ chế tự động thử lại theo cấp số nhân Exponential Backoff Retry. Nếu việc phân tích tạm thời thất bại do gián đoạn kết nối mạng tạm thời, tiến trình nền sẽ không hủy bỏ công việc mà sẽ tạm nghỉ và tự động thử lại sau 1 giây, rồi 2 giây, đảm bảo tính bền bỉ của hệ thống. Khi quá trình xử lý hoàn tất, tiến trình nền sẽ cập nhật trạng thái bức tranh thành Xuất bản, hoặc chuyển sang trạng thái Cần xử lý và Thất bại nếu có lỗi phát sinh.
 
 \subsection{Kết quả đạt được}
 Việc áp dụng kiến trúc hàng đợi xử lý nền bất đồng bộ là một trong những đóng góp mang lại hiệu quả kỹ thuật ấn tượng nhất cho dự án:

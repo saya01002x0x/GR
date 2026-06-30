@@ -17,7 +17,7 @@ Việc chọn NestJS mang lại sự cân bằng hoàn hảo: nó duy trì đư�
 
 Bài toán ở Chương 2 chỉ ra rằng hệ thống không chỉ yêu cầu một giao diện tương tác phong phú cho tính năng đăng tải và quản lý bảng điều khiển mà còn cần tối ưu hóa công cụ tìm kiếm (SEO) cho các trang chi tiết tác phẩm nhằm thu hút người dùng bên ngoài.
 
-Next.js (dựa trên React) được lựa chọn làm nền tảng Frontend chính \cite{nextjs}. Các lựa chọn thay thế như React thuần (Client-Side Rendering) hoặc Vue.js. React thuần gặp nhược điểm lớn về SEO do nội dung trang không được kết xuất sẵn tại máy chủ, dẫn đến các bộ máy tìm kiếm khó thu thập dữ liệu ảnh và nghệ sĩ.
+Next.js (dựa trên React) được lựa chọn làm nền tảng Frontend chính \cite{nextjs}. Các lựa chọn thay thế như React thuần (Client-Side Rendering) hoặc Vue.js. React thuần gặp nhược điểm lớn về SEO do nội dung trang không được kết xuất sẵn tại máy chủ, dẫn đến các bộ máy tìm kiếm khó thu thập dữ liệu ảnh và họa sĩ.
 
 Next.js giải quyết bài toán này thông qua cơ chế Server-Side Rendering (Kết xuất phía máy chủ), giúp các trang công khai hiển thị dữ liệu ngay lập tức khi tải. Đi kèm với Next.js, thư viện Mantine UI được sử dụng để xây dựng giao diện. Khác với TailwindCSS yêu cầu tự viết quá nhiều lớp tiện ích, hoặc Material UI có phong cách thiết kế khá cũ kỹ, Mantine cung cấp một hệ thống thành phần giao diện hiện đại, tính năng tùy biến mạnh mẽ, rất phù hợp để thiết kế một nền tảng nghệ thuật yêu cầu tính thẩm mỹ cao.
 
@@ -31,7 +31,7 @@ PostgreSQL được lựa chọn làm cơ sở dữ liệu chính \cite{postgres
 
 \subsection{Công cụ ánh xạ dữ liệu Prisma ORM}
 
-Để tương tác với PostgreSQL từ mã nguồn TypeScript, Prisma ORM được sử dụng \cite{prisma}. Trong lập trình truyền thống, lập trình viên thường viết các câu lệnh SQL thô, hoặc sử dụng các thư viện như TypeORM, Sequelize. Viết SQL thô dễ gây ra lỗi bảo mật ví dụ như SQL Injection và khó tái cấu trúc mã nguồn. TypeORM khá phổ biến nhưng cơ chế kiểm tra kiểu dữ liệu không thực sự hoàn hảo.
+Để tương tác với PostgreSQL từ mã nguồn TypeScript, Prisma ORM được sử dụng \cite{prisma}. Trong lập trình truyền thống, lập trình viên thường viết các câu lệnh SQL thô, hoặc sử dụng các thư viện như TypeORM, Sequelize. Viết SQL thô dễ gây ra lỗi bảo mật, ví dụ như lỗi tiêm nhiễm mã độc (SQL Injection), và khó tái cấu trúc mã nguồn. TypeORM khá phổ biến nhưng cơ chế kiểm tra kiểu dữ liệu không thực sự hoàn hảo.
 
 Prisma nổi bật nhờ cơ chế tự động sinh mã máy khách dựa trên tệp lược đồ. Điều này đảm bảo rằng mọi truy vấn tới cơ sở dữ liệu đều được kiểm tra lỗi cú pháp và kiểu dữ liệu ngay trong quá trình viết code. Nhờ Prisma, các thao tác phức tạp như truy vấn tác phẩm kèm theo thông tin tác giả và số lượng bình luận được thực hiện một cách an toàn và ngắn gọn, giảm thiểu đáng kể lỗi phát sinh trong thời gian chạy.
 
@@ -43,7 +43,7 @@ Chương 2 đặt ra yêu cầu hệ thống phải hỗ trợ tìm kiếm tác 
 
 Meilisearch được lựa chọn để giải quyết bài toán tìm kiếm toàn văn này \cite{meilisearch}. Các giải pháp thay thế bao gồm Elasticsearch và tìm kiếm Full-text gốc của PostgreSQL. Tìm kiếm gốc của PostgreSQL khá chậm khi dữ liệu lớn và không hỗ trợ xử lý lỗi chính tả tự nhiên. Elasticsearch là một giải pháp cấp độ doanh nghiệp cực kỳ mạnh mẽ, nhưng nó đòi hỏi cấu hình hạ tầng khổng lồ, tiêu tốn nhiều tài nguyên bộ nhớ, làm tăng chi phí vận hành không cần thiết cho một đồ án quy mô trung bình.
 
-Meilisearch được viết bằng ngôn ngữ Rust, nổi bật với thiết kế tối giản, tiêu thụ cực ít tài nguyên nhưng mang lại tốc độ tìm kiếm dưới 50 mili-giây. Tính năng bỏ qua lỗi gõ phím được bật mặc định, giúp trải nghiệm người dùng trên nền tảng nghệ thuật trở nên tự nhiên hơn khi họ tìm kiếm các tên nghệ sĩ hoặc các thẻ tiếng nước ngoài phức tạp.
+Meilisearch được viết bằng ngôn ngữ Rust, nổi bật với thiết kế tối giản, tiêu thụ cực ít tài nguyên nhưng mang lại tốc độ tìm kiếm dưới 50 mili giây. Tính năng bỏ qua lỗi gõ phím được bật mặc định, giúp trải nghiệm người dùng trên nền tảng nghệ thuật trở nên tự nhiên hơn khi họ tìm kiếm các tên họa sĩ hoặc các thẻ tiếng nước ngoài phức tạp.
 
 \subsection{Lý thuyết học biểu diễn và Tìm kiếm ngữ nghĩa với pgvector}
 
@@ -79,7 +79,7 @@ Kiểm duyệt nội dung nhạy cảm là một yêu cầu bảo mật cộng �
 
 Giải pháp thay thế là tích hợp các API kiểm duyệt đám mây của Google Vision hoặc AWS Rekognition. Tuy nhiên, việc sử dụng các dịch vụ đám mây sẽ phát sinh chi phí tính theo từng lượt gọi API, không khả thi cho một đồ án có lượng ảnh tải lên liên tục.
 
-Lý thuyết đằng sau NSFWJS là việc sử dụng kiến trúc mạng nơ-ron tích chập (Convolutional Neural Networks - CNN), cụ thể là mô hình MobileNet. Điểm ưu việt của MobileNet là nó sử dụng các phép tích chập tách biệt theo chiều sâu (Depthwise Separable Convolution), giúp giảm đáng kể số lượng tham số và khối lượng tính toán. Nhờ lý thuyết tối ưu hóa này, mô hình trí tuệ nhân tạo có thể được nhúng trực tiếp vào trong môi trường Node.js của tầng Backend. Trình làm việc có thể tự thân phân tích điểm số nhạy cảm của từng điểm ảnh và tự động làm mờ các bức ảnh vi phạm quy tắc cộng đồng một cách cục bộ, hoàn toàn miễn phí và bảo vệ quyền riêng tư dữ liệu.
+Lý thuyết đằng sau NSFWJS là việc sử dụng kiến trúc mạng nơ-ron tích chập (Convolutional Neural Networks - CNN), cụ thể là mô hình MobileNet. Điểm ưu việt của MobileNet là nó sử dụng các phép tích chập tách biệt theo chiều sâu (Depthwise Separable Convolution), giúp giảm đáng kể số lượng tham số và khối lượng tính toán. Nhờ lý thuyết tối ưu hóa này, mô hình trí tuệ nhân tạo có thể được nhúng trực tiếp vào trong môi trường Node.js của tầng Backend. Trình làm việc có thể tự thân phân tích điểm số nhạy cảm của từng bức ảnh và tự động làm mờ các bức ảnh vi phạm quy tắc cộng đồng một cách cục bộ, hoàn toàn miễn phí và bảo vệ quyền riêng tư dữ liệu.
 
 \section{Các Dịch vụ Tích hợp Bên ngoài}
 
@@ -87,12 +87,12 @@ Lý thuyết đằng sau NSFWJS là việc sử dụng kiến trúc mạng nơ-r
 
 Quản lý đăng nhập, cấp lại mật khẩu và bảo mật phiên truy cập là một phần không thể thiếu được mô tả ở mục Quản lý tài khoản (Chương 2). Việc tự xây dựng toàn bộ hệ thống xác thực (Tự tạo bảng mật khẩu, mã hóa Bcrypt, tạo mã thông báo JWT, viết giao diện quên mật khẩu) rất dễ dẫn đến các lỗ hổng bảo mật nghiêm trọng.
 
-Hệ thống sử dụng Clerk làm dịch vụ cung cấp danh tính \cite{clerk}. So với Auth0 hay Firebase Authentication, Clerk được thiết kế đặc biệt tối ưu cho hệ sinh thái Next.js App Router và React. Clerk cung cấp sẵn các thành phần giao diện đăng nhập tuyệt đẹp và an toàn. Hệ thống Backend chỉ cần cấu hình bộ trung gian (Middleware) để xác minh tính hợp lệ của mã thông báo token do Clerk cấp phát, từ đó ánh xạ định danh người dùng vào cơ sở dữ liệu nội bộ. Sự tách biệt này giúp đồ án tuân thủ tiêu chuẩn bảo mật hiện đại.
+Hệ thống sử dụng Clerk làm dịch vụ cung cấp danh tính \cite{clerk}. So với Auth0 hay Firebase Authentication, Clerk được thiết kế đặc biệt tối ưu cho hệ sinh thái Next.js App Router và React. Clerk cung cấp sẵn các thành phần giao diện đăng nhập tuyệt đẹp và an toàn. Hệ thống Backend chỉ cần cấu hình bộ trung gian (Middleware) để xác minh tính hợp lệ của mã thông báo (token) do Clerk cấp phát, từ đó ánh xạ định danh người dùng vào cơ sở dữ liệu nội bộ. Sự tách biệt này giúp đồ án tuân thủ tiêu chuẩn bảo mật hiện đại.
 
 \subsection{Cổng thanh toán Stripe}
 
-Để hiện thực hóa tính năng Gói hội viên của nghệ sĩ yêu cầu trả phí định kỳ ở Chương 2, hệ thống tích hợp trực tiếp cổng thanh toán Stripe \cite{stripe}.
+Để hiện thực hóa tính năng Gói hội viên của họa sĩ yêu cầu trả phí định kỳ ở Chương 2, hệ thống tích hợp trực tiếp cổng thanh toán Stripe \cite{stripe}.
 
-Lựa chọn thay thế phổ biến tại Việt Nam là VNPay hoặc Momo. Tuy nhiên, các cổng thanh toán nội địa này được thiết kế chủ yếu cho các giao dịch mua đứt bán đoạn một lần. Chúng không hỗ trợ mạnh mẽ cho các nghiệp vụ đăng ký tự động trừ tiền hàng tháng gói hội viên - vốn là trái tim của hệ thống Gói hội viên.
+Lựa chọn thay thế phổ biến tại Việt Nam là VNPay hoặc Momo. Tuy nhiên, các cổng thanh toán nội địa này được thiết kế chủ yếu cho các giao dịch giao dịch mua một lần. Chúng không hỗ trợ mạnh mẽ cho các nghiệp vụ đăng ký tự động trừ tiền hàng tháng gói hội viên - vốn là trái tim của hệ thống Gói hội viên.
 
 Stripe là giải pháp hàng đầu thế giới về thanh toán định kỳ. Stripe cung cấp môi trường thử nghiệm hoàn hảo, hệ thống Webhook tức thời để báo cáo cho Backend mỗi khi giao dịch thành công. Thông qua Stripe, hệ thống có thể dễ dàng quản lý vòng đời của một gói hội viên: từ lúc người dùng bắt đầu thanh toán, tự động gia hạn tháng sau, cho đến khi họ quyết định hủy gói. Mọi thao tác này đều được đồng bộ chính xác về cơ sở dữ liệu PostgreSQL của hệ thống để phân quyền truy cập hình ảnh một cách tức thời.

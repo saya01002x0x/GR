@@ -13,13 +13,13 @@ Cụ thể, trong suốt quá trình thực hiện đồ án, các nội dung sa
 \begin{itemize}
     \item \textbf{Về mặt kiến trúc phần mềm:} Thiết kế và triển khai kiến trúc Modular Monolith kết hợp Event-Driven Architecture trên nền tảng NestJS. Hệ thống bao gồm hơn 20 module nghiệp vụ được phân rã thành 5 nhóm miền (Domain) với ranh giới rõ ràng, giao tiếp qua Event Bus nội bộ. Chỉ số phụ thuộc vòng (Circular Dependency) được duy trì ở mức 0, đảm bảo tính linh hoạt và khả năng mở rộng.
 
-    \item \textbf{Về mặt giao diện người dùng:} Xây dựng ứng dụng Frontend bằng Next.js 16 với cơ chế Server-Side Rendering, tích hợp thư viện giao diện Mantine 8 để tạo trải nghiệm trực quan. Giao diện hỗ trợ đầy đủ các luồng chức năng từ khám phá, đăng tải, chi tiết tác phẩm, tương tác cộng đồng đến quản lý hội viên và trang quản trị (Admin Dashboard).
+    \item \textbf{Về mặt giao diện người dùng:} Xây dựng ứng dụng Frontend bằng Next.js 14 với cơ chế Server-Side Rendering, tích hợp thư viện giao diện Mantine 7 để tạo trải nghiệm trực quan. Giao diện hỗ trợ đầy đủ các luồng chức năng từ khám phá, đăng tải, chi tiết tác phẩm, tương tác cộng đồng đến quản lý hội viên và trang quản trị (Admin Dashboard).
 
     \item \textbf{Về mặt xử lý dữ liệu:} Thiết kế cơ sở dữ liệu quan hệ gồm 26 bảng trên PostgreSQL, sử dụng Prisma ORM để chuẩn hóa kiểu dữ liệu từ mức thiết kế tới mã nguồn. Có tích hợp extension pgvector để lưu trữ và truy vấn vector đa chiều phục vụ tìm kiếm ngữ nghĩa.
 
     \item \textbf{Về các đóng góp kỹ thuật nổi bật:}
     \begin{itemize}
-        \item Xây dựng luồng tìm kiếm ngữ nghĩa đa phương thức sử dụng mô hình CLIP cục bộ kết hợp pgvector, cho phép tìm kiếm tác phẩm bằng ngôn ngữ tự nhiên hoặc ảnh phác thảo với thời gian phản hồi thấp (dưới 400 mili-giây).
+        \item Xây dựng luồng tìm kiếm ngữ nghĩa đa phương thức sử dụng mô hình CLIP cục bộ kết hợp pgvector, cho phép tìm kiếm tác phẩm bằng ngôn ngữ tự nhiên hoặc ảnh phác thảo với thời gian phản hồi thấp (dưới 400 mili giây).
         \item Ứng dụng thuật toán Perceptual Hashing (pHash) vào quy trình kiểm tra bản quyền tự động, phát hiện các biến thể ảnh bị cắt xén, thu phóng hoặc thay đổi định dạng ở mức độ cơ bản.
         \item Triển khai cơ chế xử lý nền bất đồng bộ thông qua BullMQ, giảm thiểu đáng kể thời gian chặn (blocking) của luồng yêu cầu tải ảnh chính.
         \item Tích hợp cổng thanh toán Stripe với cơ chế Webhook bất đồng bộ để tự động hóa vòng đời của gói hội viên (đăng ký, gia hạn, cấp quyền truy cập).

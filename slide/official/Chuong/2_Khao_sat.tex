@@ -176,7 +176,7 @@ Các use case con gồm thích hoặc bỏ thích tác phẩm, bình luận, xó
 \subsection{Biểu đồ use case phân rã Quản lý thành viên và thanh toán}
 \label{subsection:2.2.6}
 
-Use case Quản lý thành viên và thanh toán bao gồm hai nhánh: đăng ký gói nền tảng hệ thống và đang ký gọi hội viên theo artist. Đăng ký nền tảng hệ thống phục vụ các quyền lợi chung của người dùng, còn hội viên phục vụ quan hệ trả phí giữa người sáng tạo và người hâm mộ.
+Use case Quản lý thành viên và thanh toán bao gồm hai nhánh: đăng ký gói nền tảng hệ thống và đăng ký gói hội viên theo artist. Đăng ký nền tảng hệ thống phục vụ các quyền lợi chung của người dùng, còn hội viên phục vụ quan hệ trả phí giữa người sáng tạo và người hâm mộ.
 
 Hình \ref{fig:2_6} trình bày biểu đồ use case phân rã của nhóm chức năng Quản lý thành viên và thanh toán.
 \begin{figure}[h!]
@@ -187,7 +187,7 @@ Hình \ref{fig:2_6} trình bày biểu đồ use case phân rã của nhóm ch�
 \end{figure}
 \FloatBarrier
 
-Các use case con gồm xem danh sách gói hội viên, tạo phiên thanh toán, đồng bộ kết quả hoàn tất thanh toán, mở cổng thông tin khách hàng, hủy thanh toán, tạo gói hội viên, cập nhật gói hội viên, lưu trữ gói hội viên, xem danh sách người đăng ký tier, đăng ký các hạng gói hôi viên của artist, hủy đăng ký gói hội viên, xem lịch sử thanh toán, xem doanh thu và tạo yêu cầu rút tiền. Hệ thống tích hợp cổng thanh toán (Stripe) để xử lý thanh toán và webhook để đồng bộ trạng thái về cơ sở dữ liệu nội bộ.
+Các use case con gồm xem danh sách gói hội viên, tạo phiên thanh toán, đồng bộ kết quả hoàn tất thanh toán, mở cổng thông tin khách hàng, hủy thanh toán, tạo gói hội viên, cập nhật gói hội viên, lưu trữ gói hội viên, xem danh sách người đăng ký tier, đăng ký các hạng gói hội viên của artist, hủy đăng ký gói hội viên, xem lịch sử thanh toán, xem doanh thu và tạo yêu cầu rút tiền. Hệ thống tích hợp cổng thanh toán (Stripe) để xử lý thanh toán và webhook để đồng bộ trạng thái về cơ sở dữ liệu nội bộ.
 
 \subsection{Biểu đồ use case phân rã Kiểm duyệt và quản trị}
 \label{subsection:2.2.7}
@@ -444,7 +444,7 @@ Bảng \ref{table:2_6} mô tả chi tiết đặc tả use case Đăng ký gói 
 4. Backend kiểm tra tier, người dùng và khách hàng trên cổng thanh toán. \newline
 5. Backend tạo phiên thanh toán và trả về đường dẫn checkout. \newline
 6. Người dùng hoàn tất thanh toán trên cổng thanh toán. \newline
-7. cổng thanh toán gửi webhook về backend. \newline
+7. Cổng thanh toán gửi webhook về backend. \newline
 8. Backend xác minh webhook và đồng bộ trạng thái gói hội viên. \newline
 9. Hệ thống cho phép người dùng truy cập nội dung giới hạn theo tier đã đăng ký. \\
 \hline
@@ -460,7 +460,7 @@ Bảng \ref{table:2_6} mô tả chi tiết đặc tả use case Đăng ký gói 
 \end{table}
 \FloatBarrier
 
-\subsection{Đặc tả use case Kiểm duyệt báo cáo và gửi khiếu nại}
+\subsection{Đặc tả use case Kiểm duyệt báo cáo và Khiếu nại}
 \label{subsection:2.3.6}
 
 Bảng \ref{table:2_7} mô tả chi tiết đặc tả use case Kiểm duyệt báo cáo và Khiếu nại.
@@ -478,7 +478,7 @@ Bảng \ref{table:2_7} mô tả chi tiết đặc tả use case Kiểm duyệt b
 \hline
 \textbf{Tác nhân} & Người dùng, Người sáng tạo, Moderator, Admin \\
 \hline
-\textbf{Tiền điều kiện} & Có tác phẩm bị báo cáo, bị hệ thống đánh dấu hoặc được người sáng tạo gửi khiểu nại; quản trị viên đã đăng nhập và có quyền xử lý. \\
+\textbf{Tiền điều kiện} & Có tác phẩm bị báo cáo, bị hệ thống đánh dấu hoặc được người sáng tạo gửi khiếu nại; quản trị viên đã đăng nhập và có quyền xử lý. \\
 \hline
 \textbf{Tóm tắt} & Điều phối viên xem xét báo cáo hoặc khiếu nại, sau đó duyệt, từ chối, cảnh báo hoặc áp dụng biện pháp xử lý đối với tác phẩm và người dùng liên quan. \\
 \hline

@@ -109,11 +109,18 @@
 \newpage
 
 \renewcommand{\listfigurename}{DANH MỤC HÌNH VẼ}
-\listoffigures
+{\let\oldnumberline\numberline
+\renewcommand{\numberline}{Hình~\oldnumberline}
+\listoffigures}
 \newpage
 
 \renewcommand{\listtablename}{DANH MỤC BẢNG BIỂU}
-\listoftables
+{\let\oldnumberline\numberline
+\renewcommand{\numberline}{Bảng~\oldnumberline}
+\listoftables}
+\newpage
+
+\input{Chuong/0_5_Danh_muc_viet_tat}
 \newpage
 
 \pagenumbering{arabic}

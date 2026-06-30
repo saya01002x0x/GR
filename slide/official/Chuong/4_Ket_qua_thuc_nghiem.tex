@@ -85,7 +85,7 @@ Nhóm này quản lý các hoạt động cộng đồng, bóc tách hoàn toàn
 \label{fig:4_4}
 \end{figure}
 \FloatBarrier
-Đặc điểm kiến trúc nổi bật nhất của nhóm này là sự bóc tách hoàn toàn giữa các module tương tác và NotificationsModule. Thiết kế này tuân thủ chặt chẽ nguyên tắc Khớp nối lỏng lẻo thông qua cơ chế hướng sự kiện và Hàng đợi tin nhắn. Cụ thể, thay vì gọi trực tiếp nhau, LikesService và CommentsService sẽ phát các sự kiện tương tác, còn FollowsService sẽ đẩy tín hiệu theo lô vào BullMQ. NotificationsModule đóng vai trò là một dịch vụ độc lập chuyên lắng nghe các sự kiện này để kích hoạt thông báo theo thời gian thực tới người dùng nhận. Cách tiếp cận này giúp các hành động tương tác (như thả tim, bình luận) được xử lý cực kỳ nhẹ bén mà không làm phình to logic nội bộ, đồng thời ngăn chặn rủi ro sập dây chuyền nếu dịch vụ thông báo gặp sự cố.
+Đặc điểm kiến trúc nổi bật nhất của nhóm này là sự bóc tách hoàn toàn giữa các module tương tác và NotificationsModule. Thiết kế này tuân thủ chặt chẽ nguyên tắc Khớp nối lỏng lẻo thông qua cơ chế hướng sự kiện và Hàng đợi tin nhắn. Cụ thể, thay vì gọi trực tiếp nhau, LikesService và CommentsService sẽ phát các sự kiện tương tác, còn FollowsService sẽ đẩy tín hiệu theo lô vào BullMQ. NotificationsModule đóng vai trò là một dịch vụ độc lập chuyên lắng nghe các sự kiện này để kích hoạt thông báo theo thời gian thực tới người dùng nhận. Cách tiếp cận này giúp các hành động tương tác (như thả tim, bình luận) được xử lý cực kỳ nhanh chóng mà không làm phình to logic nội bộ, đồng thời ngăn chặn rủi ro sập dây chuyền nếu dịch vụ thông báo gặp sự cố.
 
 
 \textbf{4. Nhóm Xử lý Dữ liệu Thông minh}
@@ -100,7 +100,7 @@ Nhóm này tập trung vào bài toán khám phá nội dung bằng văn bản v
 \end{figure}
 \FloatBarrier
 
-Bên trong AiSearchModule, lớp EmbeddingService có quan hệ hợp thành (composition) với AiSearchService, tạo thành một cụm chuyên biệt gọi API CLIP cục bộ để trích xuất vector ngữ nghĩa hình ảnh. MeilisearchSyncService (thuộc StatsModule) phụ thuộc trực tiếp vào SearchService để đồng bộ dữ liệu tìm kiếm siêu tốc độ.Đây là cụm module tập hợp các công nghệ phức tạp nhất như pgvector và mã băm pHash để cung cấp trải nghiệm tìm kiếm ảnh chính xác và gợi ý cá nhân hóa.
+Bên trong AiSearchModule, lớp EmbeddingService có quan hệ hợp thành (composition) với AiSearchService, tạo thành một cụm chuyên biệt gọi API CLIP cục bộ để trích xuất vector ngữ nghĩa hình ảnh. MeilisearchSyncService (thuộc StatsModule) phụ thuộc trực tiếp vào SearchService để đồng bộ dữ liệu tìm kiếm siêu tốc độ. Đây là cụm module tập hợp các công nghệ phức tạp nhất như pgvector và mã băm pHash để cung cấp trải nghiệm tìm kiếm ảnh chính xác và gợi ý cá nhân hóa.
 
 \textbf{5. Nhóm Quản trị, Vận hành và Doanh thu (Management \& Monetization)}
 
@@ -359,10 +359,10 @@ Bảng \ref{table:4_4} đặc tả cấu trúc bảng Payment.
 \textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Ràng buộc} & \textbf{Mô tả} \\ \hline
 id & UUID & Primary Key & Mã định danh giao dịch \\ \hline
 user\_id & UUID & Foreign Key & Trỏ đến bảng users \\ \hline
-provider & Enum & Not Null & Nền tảng (STRIPE, PAYPAL) \\ \hline
+provider & Enum & Not Null & Nền tảng (STRIPE) \\ \hline
 provider\_txn\_id & Varchar & Indexed & Mã giao dịch từ cổng thanh toán \\ \hline
 amount & Decimal(10,2) & Not Null & Số tiền thực tế giao dịch \\ \hline
-currency & Varchar & Default 'VND' & Loại tiền tệ \\ \hline
+currency & Varchar & Default 'USD' & Loại tiền tệ \\ \hline
 type & Enum & Not Null & Loại hóa đơn (Mua gói, Nạp...) \\ \hline
 status & Enum & Default 'PENDING' & Trạng thái hóa đơn \\ \hline
 created\_at & DateTime & Default now() & Thời điểm phát sinh hóa đơn \\ \hline
@@ -500,9 +500,9 @@ Chức năng này đòi hỏi sự kiểm soát nghiêm ngặt về quyền (ch�
 \hline
 \textbf{Mã TC} & \textbf{Dữ liệu đầu vào} & \textbf{Kết quả mong đợi} & \textbf{Kết quả thực tế} & \textbf{Trạng thái} \\ \hline
 TC01 & Tài khoản có Role là USER (Không phải Họa sĩ) gọi API upload. & Hệ thống từ chối truy cập. Trả về lỗi ForbiddenException('Only artists can upload artworks'). & Đúng như mong đợi. & PASS \\ \hline
-TC02 & Payload hợp lệ nhưng danh sách tags rỗng (tags: []). & Trả về lỗi ForbiddenException('At least 1 tag is required'). & Đúng như mong đợi. & PASS \\ \hline
-TC03 & Payload hợp lệ nhưng danh sách ảnh rỗng (images: []). & Trả về lỗi ForbiddenException('At least 1 image is required'). & Đúng như mong đợi. & PASS \\ \hline
-TC04 & Cài đặt quyền xem là TIER\_GATED nhưng không truyền tham số tier\_id. & Trả về lỗi ForbiddenException('Tier-gated artwork must have a required tier'). & Đúng như mong đợi. & PASS \\ \hline
+TC02 & Payload hợp lệ nhưng danh sách tags rỗng (tags: []). & Trả về lỗi BadRequestException('At least 1 tag is required'). & Đúng như mong đợi. & PASS \\ \hline
+TC03 & Payload hợp lệ nhưng danh sách ảnh rỗng (images: []). & Trả về lỗi BadRequestException('At least 1 image is required'). & Đúng như mong đợi. & PASS \\ \hline
+TC04 & Cài đặt quyền xem là TIER\_GATED nhưng không truyền tham số tier\_id. & Trả về lỗi BadRequestException('Tier-gated artwork must have a required tier'). & Đúng như mong đợi. & PASS \\ \hline
 TC05 & Dữ liệu hoàn toàn hợp lệ, đầy đủ tiêu đề, mô tả, ảnh gốc, tags. & Hệ thống lưu thành công vào Database, gửi job vào BullMQ để tạo pHash chống trùng lặp. & Đúng như mong đợi. & PASS \\ \hline
 \end{tabular}
 \end{table}
