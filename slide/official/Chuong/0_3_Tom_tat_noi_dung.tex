@@ -1,6 +1,13 @@
-\chapter*{TÓM TẮT}
-\addcontentsline{toc}{chapter}{TÓM TẮT}
+\begin{center}
+    \Large{\textbf{TÓM TẮT NỘI DUNG ĐỒ ÁN}}\\
+\end{center}
+\vspace{1cm}
 
 Sự bùng nổ của nghệ thuật số kéo theo nhu cầu lớn về các nền tảng chia sẻ ảnh trực tuyến chuyên biệt. Tuy nhiên, các hệ thống hiện tại thường gặp khó khăn trong việc kiểm duyệt nội dung độc hại trên quy mô lớn, ngăn chặn vấn nạn sao chép tác phẩm, và cung cấp công cụ tìm kiếm ngữ nghĩa thông minh thay vì chỉ dựa vào thẻ băm truyền thống. Bên cạnh đó, việc xử lý các tác vụ tính toán nặng ngay trên luồng yêu cầu chính dễ gây nghẽn hệ thống và làm giảm trải nghiệm người dùng. Để giải quyết các hạn chế này, đồ án lựa chọn hướng tiếp cận xây dựng hệ thống theo kiến trúc module hóa kết hợp với cơ chế xử lý bất đồng bộ qua hàng đợi nền nhằm tối ưu hiệu năng và đảm bảo khả năng mở rộng linh hoạt. Trên cơ sở đó, tác giả đã phát triển một nền tảng chia sẻ ảnh toàn diện sử dụng Next.js cho phía giao diện và NestJS cho phía dịch vụ, lưu trữ dữ liệu trên PostgreSQL và tối ưu tìm kiếm toàn văn bằng Meilisearch. Hệ thống tích hợp Clerk để xác thực người dùng và Stripe để xử lý mô hình thành viên trả phí cho nhà sáng tạo. Điểm nhấn công nghệ của giải pháp là việc ứng dụng mô hình CLIP sinh vector embedding phục vụ tìm kiếm ngữ nghĩa qua pgvector, sử dụng thuật toán Perceptual Hashing (pHash) phát hiện ảnh trùng lặp, và tích hợp NSFWJS tự động phân loại nội dung nhạy cảm. Toàn bộ các tiến trình nặng này được điều phối bất đồng bộ bởi BullMQ và Redis để giải phóng luồng xử lý chính. Đóng góp chính của đồ án là đề xuất và hiện thực hóa thành công một kiến trúc phân tán thực tế, giải quyết hài hòa giữa trải nghiệm người dùng, quyền lợi kinh tế của nhà sáng tạo và hiệu quả quản trị tự động. Kết quả sau cùng đạt được là một khung hệ thống hoàn chỉnh, vận hành ổn định với độ trễ thấp và đáp ứng tốt các yêu cầu vận hành thực tế.
-
-\textbf{Từ khóa:} chia sẻ ảnh, NestJS, Next.js, pHash, CLIP, pgvector, Meilisearch, BullMQ, Stripe.
+\begin{flushright}
+\begin{tabular}{@{}c@{}}
+\textbf{Sinh viên thực hiện}\\
+\textit{(Ký và ghi rõ họ tên)}\\[1.5cm]
+Hoàng Chí Thanh
+\end{tabular}
+\end{flushright}
