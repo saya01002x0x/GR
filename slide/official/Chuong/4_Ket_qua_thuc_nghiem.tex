@@ -1,4 +1,6 @@
-\section{Phân tích và thiết kế kiến trúc hệ thống}
+Chương này trình bày chi tiết về quá trình thiết kế, triển khai và đánh giá hệ thống chia sẻ ảnh trực tuyến. Nội dung bắt đầu từ việc thiết kế kiến trúc phần mềm, cấu trúc dữ liệu, thiết kế giao diện người dùng, cho đến các biểu đồ tuần tự mô tả luồng nghiệp vụ cốt lõi. Tiếp theo, chương sẽ mô tả các bước triển khai hệ thống trong thực tế sử dụng Docker. Cuối cùng, chương đưa ra các kết quả thử nghiệm và đánh giá hiệu năng hệ thống nhằm khẳng định hệ thống đáp ứng tốt các yêu cầu đã đặt ra.
+
+\section{Thiết kế kiến trúc hệ thống}
 \label{section:4.1}
 
 \subsection{Lựa chọn kiến trúc phần mềm}
@@ -167,6 +169,8 @@ Bảng màu chủ đạo của thương hiệu (Hình \ref{fig:4_9}) là màu H�
 
 Dưới đây là thiết kế giao diện (Mockup) cho hai chức năng quan trọng nhất của hệ thống thể hiện rõ cách áp dụng các chuẩn hóa trên.
 
+Hình \ref{fig:4_10} minh họa giao diện màn hình Trang chủ, nơi tập trung hiển thị tranh với bố cục lưới đa chiều, thanh Top Navbar màu trắng và các nút tìm kiếm được bo góc. Giao diện này tận dụng tối đa chiều rộng màn hình để người dùng có thể xem được nhiều tác phẩm cùng lúc.
+
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.85\linewidth]{Hinh_4_10_Mockup_Trang_Chu.png}
@@ -175,7 +179,7 @@ Dưới đây là thiết kế giao diện (Mockup) cho hai chức năng quan tr
 \end{figure}
 \FloatBarrier
 
-Hình \ref{fig:4_10} minh họa giao diện màn hình Trang chủ, nơi tập trung hiển thị tranh với bố cục lưới đa chiều, thanh Top Navbar màu trắng và các nút tìm kiếm được bo góc. Giao diện này tận dụng tối đa chiều rộng màn hình để người dùng có thể xem được nhiều tác phẩm cùng lúc.
+Hình \ref{fig:4_11} minh họa chức năng xem chi tiết một bức tranh. Không gian lớn nhất ở giữa dành cho tác phẩm trên nền xám nhạt \#F8F9FA, lề phải là khu vực tương tác (Like, Comment) sử dụng các nút icon, bên dưới là nút kêu gọi "Đăng ký gói hội viên" nổi bật với màu Hồng dâu \#E52E5C.
 
 \begin{figure}[h!]
 \centering
@@ -185,8 +189,6 @@ Hình \ref{fig:4_10} minh họa giao diện màn hình Trang chủ, nơi tập t
 \end{figure}
 \FloatBarrier
 
-Hình \ref{fig:4_11} minh họa chức năng xem chi tiết một bức tranh. Không gian lớn nhất ở giữa dành cho tác phẩm trên nền xám nhạt \#F8F9FA, lề phải là khu vực tương tác (Like, Comment) sử dụng các nút icon, bên dưới là nút kêu gọi "Đăng ký gói hội viên" nổi bật với màu Hồng dâu \#E52E5C.
-
 \subsection{Thiết kế lớp}
 \label{subsection:4.2.2}
 
@@ -194,7 +196,7 @@ Dựa trên cấu trúc kiến trúc đã định nghĩa, phần này đi sâu v
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.9\linewidth]{Hinh_4_12_Bieu_Do_Lop_Chinh.png}
+\includegraphics[width=\linewidth]{Hinh_4_12_Bieu_Do_Lop_Chinh.png}
 \caption{Biểu đồ các lớp chủ đạo trong hệ thống}
 \label{fig:4_12}
 \end{figure}
@@ -229,7 +231,7 @@ Luồng đăng tải tác phẩm được thiết kế theo cơ chế xử lý n
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.85\linewidth]{Hinh_4_13_Tuan_Tu_Dang_Tranh.png}
+\includegraphics[width=\linewidth]{Hinh_4_13_Tuan_Tu_Dang_Tranh.png}
 \caption{Biểu đồ trình tự Use Case: Đăng tải tác phẩm nghệ thuật}
 \label{fig:4_13}
 \end{figure}
@@ -241,7 +243,7 @@ Tính năng cốt lõi tạo nên sự khác biệt của hệ thống là khả
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.85\linewidth]{Hinh_4_14_Tuan_Tu_Tim_Kiem_AI.png}
+\includegraphics[width=\linewidth]{Hinh_4_14_Tuan_Tu_Tim_Kiem_AI.png}
 \caption{Biểu đồ trình tự Use Case: Tìm kiếm bằng AI}
 \label{fig:4_14}
 \end{figure}
@@ -253,7 +255,7 @@ Tính năng cốt lõi tạo nên sự khác biệt của hệ thống là khả
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.85\linewidth]{Hinh_4_15_Tuan_Tu_Mua_Goi.png}
+\includegraphics[width=\linewidth]{Hinh_4_15_Tuan_Tu_Mua_Goi.png}
 \caption{Biểu đồ trình tự Use Case: Đăng ký gói hội viên (Subscription)}
 \label{fig:4_15}
 \end{figure}
@@ -269,7 +271,7 @@ Biểu đồ Thực thể - Liên kết (ER Diagram) trong Hình \ref{fig:4_16} 
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.9\linewidth]{Hinh_4_16_Bieu_Do_ERD.png}
+\includegraphics[width=\linewidth]{Hinh_4_16_Bieu_Do_ERD.png}
 \caption{Biểu đồ Thực thể - Liên kết (ERD) cốt lõi}
 \label{fig:4_16}
 \end{figure}
@@ -277,7 +279,10 @@ Biểu đồ Thực thể - Liên kết (ER Diagram) trong Hình \ref{fig:4_16} 
 
 Dựa trên biểu đồ thực thể liên kết (ERD) mức logic ở trên, hệ thống tiến hành chuẩn hóa để ánh xạ xuống cơ sở dữ liệu vật lý thông qua Prisma. Do quy mô hệ thống lớn (hơn 20 bảng), biểu đồ trên chỉ tập trung minh họa các thực thể cốt lõi. Dưới đây là đặc tả chi tiết thiết kế vật lý của 4 bảng dữ liệu quan trọng nhất mang tính nền tảng cho toàn bộ nghiệp vụ.
 
+Bảng \ref{table:4_1} đặc tả cấu trúc bảng User.
 \begin{table}[h!]
+    \caption{Đặc tả cấu trúc bảng User (Quản lý người dùng)}
+    \label{table:4_1}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -294,13 +299,13 @@ is\_artist & Boolean & Default false & Cờ đánh dấu tài khoản là Họa 
 is\_banned & Boolean & Default false & Cờ khóa tài khoản khi vi phạm \\ \hline
 created\_at & DateTime & Default now() & Thời điểm tạo tài khoản \\ \hline
 \end{tabular}
-    \caption{Đặc tả cấu trúc bảng User (Quản lý người dùng)}
-    \label{table:4_1}
-
 \end{table}
 \FloatBarrier
 
+Bảng \ref{table:4_2} đặc tả cấu trúc bảng Artwork.
 \begin{table}[h!]
+    \caption{Đặc tả cấu trúc bảng Artwork (Bài đăng tác phẩm)}
+    \label{table:4_2}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -317,13 +322,13 @@ visibility & Enum & Default 'PUBLIC' & Quyền xem (Công khai, Độc quyền) 
 required\_tier\_id & UUID & FK, Nullable & Trỏ đến bảng artist\_tiers \\ \hline
 author\_id & UUID & Foreign Key & Trỏ đến bảng users \\ \hline
 \end{tabular}
-    \caption{Đặc tả cấu trúc bảng Artwork (Bài đăng tác phẩm)}
-    \label{table:4_2}
-
 \end{table}
 \FloatBarrier
 
+Bảng \ref{table:4_3} đặc tả cấu trúc bảng ArtworkImage.
 \begin{table}[h!]
+    \caption{Đặc tả cấu trúc bảng ArtworkImage (Tệp dữ liệu hình ảnh)}
+    \label{table:4_3}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -339,13 +344,13 @@ phash & Varchar & Indexed & Mã băm chống trùng lặp ảnh \\ \hline
 embedding & Vector(512) & Indexed & Vector nhúng dùng cho AI Search \\ \hline
 has\_embedding & Boolean & Default false & Cờ xác nhận đã sinh xong vector \\ \hline
 \end{tabular}
-    \caption{Đặc tả cấu trúc bảng ArtworkImage (Tệp dữ liệu hình ảnh)}
-    \label{table:4_3}
-
 \end{table}
 \FloatBarrier
 
+Bảng \ref{table:4_4} đặc tả cấu trúc bảng Payment.
 \begin{table}[h!]
+    \caption{Đặc tả cấu trúc bảng Payment (Giao dịch tài chính)}
+    \label{table:4_4}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -362,9 +367,6 @@ type & Enum & Not Null & Loại hóa đơn (Mua gói, Nạp...) \\ \hline
 status & Enum & Default 'PENDING' & Trạng thái hóa đơn \\ \hline
 created\_at & DateTime & Default now() & Thời điểm phát sinh hóa đơn \\ \hline
 \end{tabular}
-    \caption{Đặc tả cấu trúc bảng Payment (Giao dịch tài chính)}
-    \label{table:4_4}
-
 \end{table}
 \FloatBarrier
 
@@ -372,9 +374,11 @@ created\_at & DateTime & Default now() & Thời điểm phát sinh hóa đơn \\
 \section{Xây dựng ứng dụng}
 
 \subsection{Thư viện và công cụ sử dụng}
-Trong quá trình phát triển, hệ thống được xây dựng dựa trên các công nghệ, thư viện hiện đại và mã nguồn mở nhằm đảm bảo hiệu năng cao, dễ dàng mở rộng và bảo trì. Bảng dưới đây liệt kê các công cụ, ngôn ngữ lập trình, API và môi trường phát triển đã được sử dụng để xây dựng hệ thống.
+Trong quá trình phát triển, hệ thống được xây dựng dựa trên các công nghệ, thư viện hiện đại và mã nguồn mở nhằm đảm bảo hiệu năng cao, dễ dàng mở rộng và bảo trì. Bảng \ref{table:4_5} liệt kê các công cụ, ngôn ngữ lập trình, API và môi trường phát triển đã được sử dụng để xây dựng hệ thống.
 
 \begin{table}[h!]
+\caption{Danh sách thư viện và công cụ sử dụng}
+\label{table:4_5}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -393,8 +397,6 @@ Dịch vụ xác thực & Clerk API & https://clerk.com/ \\ \hline
 Cổng thanh toán & Stripe API & https://stripe.com/ \\ \hline
 Môi trường triển khai & Docker / Docker Compose & https://www.docker.com/ \\ \hline
 \end{tabular}
-\caption{Danh sách thư viện và công cụ sử dụng}
-\label{table:4_5}
 \end{table}
 \FloatBarrier
 
@@ -406,9 +408,11 @@ Kết quả đạt được của đồ án là một nền tảng mạng xã h�
     \item \textbf{AI Search Service:} Khối dịch vụ chuyên biệt đảm nhiệm việc tìm kiếm toàn văn bản siêu tốc, tìm kiếm theo ngữ nghĩa hình ảnh và phân tích vector dữ liệu.
 \end{itemize}
 
-Để minh họa cụ thể cho quy mô của hệ thống sau khi hoàn thiện, bảng dưới đây thống kê các số liệu thực tế về mã nguồn và dung lượng đóng gói của ứng dụng.
+Để minh họa cụ thể cho quy mô của hệ thống sau khi hoàn thiện, Bảng \ref{table:4_6} thống kê các số liệu thực tế về mã nguồn và dung lượng đóng gói của ứng dụng.
 
 \begin{table}[h!]
+\caption{Thống kê số liệu kỹ thuật của hệ thống}
+\label{table:4_6}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -421,8 +425,6 @@ Dung lượng mã nguồn gốc & $\sim$5.8 & Megabytes (MB) \\ \hline
 Dung lượng Container Frontend & $\sim$150 & Megabytes (MB) sau khi build \\ \hline
 Dung lượng Container Backend & $\sim$210 & Megabytes (MB) sau khi build \\ \hline
 \end{tabular}
-\caption{Thống kê số liệu kỹ thuật của hệ thống}
-\label{table:4_6}
 \end{table}
 \FloatBarrier
 
@@ -486,9 +488,11 @@ Dưới đây là chi tiết kiểm thử cho ba chức năng quan trọng nhấ
 
 \subsection{Kịch bản kiểm thử: Đăng tải tác phẩm}
 
-Chức năng này đòi hỏi sự kiểm soát nghiêm ngặt về quyền (chỉ họa sĩ mới được đăng tải), tính toàn vẹn của dữ liệu (bắt buộc có ảnh, từ khóa) và ràng buộc nghiệp vụ về nội dung trả phí.
+Chức năng này đòi hỏi sự kiểm soát nghiêm ngặt về quyền (chỉ họa sĩ mới được đăng tải), tính toàn vẹn của dữ liệu (bắt buộc có ảnh, từ khóa) và ràng buộc nghiệp vụ về nội dung trả phí. Bảng \ref{table:4_test_1} mô tả kịch bản kiểm thử chức năng Đăng tải tác phẩm.
 
 \begin{table}[h!]
+\caption{Kịch bản kiểm thử chức năng Đăng tải tác phẩm}
+\label{table:4_test_1}
 \centering
 \small
 \renewcommand{\arraystretch}{1.3}
@@ -501,16 +505,16 @@ TC03 & Payload hợp lệ nhưng danh sách ảnh rỗng (images: []). & Trả v
 TC04 & Cài đặt quyền xem là TIER\_GATED nhưng không truyền tham số tier\_id. & Trả về lỗi ForbiddenException('Tier-gated artwork must have a required tier'). & Đúng như mong đợi. & PASS \\ \hline
 TC05 & Dữ liệu hoàn toàn hợp lệ, đầy đủ tiêu đề, mô tả, ảnh gốc, tags. & Hệ thống lưu thành công vào Database, gửi job vào BullMQ để tạo pHash chống trùng lặp. & Đúng như mong đợi. & PASS \\ \hline
 \end{tabular}
-\caption{Kịch bản kiểm thử chức năng Đăng tải tác phẩm}
-\label{table:4_test_1}
 \end{table}
 \FloatBarrier
 
 \subsection{Kịch bản kiểm thử: Xác thực và Đồng bộ tài khoản}
 
-Chức năng này kết nối trực tiếp với Clerk API. Kiểm thử tập trung vào việc xử lý các token không hợp lệ và khả năng tự động đồng bộ hồ sơ người dùng mới vào hệ thống nội bộ.
+Chức năng này kết nối trực tiếp với Clerk API. Kiểm thử tập trung vào việc xử lý các token không hợp lệ và khả năng tự động đồng bộ hồ sơ người dùng mới vào hệ thống nội bộ. Bảng \ref{table:4_test_2} mô tả kịch bản kiểm thử chức năng Xác thực tài khoản.
 
 \begin{table}[h!]
+\caption{Kịch bản kiểm thử chức năng Xác thực tài khoản}
+\label{table:4_test_2}
 \centering
 \small
 \renewcommand{\arraystretch}{1.3}
@@ -523,16 +527,16 @@ TC08 & Token hợp lệ nhưng tài khoản người dùng đã bị khóa (Bann
 TC09 & Token hợp lệ từ người dùng mới đăng nhập lần đầu tiên. & Hệ thống trích xuất Clerk ID, tự động tạo mới bản ghi người dùng vào cơ sở dữ liệu nội bộ. & Lỗi trễ đồng bộ (Timeout) khi tải avatar gốc từ Clerk. & FAIL \\ \hline
 TC10 & Token hợp lệ từ người dùng cũ đã tồn tại trong CSDL. & Bỏ qua bước tạo mới, tự động gắn user\_id nội bộ vào request hiện tại. & Đúng như mong đợi. & PASS \\ \hline
 \end{tabular}
-\caption{Kịch bản kiểm thử chức năng Xác thực tài khoản}
-\label{table:4_test_2}
 \end{table}
 \FloatBarrier
 
 \subsection{Kịch bản kiểm thử: Tìm kiếm và Lọc tác phẩm}
 
-Chức năng sử dụng công cụ Meilisearch kết hợp Validator. Việc kiểm thử tập trung vào khả năng bắt lỗi định dạng tham số đầu vào và tính chính xác của kết quả lọc.
+Chức năng sử dụng công cụ Meilisearch kết hợp Validator. Việc kiểm thử tập trung vào khả năng bắt lỗi định dạng tham số đầu vào và tính chính xác của kết quả lọc. Bảng \ref{table:4_test_3} mô tả kịch bản kiểm thử chức năng Tìm kiếm tác phẩm.
 
 \begin{table}[h!]
+\caption{Kịch bản kiểm thử chức năng Tìm kiếm tác phẩm}
+\label{table:4_test_3}
 \centering
 \small
 \renewcommand{\arraystretch}{1.3}
@@ -544,16 +548,16 @@ TC12 & Truy vấn với bộ lọc nội dung rating=VIOLENCE (ngoài Enum cho p
 TC13 & Truy vấn từ khóa hợp lệ q=Genshin, excludeAI=true. & Hệ thống gọi Meilisearch, trả về danh sách tác phẩm liên quan và loại bỏ hoàn toàn ảnh AI. & Đúng như mong đợi. & PASS \\ \hline
 TC14 & Tìm kiếm theo ngữ nghĩa hình ảnh bằng ảnh tải lên (Vector Search). & AI Service chuyển đổi ảnh sang Vector 512 chiều, pgvector trả về ảnh tương đồng. & Độ tương đồng (Cosine) thấp khi dùng ảnh phác thảo mờ. & FAIL \\ \hline
 \end{tabular}
-\caption{Kịch bản kiểm thử chức năng Tìm kiếm tác phẩm}
-\label{table:4_test_3}
 \end{table}
 \FloatBarrier
 
 \subsection{Tổng kết kết quả kiểm thử}
 
-Toàn bộ quá trình đánh giá chất lượng hệ thống bao gồm $85$ kịch bản tự động viết bằng Jest tích hợp sẵn trong NestJS và $40$ kịch bản kiểm thử thủ công giả lập hành vi người dùng trên trình duyệt. Kết quả thực thi các trường hợp kiểm thử được tổng hợp trong Bảng \ref{table:4_test_summary} dưới đây:
+Toàn bộ quá trình đánh giá chất lượng hệ thống bao gồm $85$ kịch bản tự động viết bằng Jest tích hợp sẵn trong NestJS và $40$ kịch bản kiểm thử thủ công giả lập hành vi người dùng trên trình duyệt. Kết quả thực thi các trường hợp kiểm thử được tổng hợp trong Bảng \ref{table:4_test_summary}:
 
 \begin{table}[h!]
+\caption{Tổng hợp kết quả thực thi các trường hợp kiểm thử}
+\label{table:4_test_summary}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -567,8 +571,6 @@ Tìm kiếm (Search AI) & 25 & 24 & 1 & 96.0\% \\ \hline
 Tương tác (Social) & 25 & 25 & 0 & 100\% \\ \hline
 \textbf{Tổng cộng} & \textbf{125} & \textbf{123} & \textbf{2} & \textbf{98.4\%} \\ \hline
 \end{tabular}
-\caption{Tổng hợp kết quả thực thi các trường hợp kiểm thử}
-\label{table:4_test_summary}
 \end{table}
 \FloatBarrier
 

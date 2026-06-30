@@ -3,44 +3,90 @@ Chương này trình bày quá trình khảo sát hiện trạng và phân tích
 \section{Khảo sát hiện trạng}
 \label{section:2.1}
 
-Các nền tảng chia sẻ ảnh và nghệ thuật số hiện nay có thể được chia thành bốn nhóm chính. Nhóm thứ nhất là các mạng xã hội hình ảnh phổ thông như Instagram hoặc Pinterest, nơi trọng tâm là khám phá nội dung, theo dõi người dùng và tương tác nhanh. Nhóm thứ hai là các cộng đồng nghệ thuật số như DeviantArt, ArtStation hoặc Pixiv, tập trung nhiều hơn vào hồ sơ nghệ sĩ, bộ sưu tập tác phẩm, tag và phân loại nội dung theo phong cách nghệ thuật. Nhóm thứ ba là các nền tảng hỗ trợ người sáng tạo kiếm tiền như Patreon hoặc Ko-fi, trong đó nội dung được gắn với gói thành viên và quan hệ trả phí giữa người sáng tạo với người hâm mộ. Nhóm thứ tư là các công cụ tìm kiếm và quản lý ảnh có bổ sung trí tuệ nhân tạo, ví dụ các công cụ tìm kiếm ảnh bằng ngữ nghĩa hoặc phát hiện trùng lặp dựa trên đặc trưng thị giác.
+\subsection{Khảo sát hệ thống hiện có}
+\label{subsection:2.1.1}
+Ba nền tảng chia sẻ ảnh và nghệ thuật số nổi bật trên thị trường hiện nay là Pinterest, DeviantArt và Patreon. Đây là những nền tảng lớn, có lượng người dùng đông đảo và nhiều chức năng phong phú, là cơ sở quan trọng để so sánh, phân tích và đề xuất cho hệ thống cần phát triển.
 
-Mặc dù mỗi nhóm nền tảng có định hướng khác nhau, chúng đều giải quyết một phần của bài toán mà đồ án hướng tới. Nền tảng mạng xã hội phổ thông mạnh ở trải nghiệm tương tác và tốc độ lan truyền nội dung, nhưng thường không tối ưu cho quy trình kiểm duyệt đặc thù của ảnh nghệ thuật hoặc truyện tranh. Nền tảng nghệ thuật số cung cấp không gian phù hợp hơn cho người sáng tạo, song khả năng tìm kiếm thường vẫn phụ thuộc nhiều vào tag và mô tả do người đăng nhập thủ công. Nền tảng hội viên hỗ trợ doanh thu cho người sáng tạo, nhưng nhiều khi tách rời khỏi nơi cộng đồng khám phá và tương tác với tác phẩm. Các công cụ tìm kiếm ảnh bằng AI có khả năng xử lý ngữ nghĩa tốt hơn, nhưng thường không tích hợp đầy đủ vào quy trình đăng tải, kiểm duyệt, quản lý quyền truy cập và thanh toán.
+\subsubsection*{Pinterest}
+Địa chỉ truy cập: \url{https://www.pinterest.com}
 
-Đối với bài toán kiểm duyệt nội dung, các hệ thống hiện có thường áp dụng một trong ba hướng tiếp cận. Hướng thứ nhất là kiểm duyệt thủ công sau khi người dùng báo cáo. Cách này giảm chi phí tính toán nhưng phụ thuộc vào phản hồi cộng đồng và có độ trễ cao. Hướng thứ hai là kiểm duyệt tự động bằng mô hình phân loại ảnh, giúp phát hiện sớm nội dung nhạy cảm nhưng có khả năng sai lệch với ảnh minh họa, ảnh truyện tranh hoặc phong cách bán hiện thực. Hướng thứ ba là kết hợp kiểm duyệt tự động và điều phối thủ công, trong đó hệ thống tự động đánh dấu rủi ro, còn quản trị viên đưa ra quyết định cuối cùng. Đồ án lựa chọn hướng thứ ba vì phù hợp với yêu cầu vận hành của cộng đồng nghệ thuật: cần giảm tải cho người điều phối nhưng vẫn phải giữ khả năng xem xét ngữ cảnh.
+Pinterest là nền tảng mạng xã hội hình ảnh phổ thông, nơi trọng tâm là khám phá nội dung và tương tác nhanh.
+\begin{itemize}
+  \item \textbf{Ưu điểm:}
+  \begin{itemize}
+    \item Tương tác nhanh, dễ tiếp cận, phù hợp khám phá nội dung mới.
+    \item Tốc độ lan truyền nội dung hình ảnh rất cao.
+  \end{itemize}
+  \item \textbf{Nhược điểm:}
+  \begin{itemize}
+    \item Tìm kiếm nghệ thuật chuyên sâu chưa tốt.
+    \item Khó kiểm soát nội dung theo quy trình riêng của cộng đồng sáng tạo đặc thù như truyện tranh.
+  \end{itemize}
+\end{itemize}
 
-Đối với bài toán phát hiện ảnh trùng lặp, nhiều hệ thống đơn giản chỉ kiểm tra tên tệp, kích thước hoặc mã băm nhị phân. Cách này không đủ cho ảnh đã bị nén lại, đổi kích thước, đổi định dạng hoặc chỉnh sửa nhẹ. Một số nền tảng lớn sử dụng dấu vân tay thị giác hoặc mô hình học sâu để phát hiện trùng lặp gần, nhưng các cơ chế này thường không được công khai hoặc khó tích hợp trong một đồ án ứng dụng. Hệ thống đề xuất sử dụng băm nhận thức pHash làm lớp phát hiện đầu tiên. Cách tiếp cận này có chi phí thấp, triển khai được trong worker xử lý ảnh và đủ hiệu quả với các trường hợp tái đăng ảnh gần giống hệt.
+\subsubsection*{DeviantArt}
+Địa chỉ truy cập: \url{https://www.deviantart.com}
 
-Đối với bài toán tìm kiếm, các nền tảng chia sẻ ảnh truyền thống chủ yếu dựa vào từ khóa, tag, tiêu đề, mô tả và tên tác giả. Cách làm này dễ triển khai và cho kết quả tốt khi dữ liệu văn bản đầy đủ. Tuy nhiên, với ảnh nghệ thuật, nhiều đặc trưng quan trọng nằm ở bố cục, nét vẽ, màu sắc, ánh sáng, cảm xúc hoặc chủ thể thị giác. Người dùng cũng có thể không biết chính xác tag mà người đăng sử dụng. Vì vậy, tìm kiếm toàn văn cần được bổ sung bởi tìm kiếm ngữ nghĩa, trong đó ảnh và truy vấn được đưa vào cùng một không gian vector để so sánh độ tương đồng. Codebase hiện tại đã thể hiện hướng này thông qua cột embedding của ảnh, dịch vụ sinh embedding, truy vấn vector bằng pgvector và cơ chế cache truy vấn bằng Redis.
+DeviantArt là cộng đồng nghệ thuật số lâu đời, tập trung nhiều vào hồ sơ nghệ sĩ và bộ sưu tập tác phẩm.
+\begin{itemize}
+  \item \textbf{Ưu điểm:}
+  \begin{itemize}
+    \item Không gian phù hợp cho người sáng tạo với hồ sơ nghệ sĩ chuyên nghiệp.
+    \item Hệ thống tag, album tác phẩm và phân loại phong cách đa dạng.
+  \end{itemize}
+  \item \textbf{Nhược điểm:}
+  \begin{itemize}
+    \item Khả năng tìm kiếm phụ thuộc nhiều vào tag và mô tả do người đăng nhập thủ công.
+    \item Chưa nhấn mạnh xử lý nền tự động và phát hiện ảnh trùng lặp triệt để.
+  \end{itemize}
+\end{itemize}
 
-Đối với bài toán hỗ trợ người sáng tạo kiếm tiền, nhiều nền tảng hiện có buộc người sáng tạo phải tách nội dung công khai và nội dung trả phí sang hai hệ thống khác nhau. Điều này gây phân mảnh trải nghiệm: người xem khám phá tác phẩm ở một nơi, nhưng thanh toán và xem nội dung độc quyền ở nơi khác. Hệ thống đề xuất tích hợp trực tiếp cơ chế quản lý hạng hội viên của artist, đăng ký hội viên, nội dung giới hạn theo từng hạng gói hội viên, doanh thu và thanh toán. Nhờ đó, người sáng tạo có thể vừa xây dựng hồ sơ nghệ thuật, vừa quản lý người theo dõi, vừa cung cấp nội dung trả phí trong cùng một nền tảng.
+\subsubsection*{Patreon}
+Địa chỉ truy cập: \url{https://www.patreon.com}
+
+Patreon là nền tảng hỗ trợ người sáng tạo kiếm tiền thông qua quan hệ trả phí với người hâm mộ.
+\begin{itemize}
+  \item \textbf{Ưu điểm:}
+  \begin{itemize}
+    \item Hỗ trợ người sáng tạo thiết lập gói hội viên linh hoạt.
+    \item Cung cấp giải pháp nhận doanh thu trực tiếp từ người hâm mộ.
+  \end{itemize}
+  \item \textbf{Nhược điểm:}
+  \begin{itemize}
+    \item Tách rời khỏi nền tảng khám phá ảnh, khiến người dùng phải chuyển đổi ứng dụng.
+    \item Quyền truy cập nội dung độc quyền thường phải đồng bộ thủ công giữa nơi trưng bày tác phẩm và nơi thanh toán.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Các chức năng cần có cho hệ thống}
+\label{subsection:2.1.2}
+Mặc dù mỗi nền tảng có định hướng khác nhau, chúng đều giải quyết một phần của bài toán mà đồ án hướng tới. Hệ thống đề xuất trong đồ án sẽ giải quyết các hạn chế bằng cách tích hợp trực tiếp cơ chế chia sẻ ảnh, xử lý nền, kiểm duyệt nội dung, tìm kiếm lai và quản lý hội viên trên cùng một nền tảng. Bảng \ref{table:2_1} trình bày tóm tắt các tính năng cốt lõi cần có cho hệ thống để đạt được mục tiêu này.
 
 \begin{table}[h!]
+    \caption{Tóm tắt các tính năng cốt lõi cần thiết cho hệ thống đề xuất}
+    \label{table:2_1}
 \centering
 \small
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{|p{0.18\linewidth}|p{0.24\linewidth}|p{0.24\linewidth}|p{0.24\linewidth}|}
+\begin{tabular}{|p{0.25\linewidth}|p{0.70\linewidth}|}
 \hline
-\textbf{Nhóm hệ thống} & \textbf{Ưu điểm} & \textbf{Hạn chế} & \textbf{Định hướng kế thừa trong đồ án} \\
+\textbf{Nhóm tính năng} & \textbf{Mô tả chi tiết} \\
 \hline
-Mạng xã hội hình ảnh phổ thông & Tương tác nhanh, dễ tiếp cận, phù hợp khám phá nội dung mới & Tìm kiếm nghệ thuật chưa sâu, khó kiểm soát nội dung theo quy trình riêng của cộng đồng sáng tạo & Kế thừa chức năng xem, thích, bình luận, theo dõi, bộ sưu tập và khám phá nội dung \\
+Tài khoản và phân quyền & Đăng nhập, đồng bộ hồ sơ, quản lý trạng thái nghệ sĩ, kiểm soát quyền quản trị viên. \\
 \hline
-Cộng đồng nghệ thuật số & Phù hợp hồ sơ nghệ sĩ, tag, album tác phẩm, phân loại phong cách & Phụ thuộc nhiều vào tag thủ công, chưa nhấn mạnh xử lý nền tự động và phát hiện trùng lặp & Kế thừa mô hình artist, trang tác phẩm, tag, phân loại tác phẩm và tương tác cộng đồng \\
+Quản lý tác phẩm & Đăng tải ảnh, tạo ảnh thu nhỏ, ảnh làm mờ, đóng dấu bản quyền, kiểm duyệt ảnh nhạy cảm và phát hiện ảnh trùng lặp bằng mã băm nhận thức. \\
 \hline
-Nền tảng membership & Hỗ trợ người sáng tạo tạo gói thành viên và nhận doanh thu từ người hâm mộ & Thường tách rời khỏi nền tảng khám phá ảnh, quyền truy cập nội dung phải đồng bộ thủ công & Tích hợp artist tier, đăng ký trả phí, nội dung giới hạn theo tier và quản lý doanh thu \\
+Tìm kiếm và khám phá & Tìm kiếm từ khóa, lọc theo tag, tỷ lệ ảnh, tìm kiếm ngữ nghĩa, gợi ý tác phẩm liên quan. \\
 \hline
-Công cụ tìm kiếm ảnh bằng AI & Có khả năng hiểu ngữ nghĩa, tìm kiếm theo nội dung thị giác hoặc truy vấn tự nhiên & Thường chỉ giải quyết bài toán tìm kiếm, không bao phủ đăng tải, kiểm duyệt và thanh toán & Kết hợp tìm kiếm toàn văn bằng Meilisearch với tìm kiếm vector bằng pgvector \\
+Tương tác cộng đồng & Thích, bình luận, đánh dấu tác phẩm, tạo bộ sưu tập, theo dõi nghệ sĩ. \\
 \hline
-Hệ thống đề xuất & Kết hợp chia sẻ ảnh, xử lý nền, kiểm duyệt tự động, tìm kiếm lai và cơ chế thành viên & Phạm vi đồ án chưa đi sâu vào triển khai hạ tầng phân tán quy mô rất lớn & Xây dựng nền tảng tích hợp theo kiến trúc module, có khả năng mở rộng tiếp \\
+Hội viên và thanh toán & Thiết lập hạng gói hội viên, đăng ký trả phí định kỳ, giới hạn quyền xem tác phẩm theo gói hội viên, quản lý doanh thu. \\
+\hline
+Kiểm duyệt và quản trị & Báo cáo vi phạm, duyệt hoặc từ chối tác phẩm, khóa tài khoản, nhật ký hệ thống. \\
 \hline
 \end{tabular}
-    \caption{So sánh một số nhóm hệ thống hiện có với hệ thống đề xuất}
-    \label{table:2_1}
-
 \end{table}
 \FloatBarrier
-
-Từ khảo sát trên, hệ thống cần phát triển các nhóm tính năng quan trọng sau. Thứ nhất là nhóm chức năng tài khoản và phân quyền, bao gồm đăng nhập, đồng bộ hồ sơ người dùng, quản lý trạng thái artist và kiểm soát vai trò quản trị. Thứ hai là nhóm chức năng quản lý tác phẩm, bao gồm đăng tải nhiều ảnh, xử lý nền, watermark, lưu ảnh gốc, ảnh xem trước, ảnh thu nhỏ, ảnh làm mờ, kiểm tra trùng lặp và kiểm duyệt NSFW. Thứ ba là nhóm chức năng tìm kiếm và khám phá, bao gồm tìm kiếm từ khóa, lọc theo tag, độ phân giải, tỷ lệ ảnh, tìm kiếm ngữ nghĩa bằng văn bản, tìm kiếm bằng ảnh phác thảo và gợi ý nội dung liên quan. Thứ tư là nhóm tương tác cộng đồng, bao gồm thích, bình luận, đánh dấu tác phẩm, tạo bộ sưu tập, theo dõi và bảng tin cá nhân. Thứ năm là nhóm chức năng hội viên và thanh toán, bao gồm gói dịch vụ nền tảng, phân hạng của người sáng tạo, đăng ký cấp độ hội viên, đồng bộ hoá cổng thanh toán Stripe, cổng quản lý thông tin khách hàng, lịch sử thanh toán, doanh thu và thanh toán. Thứ sáu là nhóm kiểm duyệt và quản trị, bao gồm báo cáo tác phẩm, duyệt hoặc từ chối tác phẩm vi phạm, quản lý người dùng, cảnh báo, khóa tài khoản, nhật ký hệ thống và thống kê.
 
 \section{Tổng quan chức năng}
 \label{section:2.2}
@@ -52,6 +98,7 @@ Hệ thống được phân tích theo phương pháp hướng đối tượng v
 
 Hệ thống có bốn nhóm tác nhân chính. Khách là người chưa đăng nhập, có thể xem nội dung công khai, tìm kiếm, xem trang tác phẩm và trang nghệ sĩ trong phạm vi cho phép. Người dùng là người đã đăng nhập, có thể tương tác với tác phẩm, quản lý bộ sưu tập, theo dõi nghệ sĩ, báo cáo vi phạm và đăng ký các gói thành viên. Người sáng tạo là người dùng có thêm khả năng đăng tải và quản lý tác phẩm, thiết lập gói hội viên, xem người đăng ký và theo dõi doanh thu. Quản trị viên hoặc điều phối viên là nhóm có quyền xử lý báo cáo, kiểm duyệt tác phẩm, quản lý người dùng, quản lý cấu hình hệ thống và theo dõi thống kê vận hành.
 
+Hình \ref{fig:2_1} trình bày biểu đồ use case tổng quát của hệ thống.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.65\linewidth]{Hinh_2_1_Use_case_tong_quat.png}
@@ -67,6 +114,7 @@ Các use case mức cao của hệ thống gồm: quản lý tài khoản, quả
 
 Use case Quản lý tài khoản liên quan đến cả người dùng thường và người sáng tạo. Hệ thống sử dụng Clerk cho xác thực, nhưng vẫn duy trì hồ sơ người dùng nội bộ để lưu vai trò, trạng thái artist, trạng thái bị khóa, thông tin thanh toán Stripe và các quan hệ xã hội. Khi người dùng đăng nhập lần đầu, backend thực hiện đồng bộ lười, tạo hoặc cập nhật bản ghi người dùng dựa trên định danh Clerk.
 
+Hình \ref{fig:2_2} trình bày biểu đồ use case phân rã của nhóm chức năng Quản lý tài khoản.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_2_Use_case_Quan_ly_tai_khoan.png}
@@ -82,6 +130,7 @@ Các use case con gồm đăng nhập, xem hồ sơ cá nhân, cập nhật hồ
 
 Use case Quản lý tác phẩm là trung tâm của hệ thống. Người sáng tạo có thể đăng tải một tác phẩm gồm một hoặc nhiều ảnh, nhập tiêu đề, mô tả, tag, chọn chế độ hiển thị, chọn hạng hội viên yêu cầu nếu là nội dung giới hạn, cấu hình watermark và theo dõi trạng thái xử lý. Sau khi tạo tác phẩm, hệ thống đưa tác phẩm vào hàng đợi để worker xử lý ảnh bất đồng bộ.
 
+Hình \ref{fig:2_3} trình bày biểu đồ use case phân rã của nhóm chức năng Quản lý tác phẩm.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_3_Use_case_Quan_ly_tac_pham.png}
@@ -97,6 +146,7 @@ Các use case con gồm tạo tác phẩm, tải ảnh lên, cấu hình waterma
 
 Use case Tìm kiếm và khám phá nội dung phục vụ cả khách và người dùng đã đăng nhập. Khách có thể tìm kiếm và xem nội dung công khai; người dùng đã đăng nhập có thêm khả năng tìm kiếm cá nhân hóa, dùng tìm kiếm bằng phác thảo nếu thỏa điều kiện gói dịch vụ và nhận gợi ý dựa trên lịch sử tương tác.
 
+Hình \ref{fig:2_4} trình bày biểu đồ use case phân rã của nhóm chức năng Tìm kiếm và khám phá nội dung.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_4_Use_case_Tim_kiem_kham_pha.png}
@@ -112,6 +162,7 @@ Các use case con gồm tìm kiếm theo từ khóa, lọc theo tag, tỷ lệ �
 
 Use case Tương tác cộng đồng bao phủ các hành vi giúp người dùng hình thành quan hệ xã hội xung quanh tác phẩm. Đây là nhóm chức năng làm cho nền tảng không chỉ là kho lưu trữ ảnh mà trở thành cộng đồng.
 
+Hình \ref{fig:2_5} trình bày biểu đồ use case phân rã của nhóm chức năng Tương tác cộng đồng.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_5_Use_case_Tuong_tac_cong_dong.png}
@@ -127,6 +178,7 @@ Các use case con gồm thích hoặc bỏ thích tác phẩm, bình luận, xó
 
 Use case Quản lý thành viên và thanh toán bao gồm hai nhánh: đăng ký gói nền tảng hệ thống và đang ký gọi hội viên theo artist. Đăng ký nền tảng hệ thống phục vụ các quyền lợi chung của người dùng, còn hội viên phục vụ quan hệ trả phí giữa người sáng tạo và người hâm mộ.
 
+Hình \ref{fig:2_6} trình bày biểu đồ use case phân rã của nhóm chức năng Quản lý thành viên và thanh toán.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_6_Use_case_Thanh_vien_thanh_toan.png}
@@ -142,6 +194,7 @@ Các use case con gồm xem danh sách gói hội viên, tạo phiên thanh toá
 
 Use case Kiểm duyệt và quản trị dành cho Moderator, Admin và Super Admin. Đây là nhóm chức năng đảm bảo nền tảng vận hành an toàn, kiểm soát được nội dung vi phạm và truy vết được thao tác quan trọng.
 
+Hình \ref{fig:2_7} trình bày biểu đồ use case phân rã của nhóm chức năng Kiểm duyệt và quản trị.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.58\linewidth]{Hinh_2_7_Use_case_Kiem_duyet_quan_tri.png}
@@ -157,9 +210,10 @@ Các use case con gồm xem danh sách tác phẩm bị đánh dấu, xem báo c
 
 Quy trình nghiệp vụ quan trọng nhất của hệ thống là quy trình đăng tải và xử lý tác phẩm. Quy trình này kết hợp nhiều use case: đăng nhập, tạo tác phẩm, tải ảnh, đưa job vào hàng đợi, xử lý ảnh, kiểm tra trùng lặp, kiểm duyệt NSFW, lưu biến thể ảnh, lập chỉ mục tìm kiếm, sinh embedding và thông báo kết quả cho người sáng tạo.
 
+Hình \ref{fig:2_8} mô tả luồng xử lý chi tiết của quy trình đăng tải và xử lý tác phẩm.
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.65\linewidth]{Hinh_2_8_Quy_trinh_dang_tai_xu_ly_anh.png}
+\includegraphics[width=\linewidth]{Hinh_2_8_Quy_trinh_dang_tai_xu_ly_anh.png}
 \caption{Quy trình nghiệp vụ đăng tải và xử lý tác phẩm}
 \label{fig:2_8}
 \end{figure}
@@ -169,9 +223,10 @@ Mô tả sơ bộ quy trình như sau. Người sáng tạo đăng nhập và tr
 
 Quy trình nghiệp vụ thứ hai là quy trình đăng ký gói hội viên. Quy trình này kết hợp các use case xem hạng gói hội viên công khai, tạo phiên thanh toán, thanh toán qua cổng thanh toán, webhook đồng bộ đăng ký và kiểm tra quyền truy cập nội dung giới hạn.
 
+Hình \ref{fig:2_9} mô tả luồng xử lý chi tiết của quy trình đăng ký gói thành viên.
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.65\linewidth]{Hinh_2_9_Quy_trinh_thanh_vien_tier.png}
+\includegraphics[width=\linewidth]{Hinh_2_9_Quy_trinh_thanh_vien_tier.png}
 \caption{Quy trình nghiệp vụ đăng ký gói thành viên của người sáng tạo}
 \label{fig:2_9}
 \end{figure}
@@ -188,7 +243,10 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \subsection{Đặc tả use case Đăng nhập và đồng bộ tài khoản}
 \label{subsection:2.3.1}
 
+Bảng \ref{table:2_2} mô tả chi tiết đặc tả use case Đăng nhập và đồng bộ tài khoản.
 \begin{table}[h!]
+    \caption{Đặc tả use case Đăng nhập và đồng bộ tài khoản}
+    \label{table:2_2}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -223,16 +281,16 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Người dùng có phiên đăng nhập hợp lệ; cơ sở dữ liệu nội bộ có bản ghi người dùng tương ứng với định danh Clerk. \\
 \hline
 \end{tabular}
-    \caption{Đặc tả use case Đăng nhập và đồng bộ tài khoản}
-    \label{table:2_2}
-
 \end{table}
 \FloatBarrier
 
 \subsection{Đặc tả use case Đăng tải tác phẩm}
 \label{subsection:2.3.2}
 
+Bảng \ref{table:2_3} mô tả chi tiết đặc tả use case Đăng tải tác phẩm.
 \begin{table}[h!]
+    \caption{Đặc tả use case Đăng tải tác phẩm}
+    \label{table:2_3}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -269,16 +327,16 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Tác phẩm được xuất bản nếu hợp lệ; nếu có lỗi, tác phẩm được lưu ở trạng thái cần xử lý hoặc thất bại để người dùng và quản trị viên theo dõi. \\
 \hline
 \end{tabular}
-    \caption{Đặc tả use case Đăng tải tác phẩm}
-    \label{table:2_3}
-
 \end{table}
 \FloatBarrier
 
 \subsection{Đặc tả use case Tìm kiếm và khám phá tác phẩm}
 \label{subsection:2.3.3}
 
+Bảng \ref{table:2_4} mô tả chi tiết đặc tả use case Tìm kiếm và khám phá tác phẩm.
 \begin{table}[h!]
+    \caption{Đặc tả use case Tìm kiếm và khám phá tác phẩm}
+    \label{table:2_4}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -311,16 +369,16 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Danh sách kết quả phù hợp được hiển thị; các truy vấn ngữ nghĩa có thể được cache để tăng hiệu năng cho lần sau. \\
 \hline
 \end{tabular}
-    \caption{Đặc tả use case Tìm kiếm và khám phá tác phẩm}
-    \label{table:2_4}
-
 \end{table}
 \FloatBarrier
 
 \subsection{Đặc tả use case Tương tác với tác phẩm}
 \label{subsection:2.3.4}
 
+Bảng \ref{table:2_5} mô tả chi tiết đặc tả use case Tương tác với tác phẩm.
 \begin{table}[h!]
+    \caption{Đặc tả use case Tương tác với tác phẩm}
+    \label{table:2_5}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -354,16 +412,16 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Tương tác được ghi nhận; bộ đếm và trạng thái giao diện được cập nhật; nếu có báo cáo, báo cáo được đưa vào hàng xử lý kiểm duyệt. \\
 \hline
 \end{tabular}
-    \caption{Đặc tả use case Tương tác với tác phẩm}
-    \label{table:2_5}
-
 \end{table}
 \FloatBarrier
 
 \subsection{Đặc tả use case Đăng ký gói thành viên của người sáng tạo}
 \label{subsection:2.3.5}
 
+Bảng \ref{table:2_6} mô tả chi tiết đặc tả use case Đăng ký gói thành viên của người sáng tạo.
 \begin{table}[h!]
+    \caption{Đặc tả use case Đăng ký gói thành viên của người sáng tạo}
+    \label{table:2_6}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -399,16 +457,16 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Nếu thanh toán thành công, gói hội viên nội bộ ở trạng thái hoạt động và quyền truy cập nội dung giới hạn được mở cho người dùng. \\
 \hline
 \end{tabular}
-    \caption{Đặc tả use case Đăng ký gói thành viên của người sáng tạo}
-    \label{table:2_6}
-
 \end{table}
 \FloatBarrier
 
 \subsection{Đặc tả use case Kiểm duyệt báo cáo và gửi khiếu nại}
 \label{subsection:2.3.6}
 
+Bảng \ref{table:2_7} mô tả chi tiết đặc tả use case Kiểm duyệt báo cáo và Khiếu nại.
 \begin{table}[h!]
+    \caption{Đặc tả use case Kiểm duyệt báo cáo và Khiếu nại}
+    \label{table:2_7}
 \centering
 \small
 \renewcommand{\arraystretch}{1.2}
@@ -443,9 +501,6 @@ Phần này đặc tả sáu use case quan trọng của hệ thống. Mỗi use
 \textbf{Hậu điều kiện} & Báo cáo được cập nhật trạng thái; tác phẩm được duyệt, từ chối hoặc tiếp tục chờ xử lý; thao tác quản trị được ghi nhận trong audit log. \\
 \hline
 \end{tabular}
-    \caption{Đặc tả use case Kiểm duyệt báo cáo và Khiếu nại}
-    \label{table:2_7}
-
 \end{table}
 \FloatBarrier
 
