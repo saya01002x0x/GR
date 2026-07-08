@@ -330,3 +330,12 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 ### [21/06] - Kh?c ph?c Circular Dependency gi?a AuthModule va UsersModule
 - **Logic:** Lo?i b? orwardRef() gi?a AuthModule va UsersModule. Thay vi AuthModule inject UsersService ?? l?y/sync user, AuthModule s? g?i tr?c ti?p PrismaService ?? t? x? ly database logic cho vi?c xac th?c. ? phia UsersController, thay vi tiem AuthService ?? g?i th? cong getOptionalUser(), ta dung m?t custom guard @UseGuards(OptionalClerkGuard) va l?y user qua decorator @CurrentUser().
 - **Decision:** Vi?c AuthModule ??c l?p va t? x? ly logic xac th?c v?i Database la best practice. S? d?ng OptionalClerkGuard giup code controller s?ch h?n, tuan th? nguyen t?c Declarative c?a NestJS.
+### [24/06] - Fix lỗi Deploy Production & Seed Data (AI, MinIO, Prisma)
+- **Logic:** Chuyển đổi Base Image Docker từ `node:20-alpine` sang `node:20-slim`, đồng thời cài đặt thêm `openssl` và `ca-certificates`. Sử dụng các bản JS đã được compile trong `dist/` thay vì dùng `ts-node` để seed dữ liệu trên production.
+- **Decision:** Môi trường Alpine Linux quá tối giản, cắt bỏ `glibc` và `openssl`, dẫn đến Prisma không kết nối được Database và ONNX Runtime (AI) cùng `sharp` (xử lý ảnh) không tải được lõi C++. Chuyển sang bản `slim` (Debian) giải quyết triệt để lỗi thư viện lõi, giữ hệ thống production ổn định. Việc gọi trực tiếp file `.js` bỏ qua `ts-node` giúp tiết kiệm tài nguyên và đúng chuẩn CI/CD.
+
+
+
+### [30/06] - [Sửa lỗi báo cáo đồ án LaTeX]
+- **Logic:** Cập nhật lại các file LaTeX (Bìa, Tóm tắt, Các chương) dựa theo yêu cầu và báo cáo rà soát. Gộp chung 'Từ viết tắt' và 'Thuật ngữ' vào một file duy nhất, chỉnh sửa các lỗi chính tả (đăng ký gói, khiếu nại, USD, mili giây, SQL Injection), và cập nhật lại số thứ tự hình vẽ từ 4_8 thành 4_7 để đảm bảo tính liên tục.
+- **Decision:** Sử dụng file 0_5_Danh_muc_viet_tat.tex mới gộp chung hai bảng. Dùng script node.js để tự động sửa lại toàn bộ refs ảnh trong báo cáo thông qua Regex an toàn.

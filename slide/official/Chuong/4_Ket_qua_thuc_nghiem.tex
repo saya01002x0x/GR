@@ -102,7 +102,7 @@ Nhóm này tập trung vào bài toán khám phá nội dung bằng văn bản v
 
 Bên trong AiSearchModule, lớp EmbeddingService có quan hệ hợp thành (composition) với AiSearchService, tạo thành một cụm chuyên biệt gọi API CLIP cục bộ để trích xuất vector ngữ nghĩa hình ảnh. MeilisearchSyncService (thuộc StatsModule) phụ thuộc trực tiếp vào SearchService để đồng bộ dữ liệu tìm kiếm siêu tốc độ. Đây là cụm module tập hợp các công nghệ phức tạp nhất như pgvector và mã băm pHash để cung cấp trải nghiệm tìm kiếm ảnh chính xác và gợi ý cá nhân hóa.
 
-\textbf{5. Nhóm Quản trị, Vận hành và Doanh thu (Management \& Monetization)}
+\textbf{5. Nhóm Quản trị, Vận hành và Doanh thu}
 
 Nhóm này chịu trách nhiệm quản lý hệ thống Backoffice (dành cho Admin) và xử lý luồng doanh thu, hoàn toàn tách biệt khỏi trải nghiệm lướt web thông thường của người dùng cuối. Nhóm bao gồm AdminModule, ReportsModule, AnnouncementsModule, PaymentsModule và AuditLogsModule. Hình \ref{fig:4_6} minh họa thiết kế.
 
@@ -132,11 +132,11 @@ Hệ thống được thiết kế tối ưu hóa cho nền tảng Web Desktop. 
 
 \textbf{2. Chuẩn hóa thiết kế giao diện}
 
-Để tạo ra một hệ thống nhất quán, chuyên nghiệp và thân thiện với người dùng, các thành phần UI (User Interface) được chuẩn hóa theo hệ thống thiết kế (Design System) cụ thể như sau:
+Để tạo ra một hệ thống nhất quán, chuyên nghiệp và thân thiện với người dùng, các thành phần giao diện được chuẩn hóa theo hệ thống thiết kế (Design System) cụ thể như sau:
 
 \begin{itemize}
     \item \textbf{Thiết kế nút (Buttons):} Tất cả các nút bấm trên hệ thống được chuẩn hóa với góc bo tròn nhẹ (border-radius: 8px) tạo cảm giác hiện đại. Nút kêu gọi hành động chính (Primary Button - ví dụ: "Đăng tải", "Đăng ký gói") sử dụng nền màu đặc (Solid) là màu chủ đạo của dự án. Các nút hành động phụ (Secondary Button - ví dụ: "Hủy", "Xem thêm") chỉ sử dụng đường viền (Outline) hoặc nền xám nhạt để giảm sự chú ý, nhường trọng tâm cho các nút chính. Nút tương tác (Like, Comment) sử dụng biểu tượng (Icon) mỏng, chỉ đổ màu khi người dùng đưa chuột qua (Hover).
-    \item \textbf{Điều khiển (Navigation):} Hệ thống sử dụng hai cơ chế điều khiển linh hoạt dựa theo ngữ cảnh. Đối với luồng người dùng lướt xem tranh (Discover), hệ thống áp dụng Thanh điều hướng ngang (Top Navbar) ghim cố định trên cùng, chứa thanh tìm kiếm lớn ở giữa. Đối với luồng Họa sĩ quản lý tác phẩm (Artist Dashboard), hệ thống chuyển sang Thanh điều khiển dọc bên trái (Sidebar) để chừa tối đa không gian hiển thị các bảng biểu thống kê doanh thu và quản lý tệp tin.
+    \item \textbf{Điều khiển (Navigation):} Hệ thống sử dụng hai cơ chế điều khiển linh hoạt dựa theo ngữ cảnh. Đối với luồng người dùng lướt xem tranh (Discover), hệ thống áp dụng Thanh điều hướng ngang ghim cố định trên cùng, chứa thanh tìm kiếm lớn ở giữa. Đối với luồng Họa sĩ quản lý tác phẩm (Artist Dashboard), hệ thống chuyển sang Thanh điều khiển dọc bên trái để chừa tối đa không gian hiển thị các bảng biểu thống kê doanh thu và quản lý tệp tin.
     \item \textbf{Vị trí hiển thị thông điệp phản hồi:} Mọi phản hồi trạng thái từ hệ thống (như tải ảnh thành công, lỗi máy chủ, thông báo có người theo dõi mới) đều được chuẩn hóa hiển thị dưới dạng khung thông báo nhỏ (Toast Notification) bật lên ở \textbf{góc trên cùng bên phải} màn hình. Mỗi thông điệp sẽ tự động biến mất sau 3 giây để không làm gián đoạn trải nghiệm xem tranh.
     \item \textbf{Kiểu chữ (Typography):} Ứng dụng thống nhất sử dụng duy nhất một họ phông chữ không chân (sans-serif) là "Plus Jakarta Sans". Phông chữ này có độ nét cao, dễ đọc ở kích thước nhỏ gọn và mang lại cảm giác nghệ thuật hiện đại.
 \end{itemize}
@@ -167,7 +167,7 @@ Bảng màu chủ đạo của thương hiệu (Hình \ref{fig:4_9}) là màu H�
 
 \textbf{3. Hình ảnh minh họa giao diện}
 
-Dưới đây là thiết kế giao diện (Mockup) cho hai chức năng quan trọng nhất của hệ thống thể hiện rõ cách áp dụng các chuẩn hóa trên.
+Dưới đây là thiết kế giao diện Mockup cho hai chức năng quan trọng nhất của hệ thống thể hiện rõ cách áp dụng các chuẩn hóa trên.
 
 Hình \ref{fig:4_10} minh họa giao diện màn hình Trang chủ, nơi tập trung hiển thị tranh với bố cục lưới đa chiều, thanh Top Navbar màu trắng và các nút tìm kiếm được bo góc. Giao diện này tận dụng tối đa chiều rộng màn hình để người dùng có thể xem được nhiều tác phẩm cùng lúc.
 
@@ -256,7 +256,7 @@ Tính năng cốt lõi tạo nên sự khác biệt của hệ thống là khả
 \begin{figure}[h!]
 \centering
 \includegraphics[width=\linewidth]{Hinh_4_15_Tuan_Tu_Mua_Goi.png}
-\caption{Biểu đồ trình tự Use Case: Đăng ký gói hội viên (Subscription)}
+\caption{Biểu đồ trình tự Use Case: Đăng ký gói hội viên}
 \label{fig:4_15}
 \end{figure}
 \FloatBarrier
@@ -267,7 +267,7 @@ Tính năng cốt lõi tạo nên sự khác biệt của hệ thống là khả
 
 Cơ sở dữ liệu của hệ thống được thiết kế theo mô hình quan hệ và được triển khai trên hệ quản trị PostgreSQL. Lựa chọn PostgreSQL là giải pháp tối ưu vì nó không chỉ hỗ trợ tính toàn vẹn dữ liệu cực tốt mà còn sở hữu extension "pgvector" - công cụ bắt buộc để lưu trữ và truy vấn các vector đa chiều phục vụ tính năng tìm kiếm bằng AI. Việc tương tác với cơ sở dữ liệu được thực hiện thông qua công cụ ORM Prisma, giúp chuẩn hóa kiểu dữ liệu từ mức thiết kế tới mã nguồn.
 
-Biểu đồ Thực thể - Liên kết (ER Diagram) trong Hình \ref{fig:4_16} minh họa cấu trúc vật lý của cơ sở dữ liệu, bao gồm các bảng cốt lõi và mối quan hệ giữa chúng.
+Biểu đồ Thực thể - Liên kết ERD trong Hình \ref{fig:4_16} minh họa cấu trúc vật lý của cơ sở dữ liệu, bao gồm các bảng cốt lõi và mối quan hệ giữa chúng.
 
 \begin{figure}[h!]
 \centering
@@ -576,7 +576,7 @@ Tương tác (Social) & 25 & 25 & 0 & 100\% \\ \hline
 
 \textbf{Phân tích nguyên nhân các trường hợp lỗi (FAIL):}
 \begin{itemize}
-    \item \textbf{TC09 (Lỗi đồng bộ Avatar lần đầu):} Khi người dùng sử dụng tài khoản Google/Facebook có ảnh đại diện gốc ở độ phân giải quá cao, tiến trình tải và nén ảnh đại diện của hệ thống nhận về qua Webhook đôi lúc vượt quá thời gian phản hồi API (Timeout 5000ms). Giải pháp khắc phục: Chuyển luồng đồng bộ Avatar sang dạng chạy ngầm bất đồng bộ (Asynchronous Background Job) thông qua BullMQ thay vì chờ xử lý trực tiếp trên API.
+    \item \textbf{TC09 (Lỗi đồng bộ Avatar lần đầu):} Khi người dùng sử dụng tài khoản Google/Facebook có ảnh đại diện gốc ở độ phân giải quá cao, tiến trình tải và nén ảnh đại diện của hệ thống nhận về qua Webhook đôi lúc vượt quá thời gian phản hồi API (Timeout 5000ms). Giải pháp khắc phục: Chuyển luồng đồng bộ Avatar sang dạng chạy ngầm bất đồng bộ thông qua BullMQ thay vì chờ xử lý trực tiếp trên API.
     \item \textbf{TC14 (Độ chính xác của Vector Search):} Chức năng tìm kiếm ảnh tương đồng bằng mô hình AI gặp khó khăn khi ảnh đầu vào là ảnh phác thảo có chất lượng thấp, thiếu chi tiết màu sắc, dẫn đến điểm số Cosine Similarity với kho ảnh gốc không đạt ngưỡng yêu cầu. Giải pháp khắc phục: Cần tích hợp thêm bộ trọng số của mô hình chuyên biệt cho việc nhận diện nét vẽ phác thảo, thay vì dùng chung mô hình nhận dạng ảnh thông thường.
 \end{itemize}
 

@@ -93,6 +93,6 @@ Hệ thống sử dụng Clerk làm dịch vụ cung cấp danh tính \cite{cler
 
 Để hiện thực hóa tính năng Gói hội viên của họa sĩ yêu cầu trả phí định kỳ ở Chương 2, hệ thống tích hợp trực tiếp cổng thanh toán Stripe \cite{stripe}.
 
-Lựa chọn thay thế phổ biến tại Việt Nam là VNPay hoặc Momo. Tuy nhiên, các cổng thanh toán nội địa này được thiết kế chủ yếu cho các giao dịch giao dịch mua một lần. Chúng không hỗ trợ mạnh mẽ cho các nghiệp vụ đăng ký tự động trừ tiền hàng tháng gói hội viên - vốn là trái tim của hệ thống Gói hội viên.
+Lựa chọn thay thế phổ biến tại Việt Nam là VNPay hoặc Momo. Tuy nhiên, các cổng thanh toán nội địa này được thiết kế chủ yếu cho các giao dịch mua một lần. Chúng không hỗ trợ mạnh mẽ cho các nghiệp vụ đăng ký tự động trừ tiền hàng tháng gói hội viên - vốn là trái tim của hệ thống Gói hội viên.
 
 Stripe là giải pháp hàng đầu thế giới về thanh toán định kỳ. Stripe cung cấp môi trường thử nghiệm hoàn hảo, hệ thống Webhook tức thời để báo cáo cho Backend mỗi khi giao dịch thành công. Thông qua Stripe, hệ thống có thể dễ dàng quản lý vòng đời của một gói hội viên: từ lúc người dùng bắt đầu thanh toán, tự động gia hạn tháng sau, cho đến khi họ quyết định hủy gói. Mọi thao tác này đều được đồng bộ chính xác về cơ sở dữ liệu PostgreSQL của hệ thống để phân quyền truy cập hình ảnh một cách tức thời.
