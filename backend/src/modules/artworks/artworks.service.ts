@@ -619,20 +619,38 @@ export class ArtworksService {
       relatedArtworks = [...relatedArtworks, ...authorArtworks];
     }
 
-    // 4. Fallback (Any Artwork)
+    // 4. Fallback (Random Public Artworks)
     if (relatedArtworks.length < limit) {
       const remainingLimit = limit - relatedArtworks.length;
       existingIds = new Set([artworkId, ...relatedArtworks.map(a => String(a.id))]);
 
-      const rawFallbackArtworks = await this.prisma.artwork.findMany({
+      const count = await this.prisma.artwork.count({
         where: {
           id: { notIn: Array.from(existingIds) },
           status: 'PUBLISHED',
+          visibility: 'PUBLIC',
         },
-        include: this.artworkListInclude,
-        orderBy: { createdAt: 'desc' },
-        take: remainingLimit + 5,
       });
+
+      let rawFallbackArtworks: any[] = [];
+      if (count > 0) {
+        const takeAmount = remainingLimit + 5;
+        const skip = Math.max(0, Math.floor(Math.random() * (count - takeAmount + 1)));
+
+        rawFallbackArtworks = await this.prisma.artwork.findMany({
+          where: {
+            id: { notIn: Array.from(existingIds) },
+            status: 'PUBLISHED',
+            visibility: 'PUBLIC',
+          },
+          include: this.artworkListInclude,
+          skip,
+          take: takeAmount,
+        });
+
+        // Shuffle the results for better randomness
+        rawFallbackArtworks = rawFallbackArtworks.sort(() => 0.5 - Math.random());
+      }
 
       const accessibleFallbackArtworks = await this.filterAccessibleArtworks(rawFallbackArtworks, viewerId);
       const fallbackArtworks = accessibleFallbackArtworks.slice(0, remainingLimit);

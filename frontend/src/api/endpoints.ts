@@ -2,7 +2,7 @@ export const E = {
   artworks: {
     list: (limit = 25, offset = 0) => `/artworks?limit=${limit}&offset=${offset}`,
     byId: (id: string) => `/artworks/${id}`,
-    related: (id: string, limit = 6) => `/artworks/${id}/related?limit=${limit}`,
+    related: (id: string, limit = 10) => `/artworks/${id}/related?limit=${limit}`,
     popular: (limit?: number) =>
       `/artworks/popular${limit ? `?limit=${limit}` : ''}`,
     likeStatus: (id: string) => `/artworks/${id}/like-status`,
