@@ -1,7 +1,5 @@
 export { AdvancedFilterPanel } from './AdvancedFilterPanel';
 export {
-  POPULAR_TAGS,
-  RatingFilter,
   RatioOption,
   RESOLUTION_LABELS,
   ResolutionOption,

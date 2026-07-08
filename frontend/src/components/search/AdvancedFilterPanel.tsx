@@ -25,9 +25,8 @@ import {
 } from '@tabler/icons-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import { usePopularTags } from '@/api/hooks';
 import {
-  POPULAR_TAGS,
-  RatingFilter,
   RatioOption,
   RESOLUTION_LABELS,
   ResolutionOption,
@@ -46,7 +45,6 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
   const [tagsExpanded, setTagsExpanded] = useState(false);
 
   const currentTags = searchParams.getAll('tags');
-  const currentRating = (searchParams.get('rating') as RatingFilter) || RatingFilter.ALL;
   const excludeAI = searchParams.get('excludeAI') === 'true';
   const currentSort = (searchParams.get('sort') as SortOption) || SortOption.NEWEST;
   const currentRatio = searchParams.get('ratio') || '';
@@ -77,10 +75,6 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
     updateParams({ tags: newTags.length > 0 ? newTags : null });
   };
 
-  const handleRatingChange = (rating: RatingFilter) => {
-    updateParams({ rating: rating === RatingFilter.ALL ? null : rating });
-  };
-
   const handleExcludeAIChange = (checked: boolean) => {
     updateParams({ excludeAI: checked ? 'true' : null });
   };
@@ -96,6 +90,9 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
   const handleResolutionChange = (val: string) => {
     updateParams({ minRes: val === currentMinRes ? null : val || null });
   };
+
+  const { data: popularTagsData } = usePopularTags();
+  const POPULAR_TAGS = Array.isArray(popularTagsData) ? popularTagsData : [];
 
   const initialTags = POPULAR_TAGS.slice(0, INITIAL_TAGS_COUNT);
   const extraTags = POPULAR_TAGS.slice(INITIAL_TAGS_COUNT);
@@ -234,28 +231,6 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
 
         <Divider />
 
-        {/* Rating Filter */}
-        <Box>
-          <Text size="sm" fw={500} mb="xs">
-            Content Rating
-          </Text>
-          <Group gap="xs">
-            {Object.values(RatingFilter).map(rating => (
-              <Chip
-                key={rating}
-                checked={currentRating === rating}
-                onChange={() => handleRatingChange(rating)}
-                size="sm"
-                variant="outline"
-              >
-                {rating === 'ALL' ? 'All' : rating}
-              </Chip>
-            ))}
-          </Group>
-        </Box>
-
-        <Divider />
-
         {/* AI Toggle */}
         <Group justify="space-between">
           <Text size="sm">Exclude AI-generated art</Text>
@@ -281,6 +256,7 @@ export function AdvancedFilterPanel({ onFilterChange }: AdvancedFilterPanelProps
             onChange={handleSortChange}
             data={[
               { value: SortOption.NEWEST, label: 'Newest First' },
+              { value: SortOption.OLDEST, label: 'Oldest First' },
               { value: SortOption.POPULAR, label: 'Most Popular' },
             ]}
             size="sm"

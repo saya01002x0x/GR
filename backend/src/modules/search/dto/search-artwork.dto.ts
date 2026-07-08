@@ -15,14 +15,9 @@ import {
 import { Type, Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export enum RatingFilter {
-  ALL = 'ALL',
-  SAFE = 'SAFE',
-  R18 = 'R18',
-}
-
 export enum SortOption {
   NEWEST = 'newest',
+  OLDEST = 'oldest',
   POPULAR = 'popular',
 }
 
@@ -46,14 +41,6 @@ export class SearchArtworkDto {
     return value as string[];
   })
   tags?: string[];
-
-  @ApiPropertyOptional({
-    enum: RatingFilter,
-    description: 'Content rating filter',
-  })
-  @IsEnum(RatingFilter)
-  @IsOptional()
-  rating?: RatingFilter;
 
   @ApiPropertyOptional({ description: 'Exclude AI-generated artworks' })
   @IsBoolean()

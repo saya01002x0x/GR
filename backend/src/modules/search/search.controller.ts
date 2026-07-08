@@ -43,7 +43,6 @@ export class SearchController {
 
     return this.searchService.search(q, {
       tags,
-      rating: dto.rating,
       excludeAI: dto.excludeAI,
       sort: dto.sort,
       page: dto.page,

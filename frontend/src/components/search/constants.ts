@@ -1,12 +1,6 @@
-// Enums matching backend DTO
-export enum RatingFilter {
-  ALL = 'ALL',
-  SAFE = 'SAFE',
-  R18 = 'R18',
-}
-
 export enum SortOption {
   NEWEST = 'newest',
+  OLDEST = 'oldest',
   POPULAR = 'popular',
 }
 
@@ -29,15 +23,3 @@ export const RESOLUTION_LABELS: Record<ResolutionOption, string> = {
   [ResolutionOption.TWO_K]: '2K',
   [ResolutionOption.FOUR_K]: '4K',
 };
-
-export const POPULAR_TAGS = [
-  'genshin',
-  'anime',
-  'fantasy',
-  'furry',
-  'fanart',
-  'digital',
-  'oc',
-  'scenery',
-  'character',
-];

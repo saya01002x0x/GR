@@ -10,7 +10,7 @@
  * Reference: https://docs.nestjs.com/providers
  */
 
-import { Injectable, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { Artwork, ArtworkVisibility, ContentRating, ArtworkStatus } from '@prisma/client';
@@ -140,18 +140,18 @@ export class ArtworksService {
 
     // Validate at least 1 tag
     if (!dto.tags || dto.tags.length === 0) {
-      throw new ForbiddenException('At least 1 tag is required');
+      throw new BadRequestException('At least 1 tag is required');
     }
 
     // Validate file
     if (!files || files.length === 0) {
-      throw new ForbiddenException('At least 1 image is required');
+      throw new BadRequestException('At least 1 image is required');
     }
 
     let requiredTierId: string | null = null;
     if (dto.visibility === ArtworkVisibility.TIER_GATED) {
       if (!dto.requiredTierId) {
-        throw new ForbiddenException('Tier-gated artwork must have a required tier');
+        throw new BadRequestException('Tier-gated artwork must have a required tier');
       }
 
       const tier = await this.prisma.artistTier.findUnique({ where: { id: dto.requiredTierId } });

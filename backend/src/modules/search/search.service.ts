@@ -7,7 +7,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MeiliSearch, Index } from 'meilisearch';
-import { RatingFilter, SortOption } from './dto/search-artwork.dto';
+import { SortOption } from './dto/search-artwork.dto';
 
 export interface ArtworkDocument {
   id: string;
@@ -188,7 +188,6 @@ export class SearchService implements OnModuleInit {
     query: string = '',
     options: {
       tags?: string[];
-      rating?: RatingFilter;
       excludeAI?: boolean;
       sort?: SortOption;
       page?: number;
@@ -199,7 +198,6 @@ export class SearchService implements OnModuleInit {
   ): Promise<SearchResult> {
     const {
       tags,
-      rating,
       excludeAI,
       sort,
       page = 1,
@@ -215,10 +213,6 @@ export class SearchService implements OnModuleInit {
       // AND logic: all tags must match
       const tagFilters = tags.map((tag) => `tags = "${tag}"`);
       filters.push(`(${tagFilters.join(' AND ')})`);
-    }
-
-    if (rating && rating !== RatingFilter.ALL) {
-      filters.push(`rating = "${rating}"`);
     }
 
     if (excludeAI === true) {
@@ -246,6 +240,8 @@ export class SearchService implements OnModuleInit {
     let sortArr: string[] = [];
     if (sort === SortOption.NEWEST) {
       sortArr = ['createdAt:desc'];
+    } else if (sort === SortOption.OLDEST) {
+      sortArr = ['createdAt:asc'];
     } else if (sort === SortOption.POPULAR) {
       sortArr = ['likeCount:desc', 'viewCount:desc'];
     }
