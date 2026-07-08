@@ -69,9 +69,9 @@ export default function DiscoverPage() {
     <Box maw={1600} mx="auto">
       {isHeroLoading
         ? <Skeleton height={400} mb="xl" />
-        : (
-            <HeroSection items={heroItemsFormatted} />
-          )}
+        : heroItemsFormatted.length > 0
+          ? <HeroSection items={heroItemsFormatted} />
+          : null}
 
       <CategoryPills categories={categories} />
 
@@ -95,9 +95,9 @@ export default function DiscoverPage() {
 
           {isFeaturedLoading
             ? <Skeleton height={400} mb="xl" />
-            : (
-                <FeaturedArtwork artworks={featuredArtworks} />
-              )}
+            : featuredArtworks.length > 0
+              ? <FeaturedArtwork artworks={featuredArtworks} />
+              : null}
 
           {isLoading
             ? (
