@@ -411,31 +411,35 @@ export class ArtworkProcessor extends WorkerHost implements OnModuleInit {
           });
 
           if (artwork) {
-            const firstSuccessful = successfulImages[0];
-            const document: ArtworkDocument = {
-              id: artwork.id,
-              title: artwork.title,
-              description: artwork.description || '',
-              slug: artwork.id,
-              author: {
-                id: artwork.author.id,
-                username: artwork.author.username || '',
-                displayName: artwork.author.displayName || '',
-                avatar: artwork.author.avatar || '',
-              },
-              thumbnail: firstSuccessful?.thumbnailUrl || '',
-              tags: artwork.tags.map((at) => at.tag.name),
-              rating: artwork.rating || 'SAFE',
-              isAI: artwork.isAI || false,
-              createdAt: Math.floor(artwork.createdAt.getTime() / 1000),
-              likeCount: artwork.likeCount || 0,
-              viewCount: artwork.viewCount || 0,
-              ratioClass: primaryRatioClass,
-              maxResolution: primaryMaxResolution,
-              isHighRes: primaryIsHighRes,
-            };
-            await this.searchService.indexArtwork(document);
-            this.logger.log(`Job ${job.id}: Indexed artwork to Meilisearch`);
+            if (!artwork.requiredTierId) {
+              const firstSuccessful = successfulImages[0];
+              const document: ArtworkDocument = {
+                id: artwork.id,
+                title: artwork.title,
+                description: artwork.description || '',
+                slug: artwork.id,
+                author: {
+                  id: artwork.author.id,
+                  username: artwork.author.username || '',
+                  displayName: artwork.author.displayName || '',
+                  avatar: artwork.author.avatar || '',
+                },
+                thumbnail: firstSuccessful?.thumbnailUrl || '',
+                tags: artwork.tags.map((at) => at.tag.name),
+                rating: artwork.rating || 'SAFE',
+                isAI: artwork.isAI || false,
+                createdAt: Math.floor(artwork.createdAt.getTime() / 1000),
+                likeCount: artwork.likeCount || 0,
+                viewCount: artwork.viewCount || 0,
+                ratioClass: primaryRatioClass,
+                maxResolution: primaryMaxResolution,
+                isHighRes: primaryIsHighRes,
+              };
+              await this.searchService.indexArtwork(document);
+              this.logger.log(`Job ${job.id}: Indexed artwork to Meilisearch`);
+            } else {
+              this.logger.log(`Job ${job.id}: Skipped indexing artwork ${artworkId} because it is Tier-Gated`);
+            }
           }
         } catch (meiliError) {
           this.logger.error(

@@ -19,12 +19,11 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useState } from 'react';
 import { useSearchArtworks } from '@/api/hooks';
-import { useAiSearchSketch, useAiSearchText } from '@/api/hooks/use-search';
+import { useAiSearchText } from '@/api/hooks/use-search';
 import { ArtworkCard } from '@/components/artwork';
 import {
   AdvancedFilterPanel,
   SearchBar,
-  SketchSearchIndicator,
   SketchSearchModal,
   SketchSearchTrigger,
 } from '@/components/search';
@@ -38,13 +37,10 @@ function SearchContent() {
 
   // State for Sketch Search
   const [isSketchModalOpen, setIsSketchModalOpen] = useState(false);
-  const [sketchBase64, setSketchBase64] = useState<string | null>(null);
 
   // Hooks
   const { data: standardData, isLoading: isLoadingStandard, error: errorStandard } = useSearchArtworks(searchParams);
   const { data: aiData, isLoading: isLoadingAi, error: errorAi } = useAiSearchText(query, 20, searchMode === 'ai');
-  const sketchMutation = useAiSearchSketch();
-  const activeSketchBase64 = query ? null : sketchBase64;
 
   const handleSearchModeChange = useCallback((mode: 'standard' | 'ai') => {
     const params = new URLSearchParams(searchParams.toString());
@@ -59,26 +55,12 @@ function SearchContent() {
     router.push(newUrl, { scroll: false });
   }, [router, searchParams]);
 
-  const handleSketchSearch = (base64: string) => {
-    setSketchBase64(base64);
-    sketchMutation.mutate(base64);
-  };
-
-  const handleClearSketch = () => {
-    setSketchBase64(null);
-    sketchMutation.reset();
-  };
-
   // Determine which data to show
   let currentData = null;
   let currentLoading = false;
   let currentError = null;
 
-  if (activeSketchBase64) {
-    currentData = sketchMutation.data;
-    currentLoading = sketchMutation.isPending;
-    currentError = sketchMutation.error;
-  } else if (searchMode === 'ai' && query) {
+  if (searchMode === 'ai' && query) {
     currentData = aiData;
     currentLoading = isLoadingAi;
     currentError = errorAi;
@@ -105,44 +87,37 @@ function SearchContent() {
           </Grid.Col>
 
           <Grid.Col span={{ base: 12, md: 9 }}>
-            {/* Visual Indicator for Sketch Search */}
-            {activeSketchBase64 && (
-              <SketchSearchIndicator base64Image={activeSketchBase64} onClear={handleClearSketch} />
-            )}
-
             {/* Mode Toggle for Text Search */}
-            {!activeSketchBase64 && (
-              <Group mb="lg" align="center">
-                <Text size="sm" fw={500} c="dimmed">
-                  Search Mode:
-                </Text>
-                <SegmentedControl
-                  value={searchMode}
-                  onChange={val => handleSearchModeChange(val as 'standard' | 'ai')}
-                  data={[
-                    {
-                      value: 'standard',
-                      label: (
-                        <Group gap="xs" wrap="nowrap">
-                          <IconSearch size={16} />
-                          <Text size="sm">Standard</Text>
-                        </Group>
-                      ),
-                    },
-                    {
-                      value: 'ai',
-                      disabled: isSignedIn === false,
-                      label: (
-                        <Group gap="xs" wrap="nowrap">
-                          <IconSparkles size={16} />
-                          <Text size="sm">AI Semantic</Text>
-                        </Group>
-                      ),
-                    },
-                  ]}
-                />
-              </Group>
-            )}
+            <Group mb="lg" align="center">
+              <Text size="sm" fw={500} c="dimmed">
+                Search Mode:
+              </Text>
+              <SegmentedControl
+                value={searchMode}
+                onChange={val => handleSearchModeChange(val as 'standard' | 'ai')}
+                data={[
+                  {
+                    value: 'standard',
+                    label: (
+                      <Group gap="xs" wrap="nowrap">
+                        <IconSearch size={16} />
+                        <Text size="sm">Standard</Text>
+                      </Group>
+                    ),
+                  },
+                  {
+                    value: 'ai',
+                    disabled: isSignedIn === false,
+                    label: (
+                      <Group gap="xs" wrap="nowrap">
+                        <IconSparkles size={16} />
+                        <Text size="sm">AI Semantic</Text>
+                      </Group>
+                    ),
+                  },
+                ]}
+              />
+            </Group>
 
             {currentData && (
               <Text size="sm" c="dimmed" mb="md">
@@ -209,7 +184,6 @@ function SearchContent() {
       <SketchSearchModal
         opened={isSketchModalOpen}
         onClose={() => setIsSketchModalOpen(false)}
-        onSearch={handleSketchSearch}
       />
     </Container>
   );

@@ -2,7 +2,6 @@
 
 import type { RisingStar } from '@/mocks/discoverData';
 import {
-  ActionIcon,
   Anchor,
   Avatar,
   Badge,
@@ -13,7 +12,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { IconUserPlus } from '@tabler/icons-react';
+import Link from 'next/link';
 
 type SidebarContentProps = {
   risingStars: RisingStar[];
@@ -35,39 +34,30 @@ export function SidebarContent({ risingStars, popularTags }: SidebarContentProps
       <Card radius="lg" withBorder p="lg" mb="lg">
         <Group justify="space-between" mb="md">
           <Title order={5}>Rising Stars</Title>
-          <Anchor href="#" size="xs" fw={700} c="primary">
-            View All
-          </Anchor>
         </Group>
 
         <Stack gap="md">
-          {risingStars.map(star => (
-            <Group key={star.id} gap="sm" wrap="nowrap">
-              <Avatar
-                src={star.avatar}
-                size={40}
-                radius="xl"
-                style={{ flexShrink: 0 }}
-              />
-              <Box flex={1} miw={0}>
-                <Text size="sm" fw={700} lineClamp={1}>
-                  {star.name}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {star.followers}
-                  {' '}
-                  Followers
-                </Text>
-              </Box>
-              <ActionIcon
-                variant="subtle"
-                color="primary"
-                radius="xl"
-                style={{ flexShrink: 0 }}
-              >
-                <IconUserPlus size={18} />
-              </ActionIcon>
-            </Group>
+          {risingStars.map((star: any) => (
+            <Link key={star.id} href={`/artists/${star.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <Group gap="sm" wrap="nowrap" style={{ cursor: 'pointer' }}>
+                <Avatar
+                  src={star.avatar}
+                  size={40}
+                  radius="xl"
+                  style={{ flexShrink: 0 }}
+                />
+                <Box flex={1} miw={0}>
+                  <Text size="sm" fw={700} lineClamp={1}>
+                    {star.displayName || star.username || star.name}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {star.followerCount ?? star.followers ?? 0}
+                    {' '}
+                    Followers
+                  </Text>
+                </Box>
+              </Group>
+            </Link>
           ))}
         </Stack>
       </Card>

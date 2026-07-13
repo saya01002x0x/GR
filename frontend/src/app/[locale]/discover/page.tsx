@@ -57,10 +57,8 @@ export default function DiscoverPage() {
   const rankingArtworksFormatted = rankingArtworks.map((artwork: ArtworkListItem, index: number) => ({
     id: artwork.id,
     title: artwork.title,
-    artist: {
-      name: artwork.author.displayName || artwork.author.username,
-      avatar: artwork.author.avatar || '',
-    },
+    artist: artwork.author.displayName || artwork.author.username,
+    artistAvatar: artwork.author.avatar || '',
     image: artwork.images[0]?.url || artwork.images[0]?.thumbnailUrl || '',
     rank: index + 1,
   }));

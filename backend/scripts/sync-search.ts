@@ -56,7 +56,7 @@ async function main() {
 
     try {
         const artworks = await prisma.artwork.findMany({
-            where: { status: 'PUBLISHED' },
+            where: { status: 'PUBLISHED', requiredTierId: null },
             include: {
                 author: true,
                 tags: { include: { tag: true } },

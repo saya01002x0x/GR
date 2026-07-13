@@ -5,29 +5,35 @@ import {
   Box,
   Button,
   Card,
+  Center,
   ColorSwatch,
   Grid,
   Group,
+  Loader,
   Modal,
   Slider,
   Text,
   ThemeIcon,
   Title,
 } from '@mantine/core';
-import { IconBrush, IconEraser, IconSearch, IconTrash, IconUpload } from '@tabler/icons-react';
+import { IconBrush, IconEraser, IconSearch, IconTrash } from '@tabler/icons-react';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { useAiSearchSketch } from '@/api/hooks/use-search';
+import { ArtworkCard } from '@/components/artwork';
 
 type Props = {
   opened: boolean;
   onClose: () => void;
-  onSearch: (base64: string) => void;
 };
 
-export function SketchSearchModal({ opened, onClose, onSearch }: Props) {
+export function SketchSearchModal({ opened, onClose }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
   const [brushSize, setBrushSize] = useState(5);
+
+  const sketchMutation = useAiSearchSketch();
 
   useEffect(() => {
     if (opened && canvasRef.current) {
@@ -39,8 +45,9 @@ export function SketchSearchModal({ opened, onClose, onSearch }: Props) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
       }
+      sketchMutation.reset();
     }
-  }, [opened]);
+  }, [opened, sketchMutation]);
 
   const getPointerPosition = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -49,6 +56,8 @@ export function SketchSearchModal({ opened, onClose, onSearch }: Props) {
     }
 
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
 
     if ('touches' in e) {
       const touch = e.touches[0];
@@ -57,14 +66,14 @@ export function SketchSearchModal({ opened, onClose, onSearch }: Props) {
       }
 
       return {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top,
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY,
       };
     }
 
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
     };
   };
 
@@ -123,14 +132,14 @@ export function SketchSearchModal({ opened, onClose, onSearch }: Props) {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
     }
+    sketchMutation.reset();
   };
 
   const handleSearch = () => {
     const canvas = canvasRef.current;
     if (canvas) {
       const base64 = canvas.toDataURL('image/png');
-      onSearch(base64);
-      onClose();
+      sketchMutation.mutate(base64);
     }
   };
 
@@ -138,7 +147,7 @@ export function SketchSearchModal({ opened, onClose, onSearch }: Props) {
     <Modal
       opened={opened}
       onClose={onClose}
-      size="xl"
+      size="70rem"
       title={(
         <Box>
           <Title order={2}>Search by Sketch</Title>
@@ -224,36 +233,13 @@ export function SketchSearchModal({ opened, onClose, onSearch }: Props) {
             gradient={{ from: 'red', to: 'pink', deg: 45 }}
             leftSection={<IconSearch size={20} />}
             onClick={handleSearch}
+            loading={sketchMutation.isPending}
           >
             Search Artworks
           </Button>
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 4 }}>
-          {/* Upload Reference Mock */}
-          <Card withBorder radius="md" mb="md">
-            <Group mb="md">
-              <IconUpload size={20} color="var(--mantine-color-red-6)" />
-              <Text fw={600}>Upload Reference</Text>
-            </Group>
-            <Box
-              p="xl"
-              style={{
-                border: '2px dashed var(--mantine-color-gray-3)',
-                borderRadius: 'var(--mantine-radius-md)',
-                textAlign: 'center',
-                backgroundColor: 'var(--mantine-color-gray-0)',
-              }}
-            >
-              <Text size="sm" c="dimmed">
-                Drag & drop a rough sketch or
-              </Text>
-              <Text size="sm" c="red" fw={500} style={{ cursor: 'pointer' }}>
-                Browse files
-              </Text>
-            </Box>
-          </Card>
-
           {/* Mood Palette Mock */}
           <Card withBorder radius="md">
             <Group mb="md">
@@ -276,6 +262,48 @@ export function SketchSearchModal({ opened, onClose, onSearch }: Props) {
           </Card>
         </Grid.Col>
       </Grid>
+
+      {/* Results Section */}
+      <Box mt="xl">
+        {sketchMutation.isPending && (
+          <Center py="xl">
+            <Loader color="red" />
+          </Center>
+        )}
+
+        {sketchMutation.isError && (
+          <Center py="xl">
+            <Text c="red">Failed to search by sketch. Please try again.</Text>
+          </Center>
+        )}
+
+        {sketchMutation.data && sketchMutation.data.hits?.length > 0 && (
+          <>
+            <Title order={3} mb="md">Search Results</Title>
+            <Grid gutter="md">
+              {sketchMutation.data.hits.map((artwork: any) => (
+                <Grid.Col key={artwork.id} span={{ base: 6, sm: 4, lg: 3 }}>
+                  <Link href={`/artworks/${artwork.id}`} style={{ textDecoration: 'none' }} onClick={onClose}>
+                    <ArtworkCard
+                      title={artwork.title}
+                      image={artwork.thumbnail || artwork.images?.[0]?.url || artwork.images?.[0]?.thumbnailUrl}
+                      artist={artwork.author?.displayName || artwork.author?.username || 'Unknown'}
+                      artistAvatar={artwork.author?.avatar}
+                      size="sm"
+                    />
+                  </Link>
+                </Grid.Col>
+              ))}
+            </Grid>
+          </>
+        )}
+
+        {sketchMutation.data && sketchMutation.data.hits?.length === 0 && (
+          <Center py="xl">
+            <Text c="dimmed">No similar artworks found. Try drawing something else!</Text>
+          </Center>
+        )}
+      </Box>
     </Modal>
   );
 }

@@ -8,6 +8,7 @@ import {
   Tabs,
   Title,
 } from '@mantine/core';
+import Link from 'next/link';
 import { ArtworkCard } from '@/components/artwork';
 
 type RankingTab = {
@@ -70,14 +71,16 @@ export function RankingSection({ tabs, artworks, activeTab, onTabChange }: Ranki
       {/* Grid */}
       <SimpleGrid cols={{ base: 2, xs: 3, sm: 4, md: 5, lg: 6 }} spacing="sm">
         {artworks.map(artwork => (
-          <ArtworkCard
-            key={artwork.id}
-            title={artwork.title}
-            image={artwork.image}
-            artist={artwork.artist}
-            rank={artwork.rank}
-            size="sm"
-          />
+          <Link key={artwork.id} href={`/artworks/${artwork.id}`} style={{ textDecoration: 'none' }}>
+            <ArtworkCard
+              title={artwork.title}
+              image={artwork.image}
+              artist={artwork.artist}
+              artistAvatar={artwork.artistAvatar}
+              rank={artwork.rank}
+              size="sm"
+            />
+          </Link>
         ))}
       </SimpleGrid>
     </Box>
