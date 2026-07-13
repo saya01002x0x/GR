@@ -1,7 +1,15 @@
 import type { Metadata } from 'next';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import Script from 'next/script';
 import { AppConfig } from '@/utils/AppConfig';
 import '@/styles/global.css';
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin', 'vietnamese'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-sans',
+});
 
 export const metadata: Metadata = {
   icons: [
@@ -32,7 +40,7 @@ export default function RootLayout(props: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang={AppConfig.defaultLocale} suppressHydrationWarning>
+    <html lang={AppConfig.defaultLocale} suppressHydrationWarning className={plusJakartaSans.variable}>
       <head suppressHydrationWarning>
         <Script
           id="mantine-color-scheme"

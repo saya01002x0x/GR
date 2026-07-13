@@ -1,5 +1,6 @@
 'use client';
 
+import type { Metadata } from 'next';
 import type { ArtworkListItem } from '@/types/artwork';
 import { Box, Flex, Skeleton, Stack, Text, Title } from '@mantine/core';
 import { useState } from 'react';
@@ -20,6 +21,11 @@ import {
   SidebarContent,
 } from '@/components/discover';
 import { categories, rankingTabs } from '@/mocks/discoverData';
+
+export const metadata: Metadata = {
+  title: 'Khám phá Tác phẩm | Nền tảng nghệ thuật số Lumina',
+  description: 'Tìm kiếm đa phương thức và kết nối không giới hạn với các họa sĩ sáng tạo trên toàn thế giới.',
+};
 
 export default function DiscoverPage() {
   const { artworks, hasMore, isLoading, isLoadingMore, loadMore } = useArtworks({ limit: 24 });
@@ -79,7 +85,7 @@ export default function DiscoverPage() {
         px={{ base: 'md', md: 'xl' }}
         pb="xl"
       >
-        <Box flex={1} miw={0}>
+        <Box flex={1} miw={0} mih={800}>
           {isRankingLoading
             ? <Skeleton height={300} mb="xl" />
             : (

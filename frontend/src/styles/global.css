@@ -1,9 +1,7 @@
 @layer theme, base, clerk, components, utilities;
 /* Ensure Clerk is compatible with Tailwind CSS v4 */
 
-/* Import Plus Jakarta Sans font for ArtSpace design */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
+/* Import Plus Jakarta Sans font for ArtSpace design is handled via next/font in layout.tsx */
 @import 'tailwindcss';
 
 /* Masonry grid layout for artwork gallery */

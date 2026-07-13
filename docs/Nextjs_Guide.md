@@ -205,3 +205,12 @@ Tổng hợp các khái niệm Next.js và Frontend đã sử dụng trong dự 
      \ \ \ 
  -   * * �n g   d �n g : * *   D � n g   �  x � y   d �n g   t � n h   n n g   A u t o c o m p l e t e   T a g   k h i   n g ��i   d � n g   g �   t � m   k i �m   t r o n g   S e a r c h B a r . t s x ,   c h o   p h � p   t � y   c h �n h   g i a o   d i �n   d r o p d o w n   l i n h   h o �t   h �n   s o   v �i   c o m p o n e n t   A u t o c o m p l e t e   c �   s �n .  
  
+#### [fetchPriority='high']
+- **Là gì:** Thuộc tính HTML giúp trình duyệt ưu tiên tải tài nguyên (ảnh LCP) ngay lập tức.
+- **Cách dùng:** <img src='...' fetchPriority='high' />
+- **Ứng dụng:** Khắc phục lỗi LCP Lighthouse mà không cần next/image nếu ảnh đã optimize.
+
+#### [clerkMiddleware publicRoutes]
+- **Là gì:** Middleware Clerk bỏ qua xác thực cho trang public.
+- **Cách dùng:** const isPublicRoute = createRouteMatcher(['/discover']); clerkMiddleware(async (auth, req) => { if (!isPublicRoute(req)) await auth.protect(); });
+- **Ứng dụng:** Tránh Clerk handshake redirects chậm trên trang không cần đăng nhập.

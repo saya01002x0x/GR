@@ -141,6 +141,7 @@ export function ArtworkCard({
             size={isCompact ? 'sm' : 'md'}
             variant="filled"
             color="dark"
+            aria-label="Yêu thích tác phẩm"
             style={{
               opacity: hovered ? 1 : 0,
               transition: 'opacity 0.2s ease',
@@ -193,7 +194,7 @@ export function ArtworkCard({
       {artist && (
         <Group gap={isCompact ? 4 : 'xs'} mt={2}>
           {artistAvatar && !isCompact && (
-            <Avatar src={artistAvatar} size={16} radius="xl" />
+            <Avatar src={artistAvatar} alt={artist || 'Avatar họa sĩ'} size={16} radius="xl" />
           )}
           <Text size="xs" c="dimmed" lineClamp={1}>
             {artistAvatar && !isCompact ? artist : `by ${artist}`}

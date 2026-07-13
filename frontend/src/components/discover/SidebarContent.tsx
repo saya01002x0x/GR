@@ -42,6 +42,7 @@ export function SidebarContent({ risingStars, popularTags }: SidebarContentProps
               <Group gap="sm" wrap="nowrap" style={{ cursor: 'pointer' }}>
                 <Avatar
                   src={star.avatar}
+                  alt={star.displayName || star.username || star.name || 'Avatar họa sĩ'}
                   size={40}
                   radius="xl"
                   style={{ flexShrink: 0 }}
@@ -67,7 +68,7 @@ export function SidebarContent({ risingStars, popularTags }: SidebarContentProps
         <Title order={5} mb="sm">
           Popular Tags
         </Title>
-        <Group gap="xs">
+        <Group gap="xs" mih={80}>
           {popularTags.map(tag => (
             <Badge
               key={tag}

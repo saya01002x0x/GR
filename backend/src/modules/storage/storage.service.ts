@@ -121,7 +121,7 @@ export class StorageService implements OnModuleInit {
       .rotate() // Auto-rotate based on EXIF
       // omitted .withMetadata() to strip EXIF (GPS, camera info)
       .resize(maxWidth, undefined, { withoutEnlargement: true })
-      .jpeg({ quality, progressive: true })
+      .webp({ quality, effort: 4 })
       .toBuffer();
 
     // Get processed metadata
@@ -134,7 +134,7 @@ export class StorageService implements OnModuleInit {
         height: processedMeta.height || height,
         aspectRatio:
           (processedMeta.width || width) / (processedMeta.height || height),
-        format: 'jpeg',
+        format: 'webp',
       },
     };
   }
@@ -149,7 +149,7 @@ export class StorageService implements OnModuleInit {
     return await sharp(buffer)
       .rotate() // Auto-rotate based on EXIF
       // omitted .withMetadata() to strip EXIF
-      .jpeg({ quality: 100, progressive: true })
+      .webp({ quality: 100 })
       .toBuffer();
   }
 
@@ -161,7 +161,7 @@ export class StorageService implements OnModuleInit {
       .rotate()
       // omitted .withMetadata() to strip EXIF
       .resize(size, size, { fit: 'cover' })
-      .jpeg({ quality: 70 })
+      .webp({ quality: 70, effort: 4 })
       .toBuffer();
   }
 
@@ -179,7 +179,7 @@ export class StorageService implements OnModuleInit {
       // omitted .withMetadata() to strip EXIF
       .resize(size, size, { fit: 'inside', withoutEnlargement: true })
       .blur(blurRadius)
-      .jpeg({ quality: 50, progressive: true })
+      .webp({ quality: 50, effort: 4 })
       .toBuffer();
   }
 
@@ -191,7 +191,7 @@ export class StorageService implements OnModuleInit {
   async uploadFile(
     buffer: Buffer,
     key: string,
-    contentType = 'image/jpeg',
+    contentType = 'image/webp',
   ): Promise<string> {
     await this.s3Client.send(
       new PutObjectCommand({
@@ -278,7 +278,7 @@ export class StorageService implements OnModuleInit {
     variant: string,
   ): string {
     const date = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
-    return `artworks/${userId}/${date}/${artworkId}_${variant}.jpg`;
+    return `artworks/${userId}/${date}/${artworkId}_${variant}.webp`;
   }
 
   private readonly WATERMARK_PADDING = 20;

@@ -339,3 +339,7 @@ Module gợi ý artwork dựa trên hành vi tương tác của người dùng, 
 ### [30/06] - [Sửa lỗi báo cáo đồ án LaTeX]
 - **Logic:** Cập nhật lại các file LaTeX (Bìa, Tóm tắt, Các chương) dựa theo yêu cầu và báo cáo rà soát. Gộp chung 'Từ viết tắt' và 'Thuật ngữ' vào một file duy nhất, chỉnh sửa các lỗi chính tả (đăng ký gói, khiếu nại, USD, mili giây, SQL Injection), và cập nhật lại số thứ tự hình vẽ từ 4_8 thành 4_7 để đảm bảo tính liên tục.
 - **Decision:** Sử dụng file 0_5_Danh_muc_viet_tat.tex mới gộp chung hai bảng. Dùng script node.js để tự động sửa lại toàn bộ refs ảnh trong báo cáo thông qua Regex an toàn.
+
+### [13/07] - [Tối ưu hóa Lighthouse LCP, CLS, Clerk Middleware & Security]
+- **Logic:** Tối ưu điểm Lighthouse bằng thẻ <img> thuần có fetchpriority='high', thêm Middleware Clerk, cấu hình Nginx Security Headers, đổi format Sharp sang WebP. Thêm metadata và fix CLS cho Grid.
+- **Decision:** Dùng thẻ <img> thuần thay vì next/image do Backend (Sharp) đã xuất WebP tối ưu. Tránh overhead cho Next.js server.

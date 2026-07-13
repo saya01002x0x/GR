@@ -43,13 +43,17 @@ function HeroCard({ item, isMain = false }: HeroCardProps) {
         right={0}
         bottom={0}
         style={{
-          backgroundImage: `url(${item.image})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
           transition: 'transform 0.7s ease',
           transform: hovered ? 'scale(1.05)' : 'scale(1)',
         }}
-      />
+      >
+        <img
+          src={item.image}
+          alt={item.title}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          {...(isMain ? { fetchPriority: 'high' as any } : { loading: 'lazy' })}
+        />
+      </Box>
 
       {/* Gradient Overlay */}
       <Box
