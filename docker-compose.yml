@@ -37,7 +37,7 @@ services:
     container_name: gr-postgres
     restart: unless-stopped
     ports:
-      - "5433:5432"  # Changed: Host port 5433 to avoid conflict
+      - "5430:5432"  # Changed: Host port 5430 to avoid conflict with Hyper-V reserved range
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -139,7 +139,7 @@ services:
     container_name: gr-pgadmin
     restart: unless-stopped
     ports:
-      - "5050:80"
+      - "5150:80"  # Changed: Host port 5150 to avoid conflict with Hyper-V reserved range
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin

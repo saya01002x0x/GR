@@ -92,7 +92,7 @@ export function NotificationBell() {
       <Popover.Dropdown p={0}>
         <Group justify="space-between" px="md" py="sm" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
           <Group gap="xs">
-            <Text fw={600} size="sm">Thông báo</Text>
+            <Text fw={600} size="sm">Notice</Text>
             {unreadCount > 0 && (
               <Badge size="xs" color="red" variant="filled">{unreadCount}</Badge>
             )}
@@ -104,7 +104,7 @@ export function NotificationBell() {
               leftSection={<IconCheck size={12} />}
               onClick={markAllRead}
             >
-              Đọc tất cả
+              Read all
             </Button>
           )}
         </Group>
